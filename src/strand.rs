@@ -63,3 +63,69 @@ impl Add<u16> for Strand {
         Self(self.0 + rhs)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{Strand, StrandValidationError};
+    use googletest::assert_that;
+    use googletest::matchers::{anything, eq, ok};
+    use std::assert_matches;
+
+    #[test]
+    fn valid_strand_can_be_constructed() {
+        let strand = Strand::new(1);
+        assert_that!(strand, ok(anything()));
+        assert_that!(strand.unwrap().index(), eq(1));
+    }
+
+    #[test]
+    fn zero_strand_cannot_be_constructed() {
+        let strand = Strand::new(0);
+        assert_matches!(strand, Err(StrandValidationError::ZeroStrand));
+    }
+
+    #[test]
+    fn valid_subtraction_of_strands_succeeds() {
+        let s1 = Strand::new(5).unwrap();
+        let s2 = Strand::new(3).unwrap();
+        let result = s1 - s2;
+        assert_that!(result, ok(eq(&Strand(2))));
+    }
+
+    #[test]
+    fn invalid_subtraction_of_strands_fails() {
+        let s1 = Strand::new(3).unwrap();
+        let s2 = Strand::new(5).unwrap();
+        let result = s1 - s2;
+        assert_matches!(result, Err(StrandValidationError::NegativeStrand));
+    }
+
+    #[test]
+    fn valid_subtraction_of_u16_from_strand_succeeds() {
+        let s1 = Strand::new(5).unwrap();
+        let result = s1 - 3;
+        assert_that!(result, ok(eq(&Strand(2))));
+    }
+
+    #[test]
+    fn invalid_subtraction_of_u16_from_strand_fails() {
+        let s1 = Strand::new(3).unwrap();
+        let result = s1 - 5;
+        assert_matches!(result, Err(StrandValidationError::NegativeStrand));
+    }
+
+    #[test]
+    fn two_strands_can_be_added() {
+        let s1 = Strand::new(5).unwrap();
+        let s2 = Strand::new(3).unwrap();
+        let result = s1 + s2;
+        assert_that!(result, eq(Strand(8)));
+    }
+
+    #[test]
+    fn a_u16_can_be_added_to_a_strand() {
+        let s1 = Strand::new(5).unwrap();
+        let result = s1 + 3;
+        assert_that!(result, eq(Strand(8)));
+    }
+}
