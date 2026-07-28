@@ -16,3 +16,16 @@ impl Neg for Sign {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::Sign;
+    use googletest::assert_that;
+    use googletest::matchers::eq;
+
+    #[test]
+    fn sign_can_be_negated() {
+        assert_that!(-Sign::Positive, eq(Sign::Negative));
+        assert_that!(-Sign::Negative, eq(Sign::Positive));
+    }
+}
