@@ -1,9 +1,11 @@
-use crate::{BraidIndex, Sign, Strand};
+use crate::{ArtinGenerator, BraidIndex, Sign, Strand};
 use std::ops::Neg;
 
 /// Error type representing failures that may occur during construction of `BandGenerator`
 #[derive(thiserror::Error, Debug)]
 pub enum BandValidationError {
+    #[error("{0}")]
+    ArtinConversionFailure(String),
     #[error("foot strand and head strand are the same ({0:?})")]
     FootOnHead(Strand),
     #[error("foot strand ({foot:?}) is over head strand ({head:?})")]
@@ -43,6 +45,71 @@ impl BandGenerator {
             return Err(BandValidationError::FootOverHead { foot, head });
         }
         Ok(Self { foot, head, sign })
+    }
+    pub fn from_artin(band_parts: &[ArtinGenerator]) -> Result<Self, BandValidationError> {
+        let mut band_parts = band_parts;
+        let mut upper_staircase = Vec::new();
+        let mut lower_staircase = Vec::new();
+
+        while let Some(left_step) = band_parts.first() {
+            if left_step.sign() == Sign::Positive {
+                upper_staircase.push(left_step)
+            } else {
+                lower_staircase.push(left_step)
+            }
+
+            band_parts = &band_parts[1..];
+
+            if let (Some(upper_step), Some(lower_step)) =
+                (upper_staircase.last(), lower_staircase.last())
+                && upper_step.foot() == lower_step.foot() + 2
+            {
+                break;
+            }
+        }
+
+        let crossing = if let Some(crossing) = band_parts.first() {
+            crossing
+        } else {
+            return Err(BandValidationError::ArtinConversionFailure(
+                "Valid crossing generator not found.".to_string(),
+            ));
+        };
+        let foot = if let Some(step) = lower_staircase.first() {
+            step.foot()
+        } else {
+            crossing.foot()
+        };
+        let head = if let Some(step) = upper_staircase.first() {
+            step.foot() + 1
+        } else {
+            crossing.foot() + 1
+        };
+
+        while let Some(right_step) = band_parts.first() {
+            let left_step = if right_step.sign() == Sign::Positive {
+                lower_staircase.pop()
+            } else {
+                upper_staircase.pop()
+            };
+
+            if left_step.is_none_or(|s| *s != -*right_step) {
+                return Err(BandValidationError::ArtinConversionFailure(format!(
+                    "Generators should be inverses: {:?} != -{:?}",
+                    left_step, right_step,
+                )));
+            }
+
+            band_parts = &band_parts[1..]
+        }
+
+        if !lower_staircase.is_empty() || !upper_staircase.is_empty() {
+            return Err(BandValidationError::ArtinConversionFailure(
+                "List of band parts is not balanced with respect to crossing.".to_string(),
+            ));
+        }
+
+        Self::new(foot, head, crossing.sign())
     }
 
     /// Accessor for `foot` strand field
