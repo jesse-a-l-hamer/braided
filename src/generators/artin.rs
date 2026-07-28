@@ -51,10 +51,33 @@ impl Neg for ArtinGenerator {
     }
 }
 
-macro_rules! artin {
-    ($foot:expr; 0) => {};
-    ($foot:expr; +) => {};
-    ($foot:expr; -) => {};
-    ($foot:expr; +$power:expr) => {};
-    ($foot:expr; -$power:expr) => {};
+macro_rules! _artin {
+    ($foot:expr; 0) => {
+        Vec::<ArtinGenerator>::new()
+    };
+    ($foot:expr; +) => {
+        ArtinGenerator::new($foot, Sign::Positive)
+    };
+    ($foot:expr; -) => {
+        ArtinGenerator::new($foot, Sign::Negative)
+    };
+    ($foot:expr; +$power:expr) => {
+        {
+            let mut word = Vec::<ArtinGenerator>::new();
+            for _ in ..$power {
+                word.push(artin![$foot; +]);
+            }
+            word
+        }
+    };
+    ($foot:expr; -$power:expr) => {
+        {
+            let mut word = Vec::<ArtinGenerator>::new();
+            for _ in ..$power {
+                word.push(artin![$foot; -]);
+            }
+            word
+        }
+
+    };
 }
