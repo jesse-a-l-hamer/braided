@@ -1,4 +1,4 @@
-use std::ops::Sub;
+use std::ops::{Add, Sub};
 
 #[derive(Debug, thiserror::Error)]
 pub enum StrandValidationError {
@@ -45,5 +45,21 @@ impl Sub<u16> for Strand {
             return Err(StrandValidationError::NegativeStrand);
         }
         Self::new(self.0 - rhs)
+    }
+}
+
+impl Add for Strand {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        Self(self.0 + rhs.0)
+    }
+}
+
+impl Add<u16> for Strand {
+    type Output = Self;
+
+    fn add(self, rhs: u16) -> Self::Output {
+        Self(self.0 + rhs)
     }
 }
