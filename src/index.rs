@@ -17,3 +17,23 @@ impl BraidIndex {
         Ok(Self(index))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{BraidIndex, IndexValidationError};
+    use googletest::assert_that;
+    use googletest::matchers::{eq, ok};
+    use std::assert_matches;
+
+    #[test]
+    fn a_valid_index_can_be_constructed() {
+        let index = BraidIndex::new(3);
+        assert_that!(index, ok(eq(&BraidIndex(3))));
+    }
+
+    #[test]
+    fn braid_index_cannot_be_zero() {
+        let index = BraidIndex::new(0);
+        assert_matches!(index, Err(IndexValidationError::ZeroIndex));
+    }
+}
