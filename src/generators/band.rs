@@ -9,7 +9,7 @@ pub enum BandValidationError {
     #[error("foot strand ({foot:?}) is over head strand ({head:?})")]
     FootOverHead { foot: Strand, head: Strand },
     #[error(transparent)]
-    UnknownError(#[from] anyhow::Error),
+    Unknown(#[from] anyhow::Error),
 }
 
 /// Struct representing a generator in the band presentation of a braid group.
@@ -26,7 +26,7 @@ pub enum BandValidationError {
 /// $(i+1)$ passes over strand $i$. There are in fact $h - f$ ways to decompose $b_{f, h}^{\pm 1}$
 /// as a product of Artin generators, but we shall employ the following convention by default:
 /// $$b_{f, h}^{\pm 1}=a_f^{-1}a_{f+1}^{-1}\cdots a_{h-1}^{-1}a_h^{\pm 1}a_{h-1}\cdots a_{f+1}a_f.$$
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct BandGenerator {
     foot: Strand,
     head: Strand,
@@ -69,7 +69,10 @@ impl BandGenerator {
     }
     /// The minimal braid index required to define the braid.
     pub fn minimal_required_braid_index(&self) -> BraidIndex {
-        BraidIndex::new(self.head.index())
+        BraidIndex::new(self.head.index()).unwrap()
+    }
+    pub fn artin_length(&self) -> u16 {
+        1 + (self.height() - 1) * 2
     }
 }
 
