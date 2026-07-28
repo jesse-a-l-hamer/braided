@@ -333,9 +333,7 @@ fn decompose_band(band: &BandGenerator) -> Vec<ArtinGenerator> {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    struct ConversionTestFixture {
-        artin_word: Vec<ArtinGenerator>,
-        band_word: Vec<BandGenerator>,
-    }
+    use googletest::assert_that;
+    use googletest::matchers::{eq, ok};
+    use std::assert_matches;
 }

@@ -81,3 +81,11 @@ macro_rules! _artin {
 
     };
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use googletest::assert_that;
+    use googletest::matchers::{eq, ok};
+    use std::assert_matches;
+}
