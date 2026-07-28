@@ -1,3 +1,5 @@
+use anyhow::Context;
+
 use crate::{ArtinGenerator, BraidIndex, Sign, Strand};
 use std::ops::Neg;
 
@@ -37,7 +39,9 @@ pub struct BandGenerator {
 
 impl BandGenerator {
     /// Constructor for `BandGenerator`
-    pub fn new(foot: Strand, head: Strand, sign: Sign) -> Result<Self, BandValidationError> {
+    pub fn new(foot: u16, head: u16, sign: Sign) -> Result<Self, BandValidationError> {
+        let foot = Strand::new(foot).context("Failed to construct foot strand.")?;
+        let head = Strand::new(head).context("Failed to construct head strand.")?;
         if foot == head {
             return Err(BandValidationError::FootOnHead(foot));
         }
@@ -109,7 +113,7 @@ impl BandGenerator {
             ));
         }
 
-        Self::new(foot, head, crossing.sign())
+        Self::new(foot.index(), head.index(), crossing.sign())
     }
 
     /// Accessor for `foot` strand field
@@ -147,6 +151,14 @@ impl Neg for BandGenerator {
     type Output = Self;
 
     fn neg(self) -> Self::Output {
-        Self::new(self.foot, self.head, -self.sign).unwrap()
+        Self::new(self.foot.index(), self.head.index(), -self.sign).unwrap()
     }
+}
+
+macro_rules! band {
+    ($foot:expr, $head:expr; 0) => {};
+    ($foot:expr, $head:expr; +) => {};
+    ($foot:expr, $head:expr; -) => {};
+    ($foot:expr, $head:expr; +$power:expr) => {};
+    ($foot:expr, $head:expr; -$power:expr) => {};
 }

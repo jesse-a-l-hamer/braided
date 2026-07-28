@@ -321,11 +321,21 @@ pub fn band_to_artin(bands: &[BandGenerator]) -> Vec<ArtinGenerator> {
 
 fn decompose_band(band: &BandGenerator) -> Vec<ArtinGenerator> {
     // Band decomposition is infallible, so it's safe to unwrap any intermediate results
-    let crossing = ArtinGenerator::new((band.head() - 1).unwrap(), band.sign()).unwrap();
+    let crossing = ArtinGenerator::new(band.head().index() - 1, band.sign()).unwrap();
     let mut left = Vec::new();
     for foot_idx in band.foot().index()..(band.head().index() - 1) {
-        left.push(ArtinGenerator::new(Strand::new(foot_idx).unwrap(), Sign::Negative).unwrap());
+        left.push(ArtinGenerator::new(foot_idx, Sign::Negative).unwrap());
     }
     let right = left.iter().rev().map(|a| -*a).collect();
     [left, vec![crossing], right].concat()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    struct ConversionTestFixture {
+        artin_word: Vec<ArtinGenerator>,
+        band_word: Vec<BandGenerator>,
+    }
 }

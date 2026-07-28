@@ -1,3 +1,5 @@
+use anyhow::Context;
+
 use crate::{BraidIndex, Sign, Strand};
 use std::ops::Neg;
 
@@ -21,7 +23,8 @@ pub struct ArtinGenerator {
 
 impl ArtinGenerator {
     /// Constructor for ArtinGenerator
-    pub fn new(foot: Strand, sign: Sign) -> Result<Self, ArtinValidationError> {
+    pub fn new(foot: u16, sign: Sign) -> Result<Self, ArtinValidationError> {
+        let foot = Strand::new(foot).context("Failed to construct foot strand.")?;
         Ok(Self { foot, sign })
     }
 
@@ -44,6 +47,14 @@ impl Neg for ArtinGenerator {
     type Output = Self;
 
     fn neg(self) -> Self::Output {
-        Self::new(self.foot, -self.sign).unwrap()
+        Self::new(self.foot.index(), -self.sign).unwrap()
     }
+}
+
+macro_rules! artin {
+    ($foot:expr; 0) => {};
+    ($foot:expr; +) => {};
+    ($foot:expr; -) => {};
+    ($foot:expr; +$power:expr) => {};
+    ($foot:expr; -$power:expr) => {};
 }
