@@ -50,12 +50,13 @@ impl Neg for ArtinGenerator {
     }
 }
 
+#[macro_export]
 macro_rules! artin {
     ($foot:expr; +) => {
-        ArtinGenerator::new($foot, Sign::Positive)
+        $crate::ArtinGenerator::new($foot, $crate::Sign::Positive)
     };
     ($foot:expr; -) => {
-        ArtinGenerator::new($foot, Sign::Negative)
+        $crate::ArtinGenerator::new($foot, $crate::Sign::Negative)
     };
     ($foot:expr; $power:expr) => {
         {
@@ -65,7 +66,9 @@ macro_rules! artin {
                 artin![$foot; +]
             };
             let repetitions: usize = ($power as i16).abs().try_into().unwrap();
-            let result: Result<Vec<ArtinGenerator>, ArtinValidationError> = match letter {
+            let result: Result<
+                Vec<$crate::ArtinGenerator>, $crate::generators::artin::ArtinValidationError
+            > = match letter {
                 Ok(generator) => Ok(vec![generator; repetitions]),
                 Err(e) => Err(e),
             };
