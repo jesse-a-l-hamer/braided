@@ -156,33 +156,26 @@ impl Neg for BandGenerator {
 }
 
 macro_rules! _band {
-    ($foot:expr, $head:expr; 0) => {
-        Vec::<BandGenerator>::new()
-    };
     ($foot:expr, $head:expr; +) => {
         BandGenerator::new($foot, $head, Sign::Positive)
     };
     ($foot:expr, $head:expr; -) => {
         BandGenerator::new($foot, $head, Sign::Negative)
     };
-    ($foot:expr, $head:expr; +$power:expr) => {
+    ($foot:expr, $head:expr; $power:expr) => {
         {
-            let mut word = Vec::<BandGenerator>::new();
-            for _ in ..$power {
-                word.push(band![$foot, $head; +]);
-            }
-            word
+            let letter = if $power < 0 {
+                band![$foot, $head; -]
+            } else {
+                band![$foot, $head; +]
+            };
+            let repetitions: usize = ($power as i16).abs().try_into().unwrap();
+            let result: Result<Vec<BandGenerator>, BandValidationError> = match letter {
+                Ok(generator) => Ok(vec![generator; repetitions]),
+                Err(e) => Err(e),
+            };
+            result
         }
-    };
-    ($foot:expr, $head:expr; -$power:expr) => {
-        {
-            let mut word = Vec::<BandGenerator>::new();
-            for _ in ..$power {
-                word.push(band![$foot, $head; -]);
-            }
-            word
-        }
-
     };
 }
 
