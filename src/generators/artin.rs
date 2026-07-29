@@ -154,57 +154,45 @@ mod tests {
 
     #[test]
     fn macro_artin_with_positive_sign_returns_positive_artin_generator() {
-        let generator = artin![7; +].expect("Failed to construct Artin generator.");
+        let generator = artin![7; +];
         assert_that!(
             generator,
-            eq(ArtinGenerator {
-                foot: Strand::new(7).unwrap(),
-                sign: Sign::Positive
-            })
+            ok(eq(&ArtinGenerator::new(7, Sign::Positive).unwrap()))
         )
     }
 
     #[test]
     fn macro_artin_with_negative_sign_returns_negative_artin_generator() {
-        let generator = artin![2; -].expect("Failed to construct Artin generator.");
+        let generator = artin![2; -];
         assert_that!(
             generator,
-            eq(ArtinGenerator {
-                foot: Strand::new(2).unwrap(),
-                sign: Sign::Negative
-            })
+            ok(eq(&ArtinGenerator::new(2, Sign::Negative).unwrap()))
         )
     }
 
     #[test]
     fn macro_artin_with_zero_returns_empty_vector() {
-        let trivial = artin![9; 0].expect("Failed to construct zero-power Artin generator.");
-        assert_that!(trivial, is_empty());
+        let trivial = artin![9; 0];
+        assert_that!(trivial, ok(is_empty()));
     }
 
     #[test]
     fn macro_artin_with_power_returns_vector_of_positive_artin_generators() {
-        let power_generator = artin![3; 4].expect("Failed to construct power of Artin generator.");
-        assert_that!(power_generator, len(eq(4)));
+        let power_generator = artin![3; 4];
+        assert_that!(power_generator, ok(len(eq(4))));
         assert_that!(
             power_generator,
-            each(eq(&ArtinGenerator {
-                foot: Strand::new(3).unwrap(),
-                sign: Sign::Positive
-            }))
+            ok(each(eq(&ArtinGenerator::new(3, Sign::Positive).unwrap())))
         );
     }
 
     #[test]
     fn macro_artin_with_negative_power_returns_vector_of_negative_artin_generators() {
-        let power_generator = artin![7; -5].expect("Failed to construct power of Artin generator.");
-        assert_that!(power_generator, len(eq(5)));
+        let power_generator = artin![7; -5];
+        assert_that!(power_generator, ok(len(eq(5))));
         assert_that!(
             power_generator,
-            each(eq(&ArtinGenerator {
-                foot: Strand::new(7).unwrap(),
-                sign: Sign::Negative
-            }))
+            ok(each(eq(&ArtinGenerator::new(7, Sign::Negative).unwrap())))
         );
     }
 }
