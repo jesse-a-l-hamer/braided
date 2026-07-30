@@ -144,6 +144,29 @@ impl Mul for Braid {
     }
 }
 
+#[macro_export]
+macro_rules! braid {
+    ($index:expr; $([$foot:expr; $power:expr]),*) => {
+        {
+            let mut word = Vec::<$crate::ArtinGenerator>::new();
+            $(word.extend($crate::artin![$foot; $power].expect(
+                "Failed to define Artin generator."
+            )));*
+            Braid::from_artin($index, word)
+        }
+    };
+
+    ($index:expr; $([$foot:expr, $head:expr; $power:expr]),*) => {
+        {
+            let mut word = Vec::<$crate::BandGenerator>::new();
+            $(word.extend($crate::band![$foot, $head; $power].expect(
+                "Failed to define band generator."
+            )));*
+            Braid::new($index, word)
+        }
+    };
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
