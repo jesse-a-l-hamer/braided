@@ -98,11 +98,11 @@ impl Braid {
         self.index
     }
     /// Accessor method for braid's word in band generators.
-    pub fn word(&self) -> &[BandGenerator] {
+    pub fn band_word(&self) -> &[BandGenerator] {
         &self.word
     }
     pub fn artin_word(&self) -> Vec<ArtinGenerator> {
-        band_to_artin(self.word())
+        band_to_artin(self.band_word())
     }
 
     /// Computes the writhe of the braid, meaning the sum of signs across all bands in the braid.
@@ -117,7 +117,7 @@ impl Braid {
     }
     /// Computes the length of the braid, meaning the number of bands used to define it. For the
     /// number of Artin generators, see the `artin_length` method.
-    pub fn length(&self) -> usize {
+    pub fn band_length(&self) -> usize {
         self.word.len()
     }
     pub fn artin_length(&self) -> u16 {
@@ -387,7 +387,7 @@ mod tests {
         ]
         .concat();
         let braid = Braid::from_bands(3, &bands).unwrap();
-        assert_that!(braid.length(), eq(bands.len()))
+        assert_that!(braid.band_length(), eq(bands.len()))
     }
 
     #[test]
