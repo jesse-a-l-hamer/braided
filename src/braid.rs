@@ -2,7 +2,7 @@ use anyhow::Context;
 
 use crate::generators::{artin_to_band, band_to_artin};
 use crate::{ArtinGenerator, BandGenerator, BraidIndex, Sign};
-use std::ops::{Mul, Neg};
+use std::ops::Mul;
 
 /// Enum representing possible errors that may occur during construction of a new braid.
 #[derive(Debug, thiserror::Error)]
@@ -82,6 +82,17 @@ impl Braid {
         Self::new(index, &[]).unwrap()
     }
 
+    pub fn inverse(&self) -> Self {
+        let index = self.index;
+        let mut word = Vec::new();
+
+        for band in self.word.iter().rev() {
+            word.push(band.inverse());
+        }
+
+        Self { index, word }
+    }
+
     /// Accessor method for the braid's index.
     pub fn index(&self) -> BraidIndex {
         self.index
@@ -117,23 +128,7 @@ impl Braid {
 impl Default for Braid {
     /// Returns the index-1 trivial braid.
     fn default() -> Self {
-        Self::trivial(BraidIndex::new(1).unwrap())
-    }
-}
-
-impl Neg for Braid {
-    type Output = Self;
-
-    /// Computes the algebraic negation of the braid.
-    fn neg(self) -> Self::Output {
-        let index = self.index;
-        let mut word = Vec::new();
-
-        for band in self.word.iter().rev() {
-            word.push(-*band);
-        }
-
-        Self { index, word }
+        Self::trivial(1)
     }
 }
 

@@ -41,7 +41,7 @@ fn decompose_band(band: &BandGenerator) -> Vec<ArtinGenerator> {
     for foot_idx in band.foot().index()..(band.head().index() - 1) {
         left.push(ArtinGenerator::new(foot_idx, Sign::Negative).unwrap());
     }
-    let right = left.iter().rev().map(|a| -*a).collect();
+    let right = left.iter().rev().map(|a| a.inverse()).collect();
     [left, vec![crossing], right].concat()
 }
 

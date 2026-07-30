@@ -1,6 +1,5 @@
 use crate::{ArtinGenerator, BraidIndex, Sign, Strand};
 use anyhow::Context;
-use std::ops::Neg;
 
 /// Error type representing failures that may occur during construction of `BandGenerator`
 #[derive(thiserror::Error, Debug)]
@@ -181,6 +180,14 @@ impl BandGenerator {
         self.sign
     }
 
+    pub fn inverse(&self) -> Self {
+        Self {
+            foot: self.foot,
+            head: self.head,
+            sign: -self.sign,
+        }
+    }
+
     /// Computes the height of the `BandGenerator`, that is, the difference in indices of its head
     /// and foot strands.
     pub fn height(&self) -> u16 {
@@ -196,14 +203,6 @@ impl BandGenerator {
     }
     pub fn artin_length(&self) -> u16 {
         1 + (self.height() - 1) * 2
-    }
-}
-
-impl Neg for BandGenerator {
-    type Output = Self;
-
-    fn neg(self) -> Self::Output {
-        Self::new(self.foot.index(), self.head.index(), -self.sign).unwrap()
     }
 }
 
@@ -431,17 +430,17 @@ mod tests {
     // Negation
 
     #[test]
-    fn band_can_be_negated() {
+    fn band_can_be_inverted() {
         let band = BandGenerator::new(9, 16, Sign::Positive).unwrap();
-        let negative_band = -band;
+        let inverse_band = band.inverse();
 
         assert_that!(
-            negative_band,
+            inverse_band,
             eq(BandGenerator::new(9, 16, Sign::Negative).unwrap())
         );
 
-        let double_negative_band = -negative_band;
-        assert_that!(double_negative_band, eq(band));
+        let double_inverse_band = inverse_band.inverse();
+        assert_that!(double_inverse_band, eq(band));
     }
 
     // Macro construction

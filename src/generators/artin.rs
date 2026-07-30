@@ -1,6 +1,5 @@
 use crate::{BraidIndex, Sign, Strand};
 use anyhow::Context;
-use std::ops::Neg;
 
 #[derive(Debug, thiserror::Error)]
 pub enum ArtinValidationError {
@@ -36,17 +35,16 @@ impl ArtinGenerator {
         self.sign
     }
 
+    pub fn inverse(&self) -> Self {
+        Self {
+            foot: self.foot,
+            sign: -self.sign,
+        }
+    }
+
     /// Compute minimal required braid index for this generator
     pub fn minimal_required_braid_index(&self) -> BraidIndex {
         BraidIndex::new(self.foot.index() + 1).unwrap()
-    }
-}
-
-impl Neg for ArtinGenerator {
-    type Output = Self;
-
-    fn neg(self) -> Self::Output {
-        Self::new(self.foot.index(), -self.sign).unwrap()
     }
 }
 
@@ -117,14 +115,14 @@ mod tests {
         assert_matches!(result, Err(ArtinValidationError::Unexpected(_)));
     }
 
-    // --- Negation -----------------------------------------------------------
+    // --- Inversion -----------------------------------------------------------
 
     #[test]
-    fn negating_a_positive_generator_flips_sign() {
+    fn inverting_a_positive_generator_flips_sign() {
         let orig = ArtinGenerator::new(4, Sign::Positive).unwrap();
-        let negated = -orig;
+        let inverse = orig.inverse();
         assert_that!(
-            negated,
+            inverse,
             eq(ArtinGenerator {
                 foot: Strand::new(4).unwrap(),
                 sign: Sign::Negative
@@ -133,10 +131,10 @@ mod tests {
     }
 
     #[test]
-    fn double_negation_returns_original() {
+    fn double_inverse_returns_original() {
         let orig = ArtinGenerator::new(9, Sign::Positive).unwrap();
-        let twice_negated = -(-orig);
-        assert_that!(twice_negated, eq(orig));
+        let double_inverse = orig.inverse().inverse();
+        assert_that!(double_inverse, eq(orig));
     }
 
     // --- minimal_required_braid_index --------------------------------------
