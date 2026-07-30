@@ -1,3 +1,5 @@
+use anyhow::Context;
+
 use crate::generators::{artin_to_band, band_to_artin};
 use crate::{ArtinGenerator, BandGenerator, BraidIndex, Sign};
 use std::ops::{Mul, Neg};
@@ -37,7 +39,11 @@ pub struct Braid {
 
 impl Braid {
     /// Constructor to create a braid from an index and a list of bands.
-    pub fn new(index: BraidIndex, bands: &[BandGenerator]) -> Result<Self, BraidValidationError> {
+    pub fn new(index: u16, bands: &[BandGenerator]) -> Result<Self, BraidValidationError> {
+        let index = BraidIndex::new(index).context(format!(
+            "Falied to define braid index from given integer {}",
+            index
+        ))?;
         for band in bands {
             if index < band.minimal_required_braid_index() {
                 return Err(BraidValidationError::BadBand { index, band: *band });
@@ -51,9 +57,13 @@ impl Braid {
     /// Constructor to create a braid from an index and a list of Artin generators. Internally, we
     /// first convert the list of Artin generators into a list of band generators.
     pub fn from_artin(
-        index: BraidIndex,
+        index: u16,
         generators: &[ArtinGenerator],
     ) -> Result<Self, BraidValidationError> {
+        let index = BraidIndex::new(index).context(format!(
+            "Falied to define braid index from given integer {}",
+            index
+        ))?;
         for generator in generators {
             if index < generator.minimal_required_braid_index() {
                 return Err(BraidValidationError::BadArtin {
@@ -68,7 +78,7 @@ impl Braid {
         })
     }
     /// Construct a trivial braid of a given index.
-    pub fn trivial(index: BraidIndex) -> Self {
+    pub fn trivial(index: u16) -> Self {
         Self::new(index, &[]).unwrap()
     }
 
