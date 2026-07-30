@@ -78,8 +78,8 @@ impl Braid {
         })
     }
     /// Construct a trivial braid of a given index.
-    pub fn trivial(index: u16) -> Self {
-        Self::new(index, &[]).unwrap()
+    pub fn trivial(index: u16) -> Result<Self, BraidValidationError> {
+        Self::new(index, &[])
     }
 
     pub fn inverse(&self) -> Self {
@@ -128,7 +128,7 @@ impl Braid {
 impl Default for Braid {
     /// Returns the index-1 trivial braid.
     fn default() -> Self {
-        Self::trivial(1)
+        Self::trivial(1).unwrap()
     }
 }
 
@@ -146,22 +146,23 @@ impl Mul for Braid {
 
 #[macro_export]
 macro_rules! braid {
+    ($index:expr) => { Braid::trivial($index) };
     ($index:expr; $([$foot:expr; $power:expr]),*) => {
         {
-            let mut word = Vec::<$crate::ArtinGenerator>::new();
+            let mut word = Vec::new();
             $(word.extend($crate::artin![$foot; $power].expect(
-                "Failed to define Artin generator."
-            )));*
-            Braid::from_artin($index, word)
+                "Failed to define band generator."
+            ));)*
+            Braid::from_artin($index, &word)
         }
     };
 
     ($index:expr; $([$foot:expr, $head:expr; $power:expr]),*) => {
         {
-            let mut word = Vec::<$crate::BandGenerator>::new();
+            let mut word = Vec::new();
             $(word.extend($crate::band![$foot, $head; $power].expect(
                 "Failed to define band generator."
-            )));*
+            ));)*
             Braid::new($index, word)
         }
     };
@@ -169,58 +170,332 @@ macro_rules! braid {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{Braid, BraidValidationError};
+    use crate::{BandGenerator, BraidIndex, artin, band};
     use googletest::assert_that;
     use googletest::matchers::{eq, ok};
     use std::assert_matches;
 
     #[test]
-    fn construction_from_valid_bands_is_successful() {}
+    fn construction_from_valid_bands_is_successful() {
+        let bands = [
+            band![1, 3; 3].unwrap(),
+            band![1, 2; 1].unwrap(),
+            band![2, 3; -4].unwrap(),
+            band![1, 3; -2].unwrap(),
+        ]
+        .concat();
+        let braid = Braid::new(3, &bands);
+        assert_that!(
+            braid,
+            ok(eq(&Braid {
+                index: BraidIndex::new(3).unwrap(),
+                word: bands.to_vec(),
+            }))
+        )
+    }
 
     #[test]
-    fn construction_from_bad_bands_fails() {}
+    fn construction_from_bad_bands_fails() {
+        let bands = [
+            band![1, 3; 3].unwrap(),
+            band![1, 2; 1].unwrap(),
+            band![2, 3; -4].unwrap(),
+            band![1, 4; -2].unwrap(),
+        ]
+        .concat();
+        let braid = Braid::new(3, &bands);
+        assert_matches!(braid, Err(BraidValidationError::BadBand { .. }))
+    }
 
     #[test]
-    fn construction_from_zero_index_fails() {}
+    fn construction_from_zero_index_fails() {
+        let bands = [
+            band![1, 3; 3].unwrap(),
+            band![1, 2; 1].unwrap(),
+            band![2, 3; -4].unwrap(),
+            band![1, 4; -2].unwrap(),
+        ]
+        .concat();
+        let braid = Braid::new(0, &bands);
+        assert_matches!(braid, Err(BraidValidationError::Unexpected(_)))
+    }
 
     #[test]
-    fn construction_from_valid_artin_generators_is_successful() {}
+    fn construction_from_valid_artin_generators_is_successful() {
+        let generators = [
+            // band 1
+            artin![3; 1].unwrap(),
+            artin![2; 1].unwrap(),
+            artin![1; 1].unwrap(),
+            artin![2; -1].unwrap(),
+            artin![3; -1].unwrap(),
+            // band 2  1
+            artin![3; 1].unwrap(),
+            artin![2; -1].unwrap(),
+            artin![3; -1].unwrap(),
+            // band 3  1
+            artin![4; 1].unwrap(),
+            artin![2; -1].unwrap(),
+            artin![3; -1].unwrap(),
+            artin![4; -1].unwrap(),
+            artin![2; 1].unwrap(),
+            // band 4  1
+            artin![1; -1].unwrap(),
+            // band 5  1
+            artin![2; 1].unwrap(),
+            artin![1; 1].unwrap(),
+            artin![2; -1].unwrap(),
+            // band 6  1
+            artin![4; 1].unwrap(),
+            artin![3; 1].unwrap(),
+            artin![4; -1].unwrap(),
+        ]
+        .concat();
+        let braid = Braid::from_artin(5, &generators);
+        assert_that!(
+            braid,
+            ok(eq(&Braid {
+                index: BraidIndex::new(5).unwrap(),
+                word: vec![
+                    band![1, 4; +].unwrap(),
+                    band![2, 4; -].unwrap(),
+                    band![2, 5; -].unwrap(),
+                    band![1, 2; -].unwrap(),
+                    band![1, 3; +].unwrap(),
+                    band![3, 5; +].unwrap(),
+                ],
+            }))
+        )
+    }
 
     #[test]
-    fn construction_from_bad_artin_generators_fails() {}
+    fn construction_from_bad_artin_generators_fails() {
+        let generators = [
+            // band 1
+            artin![3; 1].unwrap(),
+            artin![2; 1].unwrap(),
+            artin![1; 1].unwrap(),
+            artin![2; -1].unwrap(),
+            artin![3; -1].unwrap(),
+            // band 2  1
+            artin![3; 1].unwrap(),
+            artin![2; -1].unwrap(),
+            artin![3; -1].unwrap(),
+            // band 3  1
+            artin![4; 1].unwrap(),
+            artin![2; -1].unwrap(),
+            artin![3; -1].unwrap(),
+            artin![4; -1].unwrap(),
+            artin![2; 1].unwrap(),
+            // band 4  1
+            artin![1; -1].unwrap(),
+            // band 5  1
+            artin![2; 1].unwrap(),
+            artin![1; 1].unwrap(),
+            artin![2; -1].unwrap(),
+            // band 6  1
+            artin![4; 1].unwrap(),
+            artin![3; 1].unwrap(),
+            artin![4; -1].unwrap(),
+        ]
+        .concat();
+        let braid = Braid::from_artin(3, &generators);
+        assert_matches!(braid, Err(BraidValidationError::BadArtin { .. }))
+    }
 
     #[test]
-    fn trivial_constructor_works_as_expected() {}
+    fn trivial_constructor_works_as_expected() {
+        let trivial = Braid::trivial(3);
+        assert_that!(trivial, ok(eq(&Braid::new(3, &[]).unwrap())));
+    }
 
     #[test]
-    fn default_braid_is_trivial_unknot() {}
+    fn default_braid_is_trivial_unknot() {
+        let unknot = Braid::new(1, &[]).unwrap();
+        let default = Braid::default();
+        assert_that!(default, eq(&unknot));
+    }
 
     #[test]
-    fn round_trip_from_artin_word_succeeds() {}
+    fn round_trip_from_artin_word_with_band_crossings_at_top_succeeds() {
+        let generators = [
+            // band 1
+            artin![1; -1].unwrap(),
+            artin![2; -1].unwrap(),
+            artin![3; 1].unwrap(),
+            artin![2; 1].unwrap(),
+            artin![1; 1].unwrap(),
+            // band 2  1
+            artin![2; -1].unwrap(),
+            artin![3; -1].unwrap(),
+            artin![2; 1].unwrap(),
+            // band 3  1
+            artin![2; -1].unwrap(),
+            artin![3; -1].unwrap(),
+            artin![4; -1].unwrap(),
+            artin![3; 1].unwrap(),
+            artin![2; 1].unwrap(),
+            // band 4  1
+            artin![1; -1].unwrap(),
+            // band 5  1
+            artin![1; -1].unwrap(),
+            artin![2; 1].unwrap(),
+            artin![1; 1].unwrap(),
+            // band 6  1
+            artin![3; -1].unwrap(),
+            artin![4; 1].unwrap(),
+            artin![3; 1].unwrap(),
+        ]
+        .concat();
+        let braid = Braid::from_artin(5, &generators).unwrap();
+        assert_that!(braid.artin_word(), eq(&generators.to_vec()),)
+    }
 
     #[test]
-    fn writhe_computes_as_expected() {}
+    fn index_computes_as_expected() {
+        let bands = [
+            band![1, 3; 3].unwrap(),
+            band![1, 2; 1].unwrap(),
+            band![2, 3; -4].unwrap(),
+            band![1, 3; -2].unwrap(),
+        ]
+        .concat();
+        let braid = Braid::new(3, &bands).unwrap();
+        assert_that!(
+            braid.index(),
+            eq(BraidIndex::new(bands.iter().map(|b| b.head()).max().unwrap().index()).unwrap())
+        )
+    }
 
     #[test]
-    fn length_computes_as_expected() {}
+    fn length_computes_as_expected() {
+        let bands = [
+            band![1, 3; 3].unwrap(),
+            band![1, 2; 1].unwrap(),
+            band![2, 3; -4].unwrap(),
+            band![1, 3; -2].unwrap(),
+        ]
+        .concat();
+        let braid = Braid::new(3, &bands).unwrap();
+        assert_that!(braid.length(), eq(bands.len()))
+    }
 
     #[test]
-    fn inverse_of_braid_computes_as_expected() {}
+    fn writhe_computes_as_expected() {
+        let bands = [
+            band![1, 3; 3].unwrap(),
+            band![1, 2; 1].unwrap(),
+            band![2, 3; -4].unwrap(),
+            band![1, 3; -2].unwrap(),
+        ]
+        .concat();
+        let braid = Braid::new(3, &bands).unwrap();
+        assert_that!(braid.writhe(), eq(3 + 1 - 4 - 2))
+    }
 
     #[test]
-    fn double_inverse_returns_braid_unchanged() {}
+    fn inverse_of_braid_computes_as_expected() {
+        let bands = [
+            band![1, 3; 3].unwrap(),
+            band![1, 2; 1].unwrap(),
+            band![2, 3; -4].unwrap(),
+            band![1, 3; -2].unwrap(),
+        ]
+        .concat();
+        let inverted_band_word: Vec<BandGenerator> =
+            bands.iter().rev().map(|b| b.inverse()).collect();
+        let inverse_braid = Braid::new(3, &bands).unwrap().inverse();
+        assert_that!(
+            inverse_braid,
+            eq(&Braid::new(3, &inverted_band_word).unwrap())
+        )
+    }
 
     #[test]
-    fn multiplication_computes_as_expected() {}
+    fn double_inverse_returns_braid_unchanged() {
+        let bands = [
+            band![1, 3; 3].unwrap(),
+            band![1, 2; 1].unwrap(),
+            band![2, 3; -4].unwrap(),
+            band![1, 3; -2].unwrap(),
+        ]
+        .concat();
+        let braid = Braid::new(3, &bands).unwrap();
+        assert_that!(braid.inverse().inverse(), eq(&braid))
+    }
 
     #[test]
-    fn writhe_of_braid_times_inverse_is_zero() {}
+    fn multiplication_computes_as_expected() {
+        let bands = [
+            band![1, 3; 3].unwrap(),
+            band![1, 2; 1].unwrap(),
+            band![2, 3; -4].unwrap(),
+            band![1, 3; -2].unwrap(),
+        ]
+        .concat();
+        let braid = Braid::new(3, &bands).unwrap();
+        let other_bands = [
+            band![1, 3; 2].unwrap(),
+            band![2, 3; 4].unwrap(),
+            band![1, 2; -1].unwrap(),
+            band![1, 3; -3].unwrap(),
+        ]
+        .concat();
+        let other_braid = Braid::new(3, &other_bands).unwrap();
+        let product_braid = braid * other_braid;
+        assert_that!(
+            product_braid,
+            eq(&Braid::new(3, &[bands, other_bands].concat()).unwrap())
+        )
+    }
 
     #[test]
-    fn macro_braid_with_only_index_produces_trivial_braid() {}
+    fn writhe_of_braid_times_inverse_is_zero() {
+        let bands = [
+            band![1, 3; 3].unwrap(),
+            band![1, 2; 1].unwrap(),
+            band![2, 3; -4].unwrap(),
+            band![1, 3; -2].unwrap(),
+        ]
+        .concat();
+        let braid = Braid::new(3, &bands).unwrap();
+        let other_bands = [
+            band![1, 3; 2].unwrap(),
+            band![2, 3; 4].unwrap(),
+            band![1, 2; -1].unwrap(),
+            band![1, 3; -3].unwrap(),
+        ]
+        .concat();
+        let other_braid = Braid::new(3, &other_bands).unwrap();
+        let product_braid = braid * other_braid;
+        assert_that!(product_braid.writhe(), eq(0))
+    }
 
     #[test]
-    fn macro_braid_with_artin_generators_is_successful() {}
+    fn macro_braid_with_only_index_produces_trivial_braid() {
+        let braid = braid![3];
+        assert_that!(braid, ok(eq(&Braid::trivial(3).unwrap())))
+    }
+
+    #[test]
+    fn macro_braid_with_artin_generators_is_successful() {
+        let braid = braid![3; [1; 2], [2; -3], [1; -1], [2; 1]];
+        assert_that!(
+            braid,
+            ok(eq(&Braid::from_artin(
+                3,
+                &[
+                    artin![1; 2].unwrap(),
+                    artin![2; -3].unwrap(),
+                    artin![1; -1].unwrap(),
+                    artin![2; 1].unwrap()
+                ]
+                .concat()
+            )
+            .unwrap()))
+        )
+    }
 
     #[test]
     fn macro_braid_with_band_generators_is_successful() {}

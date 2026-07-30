@@ -1,6 +1,6 @@
-mod artin;
-mod band;
-mod conversion;
+pub mod artin;
+pub mod band;
+pub mod conversion;
 
 pub use artin::ArtinGenerator;
 pub use band::BandGenerator;

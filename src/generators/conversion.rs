@@ -66,62 +66,64 @@ mod tests {
     fn get_artin_word_with_band_crossings_at_top_of_band() -> Vec<ArtinGenerator> {
         vec![
             // band 1
-            artin![1; -].unwrap(),
-            artin![2; -].unwrap(),
-            artin![3; +].unwrap(),
-            artin![2; +].unwrap(),
-            artin![1; +].unwrap(),
-            // band 2
-            artin![2; -].unwrap(),
-            artin![3; -].unwrap(),
-            artin![2; +].unwrap(),
-            // band 3
-            artin![2; -].unwrap(),
-            artin![3; -].unwrap(),
-            artin![4; -].unwrap(),
-            artin![3; +].unwrap(),
-            artin![2; +].unwrap(),
-            // band 4
-            artin![1; -].unwrap(),
-            // band 5
-            artin![1; -].unwrap(),
-            artin![2; +].unwrap(),
-            artin![1; +].unwrap(),
-            // band 6
-            artin![3; -].unwrap(),
-            artin![4; +].unwrap(),
-            artin![3; +].unwrap(),
+            artin![1; -1].unwrap(),
+            artin![2; -1].unwrap(),
+            artin![3; 1].unwrap(),
+            artin![2; 1].unwrap(),
+            artin![1; 1].unwrap(),
+            // band 2  1
+            artin![2; -1].unwrap(),
+            artin![3; -1].unwrap(),
+            artin![2; 1].unwrap(),
+            // band 3  1
+            artin![2; -1].unwrap(),
+            artin![3; -1].unwrap(),
+            artin![4; -1].unwrap(),
+            artin![3; 1].unwrap(),
+            artin![2; 1].unwrap(),
+            // band 4  1
+            artin![1; -1].unwrap(),
+            // band 5  1
+            artin![1; -1].unwrap(),
+            artin![2; 1].unwrap(),
+            artin![1; 1].unwrap(),
+            // band 6  1
+            artin![3; -1].unwrap(),
+            artin![4; 1].unwrap(),
+            artin![3; 1].unwrap(),
         ]
+        .concat()
     }
     fn get_artin_word_with_band_crossings_at_arbitrary_positions() -> Vec<ArtinGenerator> {
         vec![
             // band 1
-            artin![3; +].unwrap(),
-            artin![2; +].unwrap(),
-            artin![1; +].unwrap(),
-            artin![2; -].unwrap(),
-            artin![3; -].unwrap(),
-            // band 2
-            artin![3; +].unwrap(),
-            artin![2; -].unwrap(),
-            artin![3; -].unwrap(),
-            // band 3
-            artin![4; +].unwrap(),
-            artin![2; -].unwrap(),
-            artin![3; -].unwrap(),
-            artin![4; -].unwrap(),
-            artin![2; +].unwrap(),
-            // band 4
-            artin![1; -].unwrap(),
-            // band 5
-            artin![2; +].unwrap(),
-            artin![1; +].unwrap(),
-            artin![2; -].unwrap(),
-            // band 6
-            artin![4; +].unwrap(),
-            artin![3; +].unwrap(),
-            artin![4; -].unwrap(),
+            artin![3; 1].unwrap(),
+            artin![2; 1].unwrap(),
+            artin![1; 1].unwrap(),
+            artin![2; -1].unwrap(),
+            artin![3; -1].unwrap(),
+            // band 2  1
+            artin![3; 1].unwrap(),
+            artin![2; -1].unwrap(),
+            artin![3; -1].unwrap(),
+            // band 3  1
+            artin![4; 1].unwrap(),
+            artin![2; -1].unwrap(),
+            artin![3; -1].unwrap(),
+            artin![4; -1].unwrap(),
+            artin![2; 1].unwrap(),
+            // band 4  1
+            artin![1; -1].unwrap(),
+            // band 5  1
+            artin![2; 1].unwrap(),
+            artin![1; 1].unwrap(),
+            artin![2; -1].unwrap(),
+            // band 6  1
+            artin![4; 1].unwrap(),
+            artin![3; 1].unwrap(),
+            artin![4; -1].unwrap(),
         ]
+        .concat()
     }
 
     #[gtest]

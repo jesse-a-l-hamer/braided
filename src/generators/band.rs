@@ -287,43 +287,46 @@ mod tests {
     fn valid_collection_of_artin_generators_successfully_construct_band_generator() {
         let good_bands = [
             (
-                vec![artin![3; -].unwrap()],
+                artin![3; -1].unwrap(),
                 BandGenerator::new(3, 4, Sign::Negative).unwrap(),
             ),
             (
-                vec![
-                    artin![1; -].unwrap(),
-                    artin![2; -].unwrap(),
-                    artin![3; -].unwrap(),
-                    artin![4; -].unwrap(),
-                    artin![3; +].unwrap(),
-                    artin![2; +].unwrap(),
-                    artin![1; +].unwrap(),
-                ],
+                [
+                    artin![1; -1].unwrap(),
+                    artin![2; -1].unwrap(),
+                    artin![3; -1].unwrap(),
+                    artin![4; -1].unwrap(),
+                    artin![3; 1].unwrap(),
+                    artin![2; 1].unwrap(),
+                    artin![1; 1].unwrap(),
+                ]
+                .concat(),
                 BandGenerator::new(1, 5, Sign::Negative).unwrap(),
             ),
             (
-                vec![
-                    artin![4; +].unwrap(),
-                    artin![3; +].unwrap(),
-                    artin![2; +].unwrap(),
-                    artin![1; -].unwrap(),
-                    artin![2; -].unwrap(),
-                    artin![3; -].unwrap(),
-                    artin![4; -].unwrap(),
-                ],
+                [
+                    artin![4; 1].unwrap(),
+                    artin![3; 1].unwrap(),
+                    artin![2; 1].unwrap(),
+                    artin![1; -1].unwrap(),
+                    artin![2; -1].unwrap(),
+                    artin![3; -1].unwrap(),
+                    artin![4; -1].unwrap(),
+                ]
+                .concat(),
                 BandGenerator::new(1, 5, Sign::Negative).unwrap(),
             ),
             (
-                vec![
-                    artin![1; -].unwrap(),
-                    artin![4; +].unwrap(),
-                    artin![2; -].unwrap(),
-                    artin![3; -].unwrap(),
-                    artin![2; +].unwrap(),
-                    artin![1; +].unwrap(),
-                    artin![4; -].unwrap(),
-                ],
+                [
+                    artin![1; -1].unwrap(),
+                    artin![4; 1].unwrap(),
+                    artin![2; -1].unwrap(),
+                    artin![3; -1].unwrap(),
+                    artin![2; 1].unwrap(),
+                    artin![1; 1].unwrap(),
+                    artin![4; -1].unwrap(),
+                ]
+                .concat(),
                 BandGenerator::new(1, 5, Sign::Negative).unwrap(),
             ),
         ];
@@ -339,42 +342,45 @@ mod tests {
         let bad_artin_words = [
             (vec![], FromArtinError::NoGenerators),
             (
-                vec![
-                    artin![1; -].unwrap(),
-                    artin![4; +].unwrap(),
-                    artin![2; -].unwrap(),
-                    artin![2; +].unwrap(),
-                    artin![1; -].unwrap(),
-                    artin![4; -].unwrap(),
-                ],
+                [
+                    artin![1; -1].unwrap(),
+                    artin![4; 1].unwrap(),
+                    artin![2; -1].unwrap(),
+                    artin![2; 1].unwrap(),
+                    artin![1; -1].unwrap(),
+                    artin![4; -1].unwrap(),
+                ]
+                .concat(),
                 FromArtinError::EvenGenerators,
             ),
             (
-                vec![
-                    artin![1; -].unwrap(),
-                    artin![4; +].unwrap(),
-                    artin![2; -].unwrap(),
-                    artin![3; -].unwrap(),
-                    artin![2; +].unwrap(),
-                    artin![1; +].unwrap(),
-                    artin![3; -].unwrap(),
-                ],
+                [
+                    artin![1; -1].unwrap(),
+                    artin![4; 1].unwrap(),
+                    artin![2; -1].unwrap(),
+                    artin![3; -1].unwrap(),
+                    artin![2; 1].unwrap(),
+                    artin![1; 1].unwrap(),
+                    artin![3; -1].unwrap(),
+                ]
+                .concat(),
                 FromArtinError::IncompatibleSteps {
                     quadrant: StaircaseQuadrant::UpperRight,
-                    next_step: artin![3; -].unwrap(),
-                    previous_step: artin![3; -].unwrap(),
+                    next_step: *artin![3; -1].unwrap().last().unwrap(),
+                    previous_step: *artin![3; -1].unwrap().last().unwrap(),
                 },
             ),
             (
-                vec![
-                    artin![1; -].unwrap(),
-                    artin![2; -].unwrap(),
-                    artin![4; +].unwrap(),
-                    artin![3; -].unwrap(),
-                    artin![2; +].unwrap(),
-                    artin![4; -].unwrap(),
-                    artin![5; -].unwrap(),
-                ],
+                [
+                    artin![1; -1].unwrap(),
+                    artin![2; -1].unwrap(),
+                    artin![4; 1].unwrap(),
+                    artin![3; -1].unwrap(),
+                    artin![2; 1].unwrap(),
+                    artin![4; -1].unwrap(),
+                    artin![5; -1].unwrap(),
+                ]
+                .concat(),
                 FromArtinError::ImbalancedStaircases(1),
             ),
         ];
@@ -414,14 +420,15 @@ mod tests {
     #[test]
     fn artin_length_is_accurate() {
         let artin_word = [
-            artin![1; -].unwrap(),
-            artin![4; +].unwrap(),
-            artin![2; -].unwrap(),
-            artin![3; -].unwrap(),
-            artin![2; +].unwrap(),
-            artin![1; +].unwrap(),
-            artin![4; -].unwrap(),
-        ];
+            artin![1; -1].unwrap(),
+            artin![4; 1].unwrap(),
+            artin![2; -1].unwrap(),
+            artin![3; -1].unwrap(),
+            artin![2; 1].unwrap(),
+            artin![1; 1].unwrap(),
+            artin![4; -1].unwrap(),
+        ]
+        .concat();
         let band = BandGenerator::from_artin(&artin_word).unwrap();
 
         assert_that!(band.artin_length(), eq(artin_word.len() as u16));

@@ -50,29 +50,22 @@ impl ArtinGenerator {
 
 #[macro_export]
 macro_rules! artin {
-    ($foot:expr; +) => {
-        $crate::ArtinGenerator::new($foot, $crate::Sign::Positive)
-    };
-    ($foot:expr; -) => {
-        $crate::ArtinGenerator::new($foot, $crate::Sign::Negative)
-    };
-    ($foot:expr; $power:expr) => {
-        {
-            let letter = if $power < 0 {
-                artin![$foot; -]
-            } else {
-                artin![$foot; +]
-            };
-            let repetitions: usize = ($power as i16).abs().try_into().unwrap();
-            let result: Result<
-                Vec<$crate::ArtinGenerator>, $crate::generators::artin::ArtinValidationError
-            > = match letter {
-                Ok(generator) => Ok(vec![generator; repetitions]),
-                Err(e) => Err(e),
-            };
-            result
-        }
-    };
+    ($foot:expr; $power:expr) => {{
+        let letter = if $power < 0 {
+            $crate::ArtinGenerator::new($foot, $crate::Sign::Negative)
+        } else {
+            $crate::ArtinGenerator::new($foot, $crate::Sign::Positive)
+        };
+        let repetitions: usize = ($power as i16).abs().try_into().unwrap();
+        let result: Result<
+            Vec<$crate::ArtinGenerator>,
+            $crate::generators::artin::ArtinValidationError,
+        > = match letter {
+            Ok(generator) => Ok(vec![generator; repetitions]),
+            Err(e) => Err(e),
+        };
+        result
+    }};
 }
 
 #[cfg(test)]
@@ -149,24 +142,6 @@ mod tests {
     }
 
     // --- Macro-based constructors ------------------------------------------
-
-    #[test]
-    fn macro_artin_with_positive_sign_returns_positive_artin_generator() {
-        let generator = artin![7; +];
-        assert_that!(
-            generator,
-            ok(eq(&ArtinGenerator::new(7, Sign::Positive).unwrap()))
-        )
-    }
-
-    #[test]
-    fn macro_artin_with_negative_sign_returns_negative_artin_generator() {
-        let generator = artin![2; -];
-        assert_that!(
-            generator,
-            ok(eq(&ArtinGenerator::new(2, Sign::Negative).unwrap()))
-        )
-    }
 
     #[test]
     fn macro_artin_with_zero_returns_empty_vector() {
