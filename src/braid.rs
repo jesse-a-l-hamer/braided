@@ -39,7 +39,7 @@ pub struct Braid {
 
 impl Braid {
     /// Constructor to create a braid from an index and a list of bands.
-    pub fn new(index: u16, bands: &[BandGenerator]) -> Result<Self, BraidValidationError> {
+    pub fn from_bands(index: u16, bands: &[BandGenerator]) -> Result<Self, BraidValidationError> {
         let index = BraidIndex::new(index).context(format!(
             "Falied to define braid index from given integer {}",
             index
@@ -79,7 +79,7 @@ impl Braid {
     }
     /// Construct a trivial braid of a given index.
     pub fn trivial(index: u16) -> Result<Self, BraidValidationError> {
-        Self::new(index, &[])
+        Self::from_bands(index, &[])
     }
 
     pub fn inverse(&self) -> Self {
@@ -153,7 +153,7 @@ macro_rules! braid {
         Braid::from_artin($index, &$crate::artin![$foot; $power].unwrap())
     };
     ($index:expr; [$foot:expr => $head:expr; $power:expr]) => {
-        Braid::new($index, &$crate::band![$foot => $head; $power].unwrap())
+        Braid::from_bands($index, &$crate::band![$foot => $head; $power].unwrap())
     };
     ($index:expr; [$foot:expr; $power:expr], $($tail:tt)+) => {
         {
@@ -193,7 +193,7 @@ mod tests {
             band![1 => 3; -2].unwrap(),
         ]
         .concat();
-        let braid = Braid::new(3, &bands);
+        let braid = Braid::from_bands(3, &bands);
         assert_that!(
             braid,
             ok(eq(&Braid {
@@ -212,7 +212,7 @@ mod tests {
             band![1 => 4; -2].unwrap(),
         ]
         .concat();
-        let braid = Braid::new(3, &bands);
+        let braid = Braid::from_bands(3, &bands);
         assert_matches!(braid, Err(BraidValidationError::BadBand { .. }))
     }
 
@@ -225,7 +225,7 @@ mod tests {
             band![1 => 4; -2].unwrap(),
         ]
         .concat();
-        let braid = Braid::new(0, &bands);
+        let braid = Braid::from_bands(0, &bands);
         assert_matches!(braid, Err(BraidValidationError::Unexpected(_)))
     }
 
@@ -316,12 +316,12 @@ mod tests {
     #[test]
     fn trivial_constructor_works_as_expected() {
         let trivial = Braid::trivial(3);
-        assert_that!(trivial, ok(eq(&Braid::new(3, &[]).unwrap())));
+        assert_that!(trivial, ok(eq(&Braid::from_bands(3, &[]).unwrap())));
     }
 
     #[test]
     fn default_braid_is_trivial_unknot() {
-        let unknot = Braid::new(1, &[]).unwrap();
+        let unknot = Braid::from_bands(1, &[]).unwrap();
         let default = Braid::default();
         assert_that!(default, eq(&unknot));
     }
@@ -370,7 +370,7 @@ mod tests {
             band![1 => 3; -2].unwrap(),
         ]
         .concat();
-        let braid = Braid::new(3, &bands).unwrap();
+        let braid = Braid::from_bands(3, &bands).unwrap();
         assert_that!(
             braid.index(),
             eq(BraidIndex::new(bands.iter().map(|b| b.head()).max().unwrap().index()).unwrap())
@@ -386,7 +386,7 @@ mod tests {
             band![1 => 3; -2].unwrap(),
         ]
         .concat();
-        let braid = Braid::new(3, &bands).unwrap();
+        let braid = Braid::from_bands(3, &bands).unwrap();
         assert_that!(braid.length(), eq(bands.len()))
     }
 
@@ -399,7 +399,7 @@ mod tests {
             band![1 => 3; -2].unwrap(),
         ]
         .concat();
-        let braid = Braid::new(3, &bands).unwrap();
+        let braid = Braid::from_bands(3, &bands).unwrap();
         assert_that!(braid.writhe(), eq(3 + 1 - 4 - 2))
     }
 
@@ -414,10 +414,10 @@ mod tests {
         .concat();
         let inverted_band_word: Vec<BandGenerator> =
             bands.iter().rev().map(|b| b.inverse()).collect();
-        let inverse_braid = Braid::new(3, &bands).unwrap().inverse();
+        let inverse_braid = Braid::from_bands(3, &bands).unwrap().inverse();
         assert_that!(
             inverse_braid,
-            eq(&Braid::new(3, &inverted_band_word).unwrap())
+            eq(&Braid::from_bands(3, &inverted_band_word).unwrap())
         )
     }
 
@@ -430,7 +430,7 @@ mod tests {
             band![1 => 3; -2].unwrap(),
         ]
         .concat();
-        let braid = Braid::new(3, &bands).unwrap();
+        let braid = Braid::from_bands(3, &bands).unwrap();
         assert_that!(braid.inverse().inverse(), eq(&braid))
     }
 
@@ -443,7 +443,7 @@ mod tests {
             band![1 => 3; -2].unwrap(),
         ]
         .concat();
-        let braid = Braid::new(3, &bands).unwrap();
+        let braid = Braid::from_bands(3, &bands).unwrap();
         let other_bands = [
             band![1 => 3; 2].unwrap(),
             band![2 => 3; 4].unwrap(),
@@ -451,11 +451,11 @@ mod tests {
             band![1 => 3; -3].unwrap(),
         ]
         .concat();
-        let other_braid = Braid::new(3, &other_bands).unwrap();
+        let other_braid = Braid::from_bands(3, &other_bands).unwrap();
         let product_braid = braid * other_braid;
         assert_that!(
             product_braid,
-            eq(&Braid::new(3, &[bands, other_bands].concat()).unwrap())
+            eq(&Braid::from_bands(3, &[bands, other_bands].concat()).unwrap())
         )
     }
 
@@ -468,7 +468,7 @@ mod tests {
             band![1 => 3; -2].unwrap(),
         ]
         .concat();
-        let braid = Braid::new(3, &bands).unwrap();
+        let braid = Braid::from_bands(3, &bands).unwrap();
         let other_bands = [
             band![1 => 3; 2].unwrap(),
             band![2 => 3; 4].unwrap(),
@@ -476,7 +476,7 @@ mod tests {
             band![1 => 3; -3].unwrap(),
         ]
         .concat();
-        let other_braid = Braid::new(3, &other_bands).unwrap();
+        let other_braid = Braid::from_bands(3, &other_bands).unwrap();
         let product_braid = braid * other_braid;
         assert_that!(product_braid.writhe(), eq(0))
     }
@@ -511,7 +511,7 @@ mod tests {
         let braid = braid![3; [1 => 3; 3], [1 => 2; 1], [2 => 3; -4], [1 => 3; -2]];
         assert_that!(
             braid,
-            ok(eq(&Braid::new(
+            ok(eq(&Braid::from_bands(
                 3,
                 &[
                     band![1 => 3; 3].unwrap(),
@@ -530,7 +530,7 @@ mod tests {
         let braid = braid![3; [1; -1], [1 => 3; 3], [1; 2], [2; -3], [1 => 2; 1], [2 => 3; -4], [1 => 3; -2], [2; 1]];
         assert_that!(
             braid,
-            ok(eq(&Braid::new(
+            ok(eq(&Braid::from_bands(
                 3,
                 &[
                     band![1 => 2; -1].unwrap(),
