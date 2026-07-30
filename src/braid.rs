@@ -257,14 +257,15 @@ mod tests {
             braid,
             ok(eq(&Braid {
                 index: BraidIndex::new(5).unwrap(),
-                word: vec![
-                    band![1, 4; +].unwrap(),
-                    band![2, 4; -].unwrap(),
-                    band![2, 5; -].unwrap(),
-                    band![1, 2; -].unwrap(),
-                    band![1, 3; +].unwrap(),
-                    band![3, 5; +].unwrap(),
-                ],
+                word: [
+                    band![1, 4; 1].unwrap(),
+                    band![2, 4; -1].unwrap(),
+                    band![2, 5; -1].unwrap(),
+                    band![1, 2; -1].unwrap(),
+                    band![1, 3; 1].unwrap(),
+                    band![3, 5; 1].unwrap(),
+                ]
+                .concat(),
             }))
         )
     }

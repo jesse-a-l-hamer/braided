@@ -54,14 +54,15 @@ mod tests {
 
     // We'll be using these fixtures a lot
     fn get_band_word() -> Vec<BandGenerator> {
-        vec![
-            band![1, 4; +].unwrap(),
-            band![2, 4; -].unwrap(),
-            band![2, 5; -].unwrap(),
-            band![1, 2; -].unwrap(),
-            band![1, 3; +].unwrap(),
-            band![3, 5; +].unwrap(),
+        [
+            band![1, 4; 1].unwrap(),
+            band![2, 4; -1].unwrap(),
+            band![2, 5; -1].unwrap(),
+            band![1, 2; -1].unwrap(),
+            band![1, 3; 1].unwrap(),
+            band![3, 5; 1].unwrap(),
         ]
+        .concat()
     }
     fn get_artin_word_with_band_crossings_at_top_of_band() -> Vec<ArtinGenerator> {
         vec![

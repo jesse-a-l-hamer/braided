@@ -208,29 +208,22 @@ impl BandGenerator {
 
 #[macro_export]
 macro_rules! band {
-    ($foot:expr, $head:expr; +) => {
-        $crate::BandGenerator::new($foot, $head, $crate::Sign::Positive)
-    };
-    ($foot:expr, $head:expr; -) => {
-        $crate::BandGenerator::new($foot, $head, $crate::Sign::Negative)
-    };
-    ($foot:expr, $head:expr; $power:expr) => {
-        {
-            let letter = if $power < 0 {
-                band![$foot, $head; -]
-            } else {
-                band![$foot, $head; +]
-            };
-            let repetitions: usize = ($power as i16).abs().try_into().unwrap();
-            let result: Result<
-                Vec<$crate::BandGenerator>, $crate::generators::band::BandValidationError
-            > = match letter {
-                Ok(generator) => Ok(vec![generator; repetitions]),
-                Err(e) => Err(e),
-            };
-            result
-        }
-    };
+    ($foot:expr, $head:expr; $power:expr) => {{
+        let letter = if $power < 0 {
+            $crate::BandGenerator::new($foot, $head, $crate::Sign::Negative)
+        } else {
+            $crate::BandGenerator::new($foot, $head, $crate::Sign::Positive)
+        };
+        let repetitions: usize = ($power as i16).abs().try_into().unwrap();
+        let result: Result<
+            Vec<$crate::BandGenerator>,
+            $crate::generators::band::BandValidationError,
+        > = match letter {
+            Ok(generator) => Ok(vec![generator; repetitions]),
+            Err(e) => Err(e),
+        };
+        result
+    }};
 }
 
 #[cfg(test)]
@@ -451,26 +444,6 @@ mod tests {
     }
 
     // Macro construction
-
-    #[test]
-    fn macro_band_with_single_plus_sign_creates_positive_band() {
-        let band = band![2, 7; +];
-
-        assert_that!(
-            band,
-            ok(eq(&BandGenerator::new(2, 7, Sign::Positive).unwrap()))
-        );
-    }
-
-    #[test]
-    fn macro_band_with_single_minus_sign_creates_negative_band() {
-        let band = band![3, 5; -];
-
-        assert_that!(
-            band,
-            ok(eq(&BandGenerator::new(3, 5, Sign::Negative).unwrap()))
-        );
-    }
 
     #[test]
     fn macro_band_with_zero_creates_trivial_word() {
