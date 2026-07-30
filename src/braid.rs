@@ -173,4 +173,55 @@ mod tests {
     use googletest::assert_that;
     use googletest::matchers::{eq, ok};
     use std::assert_matches;
+
+    #[test]
+    fn construction_from_valid_bands_is_successful() {}
+
+    #[test]
+    fn construction_from_bad_bands_fails() {}
+
+    #[test]
+    fn construction_from_zero_index_fails() {}
+
+    #[test]
+    fn construction_from_valid_artin_generators_is_successful() {}
+
+    #[test]
+    fn construction_from_bad_artin_generators_fails() {}
+
+    #[test]
+    fn trivial_constructor_works_as_expected() {}
+
+    #[test]
+    fn default_braid_is_trivial_unknot() {}
+
+    #[test]
+    fn round_trip_from_artin_word_succeeds() {}
+
+    #[test]
+    fn writhe_computes_as_expected() {}
+
+    #[test]
+    fn length_computes_as_expected() {}
+
+    #[test]
+    fn inverse_of_braid_computes_as_expected() {}
+
+    #[test]
+    fn double_inverse_returns_braid_unchanged() {}
+
+    #[test]
+    fn multiplication_computes_as_expected() {}
+
+    #[test]
+    fn writhe_of_braid_times_inverse_is_zero() {}
+
+    #[test]
+    fn macro_braid_with_only_index_produces_trivial_braid() {}
+
+    #[test]
+    fn macro_braid_with_artin_generators_is_successful() {}
+
+    #[test]
+    fn macro_braid_with_band_generators_is_successful() {}
 }
