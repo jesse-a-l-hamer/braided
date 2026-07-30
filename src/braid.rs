@@ -146,25 +146,33 @@ impl Mul for Braid {
 
 #[macro_export]
 macro_rules! braid {
-    ($index:expr) => { Braid::trivial($index) };
-    ($index:expr; $([$foot:expr; $power:expr]),*) => {
+    ($index:expr $(;)?) => {
+        Braid::trivial($index)
+    };
+    ($index:expr; [$foot:expr; $power:expr]) => {
+        Braid::from_artin($index, &$crate::artin![$foot; $power].unwrap())
+    };
+    ($index:expr; [$foot:expr => $head:expr; $power:expr]) => {
+        Braid::new($index, &$crate::band![$foot => $head; $power].unwrap())
+    };
+    ($index:expr; [$foot:expr; $power:expr], $($tail:tt)+) => {
         {
-            let mut word = Vec::new();
-            $(word.extend($crate::artin![$foot; $power].expect(
-                "Failed to define band generator."
-            ));)*
-            Braid::from_artin($index, &word)
+            match (braid![$index; [$foot; $power]], braid![$index; $($tail)+]) {
+                (Ok(head), Ok(tail)) => Ok(head * tail),
+                (Err(head), _) => Err(head),
+                (_, Err(tail)) => Err(tail)
+            }
         }
     };
-
-    ($index:expr; $([$foot:expr, $head:expr; $power:expr]),*) => {
+    ($index:expr; [$foot:expr => $head:expr; $power:expr], $($tail:tt)+) => {
         {
-            let mut word = Vec::new();
-            $(word.extend($crate::band![$foot, $head; $power].expect(
-                "Failed to define band generator."
-            ));)*
-            Braid::new($index, word)
+            match (braid![$index; [$foot => $head; $power]], braid![$index; $($tail)+]) {
+                (Ok(head), Ok(tail)) => Ok(head * tail),
+                (Err(head), _) => Err(head),
+                (_, Err(tail)) => Err(tail)
+            }
         }
+
     };
 }
 
@@ -499,5 +507,44 @@ mod tests {
     }
 
     #[test]
-    fn macro_braid_with_band_generators_is_successful() {}
+    fn macro_braid_with_band_generators_is_successful() {
+        let braid = braid![3; [1 => 3; 3], [1 => 2; 1], [2 => 3; -4], [1 => 3; -2]];
+        assert_that!(
+            braid,
+            ok(eq(&Braid::new(
+                3,
+                &[
+                    band![1 => 3; 3].unwrap(),
+                    band![1 => 2; 1].unwrap(),
+                    band![2 => 3; -4].unwrap(),
+                    band![1 => 3; -2].unwrap(),
+                ]
+                .concat()
+            )
+            .unwrap()))
+        )
+    }
+
+    #[test]
+    fn macro_braid_with_mixed_generators_is_successful() {
+        let braid = braid![3; [1; -1], [1 => 3; 3], [1; 2], [2; -3], [1 => 2; 1], [2 => 3; -4], [1 => 3; -2], [2; 1]];
+        assert_that!(
+            braid,
+            ok(eq(&Braid::new(
+                3,
+                &[
+                    band![1 => 2; -1].unwrap(),
+                    band![1 => 3; 3].unwrap(),
+                    band![1 => 2; 2].unwrap(),
+                    band![2 => 3; -3].unwrap(),
+                    band![1 => 2; 1].unwrap(),
+                    band![2 => 3; -4].unwrap(),
+                    band![1 => 3; -2].unwrap(),
+                    band![2 => 3; 1].unwrap(),
+                ]
+                .concat()
+            )
+            .unwrap()))
+        )
+    }
 }
