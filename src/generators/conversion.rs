@@ -55,12 +55,12 @@ mod tests {
     // We'll be using these fixtures a lot
     fn get_band_word() -> Vec<BandGenerator> {
         [
-            band![1, 4; 1].unwrap(),
-            band![2, 4; -1].unwrap(),
-            band![2, 5; -1].unwrap(),
-            band![1, 2; -1].unwrap(),
-            band![1, 3; 1].unwrap(),
-            band![3, 5; 1].unwrap(),
+            band![1 => 4; 1].unwrap(),
+            band![2 => 4; -1].unwrap(),
+            band![2 => 5; -1].unwrap(),
+            band![1 => 2; -1].unwrap(),
+            band![1 => 3; 1].unwrap(),
+            band![3 => 5; 1].unwrap(),
         ]
         .concat()
     }

@@ -208,7 +208,7 @@ impl BandGenerator {
 
 #[macro_export]
 macro_rules! band {
-    ($foot:expr, $head:expr; $power:expr) => {{
+    ($foot:expr => $head:expr; $power:expr) => {{
         let letter = if $power < 0 {
             $crate::BandGenerator::new($foot, $head, $crate::Sign::Negative)
         } else {
@@ -447,14 +447,14 @@ mod tests {
 
     #[test]
     fn macro_band_with_zero_creates_trivial_word() {
-        let band = band![1, 9; 0];
+        let band = band![1 => 9; 0];
 
         assert_that!(band, ok(is_empty()));
     }
 
     #[test]
     fn macro_band_with_positive_power_creates_repeated_positive_band_word() {
-        let band_power = band![6, 11; 5];
+        let band_power = band![6 => 11; 5];
 
         assert_that!(band_power, ok(len(eq(5))));
         assert_that!(
@@ -467,7 +467,7 @@ mod tests {
 
     #[test]
     fn macro_band_with_negative_power_creates_repeated_negative_band_word() {
-        let band_power = band![6, 11; -8];
+        let band_power = band![6 => 11; -8];
 
         assert_that!(band_power, ok(len(eq(8))));
         assert_that!(

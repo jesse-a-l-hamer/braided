@@ -179,10 +179,10 @@ mod tests {
     #[test]
     fn construction_from_valid_bands_is_successful() {
         let bands = [
-            band![1, 3; 3].unwrap(),
-            band![1, 2; 1].unwrap(),
-            band![2, 3; -4].unwrap(),
-            band![1, 3; -2].unwrap(),
+            band![1 => 3; 3].unwrap(),
+            band![1 => 2; 1].unwrap(),
+            band![2 => 3; -4].unwrap(),
+            band![1 => 3; -2].unwrap(),
         ]
         .concat();
         let braid = Braid::new(3, &bands);
@@ -198,10 +198,10 @@ mod tests {
     #[test]
     fn construction_from_bad_bands_fails() {
         let bands = [
-            band![1, 3; 3].unwrap(),
-            band![1, 2; 1].unwrap(),
-            band![2, 3; -4].unwrap(),
-            band![1, 4; -2].unwrap(),
+            band![1 => 3; 3].unwrap(),
+            band![1 => 2; 1].unwrap(),
+            band![2 => 3; -4].unwrap(),
+            band![1 => 4; -2].unwrap(),
         ]
         .concat();
         let braid = Braid::new(3, &bands);
@@ -211,10 +211,10 @@ mod tests {
     #[test]
     fn construction_from_zero_index_fails() {
         let bands = [
-            band![1, 3; 3].unwrap(),
-            band![1, 2; 1].unwrap(),
-            band![2, 3; -4].unwrap(),
-            band![1, 4; -2].unwrap(),
+            band![1 => 3; 3].unwrap(),
+            band![1 => 2; 1].unwrap(),
+            band![2 => 3; -4].unwrap(),
+            band![1 => 4; -2].unwrap(),
         ]
         .concat();
         let braid = Braid::new(0, &bands);
@@ -258,12 +258,12 @@ mod tests {
             ok(eq(&Braid {
                 index: BraidIndex::new(5).unwrap(),
                 word: [
-                    band![1, 4; 1].unwrap(),
-                    band![2, 4; -1].unwrap(),
-                    band![2, 5; -1].unwrap(),
-                    band![1, 2; -1].unwrap(),
-                    band![1, 3; 1].unwrap(),
-                    band![3, 5; 1].unwrap(),
+                    band![1 => 4; 1].unwrap(),
+                    band![2 => 4; -1].unwrap(),
+                    band![2 => 5; -1].unwrap(),
+                    band![1 => 2; -1].unwrap(),
+                    band![1 => 3; 1].unwrap(),
+                    band![3 => 5; 1].unwrap(),
                 ]
                 .concat(),
             }))
@@ -356,10 +356,10 @@ mod tests {
     #[test]
     fn index_computes_as_expected() {
         let bands = [
-            band![1, 3; 3].unwrap(),
-            band![1, 2; 1].unwrap(),
-            band![2, 3; -4].unwrap(),
-            band![1, 3; -2].unwrap(),
+            band![1 => 3; 3].unwrap(),
+            band![1 => 2; 1].unwrap(),
+            band![2 => 3; -4].unwrap(),
+            band![1 => 3; -2].unwrap(),
         ]
         .concat();
         let braid = Braid::new(3, &bands).unwrap();
@@ -372,10 +372,10 @@ mod tests {
     #[test]
     fn length_computes_as_expected() {
         let bands = [
-            band![1, 3; 3].unwrap(),
-            band![1, 2; 1].unwrap(),
-            band![2, 3; -4].unwrap(),
-            band![1, 3; -2].unwrap(),
+            band![1 => 3; 3].unwrap(),
+            band![1 => 2; 1].unwrap(),
+            band![2 => 3; -4].unwrap(),
+            band![1 => 3; -2].unwrap(),
         ]
         .concat();
         let braid = Braid::new(3, &bands).unwrap();
@@ -385,10 +385,10 @@ mod tests {
     #[test]
     fn writhe_computes_as_expected() {
         let bands = [
-            band![1, 3; 3].unwrap(),
-            band![1, 2; 1].unwrap(),
-            band![2, 3; -4].unwrap(),
-            band![1, 3; -2].unwrap(),
+            band![1 => 3; 3].unwrap(),
+            band![1 => 2; 1].unwrap(),
+            band![2 => 3; -4].unwrap(),
+            band![1 => 3; -2].unwrap(),
         ]
         .concat();
         let braid = Braid::new(3, &bands).unwrap();
@@ -398,10 +398,10 @@ mod tests {
     #[test]
     fn inverse_of_braid_computes_as_expected() {
         let bands = [
-            band![1, 3; 3].unwrap(),
-            band![1, 2; 1].unwrap(),
-            band![2, 3; -4].unwrap(),
-            band![1, 3; -2].unwrap(),
+            band![1 => 3; 3].unwrap(),
+            band![1 => 2; 1].unwrap(),
+            band![2 => 3; -4].unwrap(),
+            band![1 => 3; -2].unwrap(),
         ]
         .concat();
         let inverted_band_word: Vec<BandGenerator> =
@@ -416,10 +416,10 @@ mod tests {
     #[test]
     fn double_inverse_returns_braid_unchanged() {
         let bands = [
-            band![1, 3; 3].unwrap(),
-            band![1, 2; 1].unwrap(),
-            band![2, 3; -4].unwrap(),
-            band![1, 3; -2].unwrap(),
+            band![1 => 3; 3].unwrap(),
+            band![1 => 2; 1].unwrap(),
+            band![2 => 3; -4].unwrap(),
+            band![1 => 3; -2].unwrap(),
         ]
         .concat();
         let braid = Braid::new(3, &bands).unwrap();
@@ -429,18 +429,18 @@ mod tests {
     #[test]
     fn multiplication_computes_as_expected() {
         let bands = [
-            band![1, 3; 3].unwrap(),
-            band![1, 2; 1].unwrap(),
-            band![2, 3; -4].unwrap(),
-            band![1, 3; -2].unwrap(),
+            band![1 => 3; 3].unwrap(),
+            band![1 => 2; 1].unwrap(),
+            band![2 => 3; -4].unwrap(),
+            band![1 => 3; -2].unwrap(),
         ]
         .concat();
         let braid = Braid::new(3, &bands).unwrap();
         let other_bands = [
-            band![1, 3; 2].unwrap(),
-            band![2, 3; 4].unwrap(),
-            band![1, 2; -1].unwrap(),
-            band![1, 3; -3].unwrap(),
+            band![1 => 3; 2].unwrap(),
+            band![2 => 3; 4].unwrap(),
+            band![1 => 2; -1].unwrap(),
+            band![1 => 3; -3].unwrap(),
         ]
         .concat();
         let other_braid = Braid::new(3, &other_bands).unwrap();
@@ -454,18 +454,18 @@ mod tests {
     #[test]
     fn writhe_of_braid_times_inverse_is_zero() {
         let bands = [
-            band![1, 3; 3].unwrap(),
-            band![1, 2; 1].unwrap(),
-            band![2, 3; -4].unwrap(),
-            band![1, 3; -2].unwrap(),
+            band![1 => 3; 3].unwrap(),
+            band![1 => 2; 1].unwrap(),
+            band![2 => 3; -4].unwrap(),
+            band![1 => 3; -2].unwrap(),
         ]
         .concat();
         let braid = Braid::new(3, &bands).unwrap();
         let other_bands = [
-            band![1, 3; 2].unwrap(),
-            band![2, 3; 4].unwrap(),
-            band![1, 2; -1].unwrap(),
-            band![1, 3; -3].unwrap(),
+            band![1 => 3; 2].unwrap(),
+            band![2 => 3; 4].unwrap(),
+            band![1 => 2; -1].unwrap(),
+            band![1 => 3; -3].unwrap(),
         ]
         .concat();
         let other_braid = Braid::new(3, &other_bands).unwrap();
