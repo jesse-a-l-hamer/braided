@@ -95,4 +95,4 @@ Licensed under the [MIT](./LICENSE) license.
 
 ## Acknowledgements
 
-- The article [Production-Ready Rust Project Setup: From Zero to CI/CD](#https://dev.to/ajitkumar/production-ready-rust-project-setup-from-zero-to-cicd-jp4) by Ajit Kumar was very helpful for getting the repo off the ground. In particular, the initial [CHANGELOG.md](./CHANGELOG.md) and [CONTRIBUTING.md](./CONTRIBUTING.md) files were taken almost verbatim from this article, as were several helpful suggestions pertaining to the CI workflow.
+- The article [Production-Ready Rust Project Setup: From Zero to CI/CD](https://dev.to/ajitkumar/production-ready-rust-project-setup-from-zero-to-cicd-jp4) by Ajit Kumar was very helpful for getting the repo off the ground. In particular, the initial [CHANGELOG.md](./CHANGELOG.md) and [CONTRIBUTING.md](./CONTRIBUTING.md) files were taken almost verbatim from this article, as were several helpful suggestions pertaining to the CI workflow.
