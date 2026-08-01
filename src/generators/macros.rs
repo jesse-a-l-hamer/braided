@@ -1,3 +1,33 @@
+/// Constructs an [`ArtinGenerator`](crate::ArtinGenerator) given a foot strand and exponent.
+///
+/// This macro is primarily a convenience wrapper around the constructor
+/// [`ArtinGenerator::new`](crate::ArtinGenerator::new). However, unlike that constructor,
+/// [`artin!`] returns a `Vec<ArtinGenerator>` on success, even if the given exponent is 1 or -1.
+///
+/// # Examples
+///
+/// ```
+/// use braided::{ArtinGenerator, Sign, artin};
+///
+/// # #[macro_use] extern crate braided;
+/// # fn main() {
+/// let my_artin = artin![2; 1].unwrap();
+/// assert_eq!(*my_artin.first().unwrap(), ArtinGenerator::new(2, Sign::Positive).unwrap());
+///
+/// let my_many_artins = artin![1; -7].unwrap();
+/// assert_eq!(my_many_artins, vec![ArtinGenerator::new(1, Sign::Negative).unwrap(); 7]);
+///
+/// // Using an exponent of 0 returns an empty vector:
+/// let trivial = artin![9; 0].unwrap();
+/// assert!(trivial.is_empty());
+/// # }
+/// ```
+///
+/// # Errors
+///
+/// This macro calls [`ArtinGenerator::new`](crate::ArtinGenerator::new), and will fail with the
+/// same errors if an invalid foot strand index is given, or if the exponent cannot be parsed as
+/// an `i16`. Please consult the documentation for that function for more information.
 #[macro_export]
 macro_rules! artin {
     ($foot:expr; $power:expr) => {{
