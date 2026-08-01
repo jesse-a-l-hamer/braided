@@ -38,34 +38,14 @@ impl ArtinGenerator {
     }
 }
 
-#[macro_export]
-macro_rules! artin {
-    ($foot:expr; $power:expr) => {{
-        let letter = if $power < 0 {
-            $crate::ArtinGenerator::new($foot, $crate::Sign::Negative)
-        } else {
-            $crate::ArtinGenerator::new($foot, $crate::Sign::Positive)
-        };
-        let repetitions: usize = ($power as i16).abs().try_into().unwrap();
-        let result: Result<
-            Vec<$crate::ArtinGenerator>,
-            $crate::generators::artin::ArtinValidationError,
-        > = match letter {
-            Ok(generator) => Ok(vec![generator; repetitions]),
-            Err(e) => Err(e),
-        };
-        result
-    }};
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use googletest::assert_that;
-    use googletest::matchers::{each, eq, is_empty, len, ok};
+    use googletest::matchers::{eq, ok};
     use std::assert_matches;
 
-    // --- Constructor & basic construction ----------------------------------
+    // Basic construction
 
     #[test]
     fn valid_positive_generator_can_be_constructed() {
@@ -98,7 +78,7 @@ mod tests {
         assert_matches!(result, Err(ArtinValidationError::Unexpected(_)));
     }
 
-    // --- Inversion -----------------------------------------------------------
+    // Inversion
 
     #[test]
     fn inverting_a_positive_generator_flips_sign() {
@@ -120,7 +100,7 @@ mod tests {
         assert_that!(double_inverse, eq(orig));
     }
 
-    // --- minimal_required_braid_index --------------------------------------
+    // Minimal required braid index
 
     #[test]
     fn braid_index_of_positive_generator_is_foot_plus_one() {
@@ -128,34 +108,6 @@ mod tests {
         assert_that!(
             generator.minimal_required_braid_index(),
             eq(BraidIndex::new(6).unwrap())
-        );
-    }
-
-    // --- Macro-based constructors ------------------------------------------
-
-    #[test]
-    fn macro_artin_with_zero_returns_empty_vector() {
-        let trivial = artin![9; 0];
-        assert_that!(trivial, ok(is_empty()));
-    }
-
-    #[test]
-    fn macro_artin_with_power_returns_vector_of_positive_artin_generators() {
-        let power_generator = artin![3; 4];
-        assert_that!(power_generator, ok(len(eq(4))));
-        assert_that!(
-            power_generator,
-            ok(each(eq(&ArtinGenerator::new(3, Sign::Positive).unwrap())))
-        );
-    }
-
-    #[test]
-    fn macro_artin_with_negative_power_returns_vector_of_negative_artin_generators() {
-        let power_generator = artin![7; -5];
-        assert_that!(power_generator, ok(len(eq(5))));
-        assert_that!(
-            power_generator,
-            ok(each(eq(&ArtinGenerator::new(7, Sign::Negative).unwrap())))
         );
     }
 }

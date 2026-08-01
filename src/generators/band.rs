@@ -183,32 +183,13 @@ impl BandGenerator {
     }
 }
 
-#[macro_export]
-macro_rules! band {
-    ($foot:expr => $head:expr; $power:expr) => {{
-        let letter = if $power < 0 {
-            $crate::BandGenerator::new($foot, $head, $crate::Sign::Negative)
-        } else {
-            $crate::BandGenerator::new($foot, $head, $crate::Sign::Positive)
-        };
-        let repetitions: usize = ($power as i16).abs().try_into().unwrap();
-        let result: Result<
-            Vec<$crate::BandGenerator>,
-            $crate::generators::band::BandValidationError,
-        > = match letter {
-            Ok(generator) => Ok(vec![generator; repetitions]),
-            Err(e) => Err(e),
-        };
-        result
-    }};
-}
-
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::artin;
+    use super::{FromArtinError, StaircaseQuadrant};
+    use crate::generators::BandValidationError;
+    use crate::{BandGenerator, BraidIndex, Sign, Strand, artin};
     use googletest::assert_that;
-    use googletest::matchers::{each, eq, err, is_empty, is_false, is_true, len, ok};
+    use googletest::matchers::{eq, err, is_false, is_true, ok};
     use std::assert_matches;
 
     // Basic Construction
@@ -418,40 +399,5 @@ mod tests {
 
         let double_inverse_band = inverse_band.inverse();
         assert_that!(double_inverse_band, eq(band));
-    }
-
-    // Macro construction
-
-    #[test]
-    fn macro_band_with_zero_creates_trivial_word() {
-        let band = band![1 => 9; 0];
-
-        assert_that!(band, ok(is_empty()));
-    }
-
-    #[test]
-    fn macro_band_with_positive_power_creates_repeated_positive_band_word() {
-        let band_power = band![6 => 11; 5];
-
-        assert_that!(band_power, ok(len(eq(5))));
-        assert_that!(
-            band_power,
-            ok(each(
-                eq(&BandGenerator::new(6, 11, Sign::Positive).unwrap())
-            ))
-        )
-    }
-
-    #[test]
-    fn macro_band_with_negative_power_creates_repeated_negative_band_word() {
-        let band_power = band![6 => 11; -8];
-
-        assert_that!(band_power, ok(len(eq(8))));
-        assert_that!(
-            band_power,
-            ok(each(
-                eq(&BandGenerator::new(6, 11, Sign::Negative).unwrap())
-            ))
-        )
     }
 }
