@@ -25,7 +25,7 @@ pub enum BraidValidationError {
     Unexpected(#[from] anyhow::Error),
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Braid {
     index: BraidIndex,
     word: Vec<BandGenerator>,
