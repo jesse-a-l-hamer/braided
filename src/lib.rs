@@ -7,8 +7,8 @@
 //! weaving among a collection of disjoint strands (or strings). The [`Braid`] struct encodes this
 //! information, and is thus the heart of the crate. Specifically, a [`Braid`] consists of a
 //! [`BraidIndex`]-valued [`Braid::index()`] field, which is a wrapped `u16` measuring the
-//! number of [strands][Strand], as well as a _word_ in one of two generating sets, which we now
-//! describe.
+//! number of [strands][Strand], as well as a _word_ (which amounts to a [`Vec`]) in one of two
+//! generating sets, which we now describe.
 //!
 //! An _Artin generator_, represented by the [`ArtinGenerator`] struct, encodes the crossing of two
 //! adjacent strands. Thus every [`ArtinGenerator`] is specified by a single [`Strand`], together
