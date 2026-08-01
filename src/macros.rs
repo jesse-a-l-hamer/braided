@@ -1,26 +1,26 @@
 #[macro_export]
 macro_rules! braid {
     ($index:expr $(;)?) => {
-        Braid::trivial($index)
+        $crate::Braid::trivial($index)
     };
     ($index:expr; [$foot:expr; $power:expr]) => {
-        Braid::from_artin($index, &$crate::artin![$foot; $power].unwrap())
+        $crate::Braid::from_artin($index, &$crate::artin![$foot; $power].unwrap())
     };
     ($index:expr; [$foot:expr => $head:expr; $power:expr]) => {
-        Braid::from_bands($index, &$crate::band![$foot => $head; $power].unwrap())
+        $crate::Braid::from_bands($index, &$crate::band![$foot => $head; $power].unwrap())
     };
-    ($index:expr; [$foot:expr; $power:expr], $($tail:tt)+) => {
+    ($index:expr; [$foot:expr; $power:expr], $($tail:tt)*) => {
         {
-            match (braid![$index; [$foot; $power]], braid![$index; $($tail)+]) {
+            match (braid![$index; [$foot; $power]], braid![$index; $($tail)*]) {
                 (Ok(head), Ok(tail)) => Ok(head * tail),
                 (Err(head), _) => Err(head),
                 (_, Err(tail)) => Err(tail)
             }
         }
     };
-    ($index:expr; [$foot:expr => $head:expr; $power:expr], $($tail:tt)+) => {
+    ($index:expr; [$foot:expr => $head:expr; $power:expr], $($tail:tt)*) => {
         {
-            match (braid![$index; [$foot => $head; $power]], braid![$index; $($tail)+]) {
+            match (braid![$index; [$foot => $head; $power]], braid![$index; $($tail)*]) {
                 (Ok(head), Ok(tail)) => Ok(head * tail),
                 (Err(head), _) => Err(head),
                 (_, Err(tail)) => Err(tail)
