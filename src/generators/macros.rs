@@ -7,11 +7,11 @@ macro_rules! artin {
             $crate::ArtinGenerator::new($foot, $crate::Sign::Positive)
         };
         let repetitions: usize = ($power as i16).abs().try_into().unwrap();
-        let result: Result<Vec<$crate::ArtinGenerator>, $crate::generators::ArtinValidationError> =
-            match letter {
-                Ok(generator) => Ok(vec![generator; repetitions]),
-                Err(e) => Err(e),
-            };
+        let result: Result<Vec<$crate::ArtinGenerator>, $crate::ArtinValidationError> = match letter
+        {
+            Ok(generator) => Ok(vec![generator; repetitions]),
+            Err(e) => Err(e),
+        };
         result
     }};
 }
@@ -25,11 +25,10 @@ macro_rules! band {
             $crate::BandGenerator::new($foot, $head, $crate::Sign::Positive)
         };
         let repetitions: usize = ($power as i16).abs().try_into().unwrap();
-        let result: Result<Vec<$crate::BandGenerator>, $crate::generators::BandValidationError> =
-            match letter {
-                Ok(generator) => Ok(vec![generator; repetitions]),
-                Err(e) => Err(e),
-            };
+        let result: Result<Vec<$crate::BandGenerator>, $crate::BandValidationError> = match letter {
+            Ok(generator) => Ok(vec![generator; repetitions]),
+            Err(e) => Err(e),
+        };
         result
     }};
 }

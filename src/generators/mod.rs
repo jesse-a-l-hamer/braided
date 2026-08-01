@@ -1,7 +1,7 @@
 mod artin;
 mod band;
 mod conversion;
-pub mod macros;
+mod macros;
 
 pub use artin::{ArtinGenerator, ArtinValidationError};
 pub use band::{BandGenerator, BandValidationError};

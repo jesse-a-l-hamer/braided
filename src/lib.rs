@@ -159,7 +159,7 @@
 //! ```
 
 mod braid;
-pub mod generators;
+mod generators;
 mod index;
 mod macros;
 mod sign;
