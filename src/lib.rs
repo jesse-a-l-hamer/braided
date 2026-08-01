@@ -170,6 +170,6 @@ pub use generators::{
     ArtinGenerator, ArtinValidationError, BandGenerator, BandValidationError, artin_to_band,
     band_to_artin,
 };
-pub use index::BraidIndex;
+pub use index::{BraidIndex, IndexValidationError};
 pub use sign::Sign;
-pub use strand::Strand;
+pub use strand::{Strand, StrandValidationError};
