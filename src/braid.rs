@@ -93,6 +93,17 @@ impl Braid {
         band_to_artin(self.band_word())
     }
 
+    pub fn minimal_required_braid_index(&self) -> BraidIndex {
+        match self
+            .word
+            .iter()
+            .map(|b| b.minimal_required_braid_index())
+            .max()
+        {
+            Some(index) => index,
+            None => BraidIndex::new(1).unwrap(),
+        }
+    }
     pub fn writhe(&self) -> i16 {
         self.word.iter().fold(0, |a, b| {
             if b.sign() == Sign::Positive {
