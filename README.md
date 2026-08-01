@@ -17,8 +17,7 @@ A library for defining and manipulating [mathematical braids](https://en.wikiped
 ## Quick Start
 
 ```rust
-use braided::{ArtinGenerator, BandGenerator, Braid, braid};
-use braided::{artin, band};
+use braided::{ArtinGenerator, BandGenerator, Braid, artin, band, braid};
 
 // Braids can be expressed in two different generating sets:
 
@@ -26,7 +25,7 @@ use braided::{artin, band};
 let artin_generators = [
     artin![1; -1].unwrap(),      // a crossing of strand 1 over strand 2
     artin![2; 1].unwrap(),       // a crossing of strand 3 over stand 2
-    artin![1; -1].unwrap(),      // a crossing of strand 2 over strand 1
+    artin![1; 1].unwrap(),       // a crossing of strand 2 over strand 1
     artin![3; 3].unwrap(),       // three consecutive crossings of strand 4 over strand 3
     artin![2; -2].unwrap(),      // two consecutive crossings of strand 2 over stand 3
 ].concat()
