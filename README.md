@@ -24,20 +24,20 @@ use braided::{artin, band};
 
 // 1. The standard Artin generators, representing crossings of adjacent strands.
 let artin_generators = [
-    artin![1; -1],      // a crossing of strand 1 over strand 2
-    artin![2; 1],       // a crossing of strand 3 over stand 2
-    artin![1; -1],      // a crossing of strand 2 over strand 1
-    artin![3; 3],       // three consecutive crossings of strand 4 over strand 3
-    artin![2; -2],      // two consecutive crossings of strand 2 over stand 3
+    artin![1; -1].unwrap(),      // a crossing of strand 1 over strand 2
+    artin![2; 1].unwrap(),       // a crossing of strand 3 over stand 2
+    artin![1; -1].unwrap(),      // a crossing of strand 2 over strand 1
+    artin![3; 3].unwrap(),       // three consecutive crossings of strand 4 over strand 3
+    artin![2; -2].unwrap(),      // two consecutive crossings of strand 2 over stand 3
 ].concat()
 
 // 2. The band generators, representing crossings of potentially distant strands.
 let band_generators = [
-    band![1 => 3; 1],   // a crossing of strand 1 over strand 3
-    band![2 => 4; 3],   // three consecutive crossings of strand 4 over strand 2
-    band![1 => 4; -4],  // four consecutive crossings of strand 1 over strand 4
+    band![1 => 3; 1].unwrap(),   // a crossing of strand 1 over strand 3
+    band![2 => 4; 3].unwrap(),   // three consecutive crossings of strand 4 over strand 2
+    band![1 => 4; -4].unwrap(),  // four consecutive crossings of strand 1 over strand 4
     // Band generators are a superset of artin generators:
-    band![2 => 3; -1],   // a crossing of strand 2 over strand 3; same as artin![2; -1]
+    band![2 => 3; -1].unwrap(),   // same as artin![2; -1]
 ].concat()
 
 // A braid, then, consists of an index (number of strands) together with a word of generators.
