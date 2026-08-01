@@ -30,13 +30,13 @@
 /// an `i16`. Please consult the documentation for that function for more information.
 #[macro_export]
 macro_rules! artin {
-    ($foot:expr; $power:expr) => {{
-        let letter = if $power < 0 {
+    ($foot:expr; $exp:expr) => {{
+        let letter = if $exp < 0 {
             $crate::ArtinGenerator::new($foot, $crate::Sign::Negative)
         } else {
             $crate::ArtinGenerator::new($foot, $crate::Sign::Positive)
         };
-        let repetitions: usize = ($power as i16).abs().try_into().unwrap();
+        let repetitions: usize = ($exp as i16).abs().try_into().unwrap();
         let result: Result<Vec<$crate::ArtinGenerator>, $crate::ArtinValidationError> = match letter
         {
             Ok(generator) => Ok(vec![generator; repetitions]),
@@ -48,13 +48,13 @@ macro_rules! artin {
 
 #[macro_export]
 macro_rules! band {
-    ($foot:expr => $head:expr; $power:expr) => {{
-        let letter = if $power < 0 {
+    ($foot:expr => $head:expr; $exp:expr) => {{
+        let letter = if $exp < 0 {
             $crate::BandGenerator::new($foot, $head, $crate::Sign::Negative)
         } else {
             $crate::BandGenerator::new($foot, $head, $crate::Sign::Positive)
         };
-        let repetitions: usize = ($power as i16).abs().try_into().unwrap();
+        let repetitions: usize = ($exp as i16).abs().try_into().unwrap();
         let result: Result<Vec<$crate::BandGenerator>, $crate::BandValidationError> = match letter {
             Ok(generator) => Ok(vec![generator; repetitions]),
             Err(e) => Err(e),
