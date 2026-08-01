@@ -1,7 +1,6 @@
-use anyhow::Context;
-
 use crate::generators::{artin_to_band, band_to_artin};
 use crate::{ArtinGenerator, BandGenerator, BraidIndex, Sign};
+use anyhow::Context;
 use std::ops::Mul;
 
 /// Enum representing possible errors that may occur during construction of a new braid.
