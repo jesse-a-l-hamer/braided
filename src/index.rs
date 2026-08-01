@@ -1,9 +1,7 @@
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum IndexValidationError {
     #[error("Braid index cannot be zero")]
     ZeroIndex,
-    #[error(transparent)]
-    Unexpected(#[from] anyhow::Error),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -22,8 +20,7 @@ impl BraidIndex {
 mod tests {
     use super::{BraidIndex, IndexValidationError};
     use googletest::assert_that;
-    use googletest::matchers::{eq, ok};
-    use std::assert_matches;
+    use googletest::matchers::{eq, err, ok};
 
     #[test]
     fn a_valid_index_can_be_constructed() {
@@ -34,6 +31,6 @@ mod tests {
     #[test]
     fn braid_index_cannot_be_zero() {
         let index = BraidIndex::new(0);
-        assert_matches!(index, Err(IndexValidationError::ZeroIndex));
+        assert_that!(index, err(eq(&IndexValidationError::ZeroIndex)));
     }
 }

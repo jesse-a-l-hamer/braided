@@ -1,22 +1,15 @@
-use crate::{ArtinGenerator, BraidIndex, Sign, Strand};
-use anyhow::Context;
+use crate::{ArtinGenerator, BraidIndex, Sign, Strand, StrandValidationError};
 
-#[derive(thiserror::Error, Debug)]
+#[derive(thiserror::Error, Debug, PartialEq, Eq)]
 pub enum BandValidationError {
     #[error("foot strand and head strand are the same ({0:?})")]
     FootOnHead(Strand),
     #[error("foot strand ({foot:?}) is over head strand ({head:?})")]
     FootOverHead { foot: Strand, head: Strand },
     #[error(transparent)]
-    Unexpected(#[from] anyhow::Error),
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub enum StaircaseQuadrant {
-    UpperLeft,
-    LowerLeft,
-    LowerRight,
-    UpperRight,
+    BadStrand(#[from] StrandValidationError),
+    #[error(transparent)]
+    BadArtin(#[from] FromArtinError),
 }
 
 #[derive(thiserror::Error, Debug, PartialEq, Eq)]
@@ -35,6 +28,14 @@ pub enum FromArtinError {
     ImbalancedStaircases(usize),
 }
 
+#[derive(Debug, PartialEq, Eq)]
+pub enum StaircaseQuadrant {
+    UpperLeft,
+    LowerLeft,
+    LowerRight,
+    UpperRight,
+}
+
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct BandGenerator {
     foot: Strand,
@@ -44,30 +45,28 @@ pub struct BandGenerator {
 
 impl BandGenerator {
     pub fn new(foot: u16, head: u16, sign: Sign) -> Result<Self, BandValidationError> {
-        let foot = Strand::new(foot).context("Failed to construct foot strand.")?;
-        let head = Strand::new(head).context("Failed to construct head strand.")?;
-        if foot == head {
-            return Err(BandValidationError::FootOnHead(foot));
+        let foot = Strand::new(foot)?;
+        let head = Strand::new(head)?;
+        match foot.cmp(&head) {
+            std::cmp::Ordering::Less => Ok(Self { foot, head, sign }),
+            std::cmp::Ordering::Equal => Err(BandValidationError::FootOnHead(foot)),
+            std::cmp::Ordering::Greater => Err(BandValidationError::FootOverHead { foot, head }),
         }
-        if foot > head {
-            return Err(BandValidationError::FootOverHead { foot, head });
-        }
-        Ok(Self { foot, head, sign })
     }
-    pub fn from_artin(band_parts: &[ArtinGenerator]) -> Result<Self, FromArtinError> {
+    pub fn from_artin(band_parts: &[ArtinGenerator]) -> Result<Self, BandValidationError> {
         let num_parts = band_parts.len();
 
         if num_parts == 0 {
-            return Err(FromArtinError::NoGenerators);
+            return Err(BandValidationError::from(FromArtinError::NoGenerators));
         } else if num_parts == 1 {
             let generator = band_parts.last().unwrap();
             return Ok(BandGenerator {
                 foot: generator.foot(),
-                head: generator.foot() + 1,
+                head: (generator.foot() + 1).unwrap(),
                 sign: generator.sign(),
             });
         } else if num_parts.is_multiple_of(2) {
-            return Err(FromArtinError::EvenGenerators);
+            return Err(BandValidationError::from(FromArtinError::EvenGenerators));
         }
 
         let mut upper_left_staircase = Vec::new();
@@ -84,52 +83,60 @@ impl BandGenerator {
             match left_part.sign() {
                 Sign::Positive => {
                     let previous_step = upper_left_staircase.last().unwrap_or(crossing);
-                    if left_part.foot() == previous_step.foot() + 1 {
+                    if left_part.foot() == (previous_step.foot() + 1).unwrap() {
                         upper_left_staircase.push(*left_part);
                     } else {
-                        return Err(FromArtinError::IncompatibleSteps {
-                            quadrant: StaircaseQuadrant::UpperLeft,
-                            next_step: *left_part,
-                            previous_step: *previous_step,
-                        });
+                        return Err(BandValidationError::from(
+                            FromArtinError::IncompatibleSteps {
+                                quadrant: StaircaseQuadrant::UpperLeft,
+                                next_step: *left_part,
+                                previous_step: *previous_step,
+                            },
+                        ));
                     }
                 }
                 Sign::Negative => {
                     let previous_step = lower_left_staircase.last().unwrap_or(crossing);
-                    if left_part.foot() + 1 == previous_step.foot() {
+                    if (left_part.foot() + 1).unwrap() == previous_step.foot() {
                         lower_left_staircase.push(*left_part);
                     } else {
-                        return Err(FromArtinError::IncompatibleSteps {
-                            quadrant: StaircaseQuadrant::LowerLeft,
-                            next_step: *left_part,
-                            previous_step: *previous_step,
-                        });
+                        return Err(BandValidationError::from(
+                            FromArtinError::IncompatibleSteps {
+                                quadrant: StaircaseQuadrant::LowerLeft,
+                                next_step: *left_part,
+                                previous_step: *previous_step,
+                            },
+                        ));
                     }
                 }
             };
             match right_part.sign() {
                 Sign::Positive => {
                     let previous_step = lower_right_staircase.last().unwrap_or(crossing);
-                    if right_part.foot() + 1 == previous_step.foot() {
+                    if (right_part.foot() + 1).unwrap() == previous_step.foot() {
                         lower_right_staircase.push(*right_part);
                     } else {
-                        return Err(FromArtinError::IncompatibleSteps {
-                            quadrant: StaircaseQuadrant::LowerRight,
-                            next_step: *right_part,
-                            previous_step: *previous_step,
-                        });
+                        return Err(BandValidationError::from(
+                            FromArtinError::IncompatibleSteps {
+                                quadrant: StaircaseQuadrant::LowerRight,
+                                next_step: *right_part,
+                                previous_step: *previous_step,
+                            },
+                        ));
                     }
                 }
                 Sign::Negative => {
                     let previous_step = upper_right_staircase.last().unwrap_or(crossing);
-                    if right_part.foot() == previous_step.foot() + 1 {
+                    if right_part.foot() == (previous_step.foot() + 1).unwrap() {
                         upper_right_staircase.push(*right_part);
                     } else {
-                        return Err(FromArtinError::IncompatibleSteps {
-                            quadrant: StaircaseQuadrant::UpperRight,
-                            next_step: *right_part,
-                            previous_step: *previous_step,
-                        });
+                        return Err(BandValidationError::from(
+                            FromArtinError::IncompatibleSteps {
+                                quadrant: StaircaseQuadrant::UpperRight,
+                                next_step: *right_part,
+                                previous_step: *previous_step,
+                            },
+                        ));
                     }
                 }
             };
@@ -141,11 +148,13 @@ impl BandGenerator {
             .abs_diff(lower_right_staircase.len())
             && difference > 0
         {
-            return Err(FromArtinError::ImbalancedStaircases(difference));
+            return Err(BandValidationError::from(
+                FromArtinError::ImbalancedStaircases(difference),
+            ));
         }
 
         let foot = lower_left_staircase.last().unwrap_or(crossing).foot();
-        let head = upper_left_staircase.last().unwrap_or(crossing).foot() + 1;
+        let head = (upper_left_staircase.last().unwrap_or(crossing).foot() + 1).unwrap();
         let sign = crossing.sign();
 
         Ok(Self { foot, head, sign })
@@ -187,10 +196,9 @@ impl BandGenerator {
 mod tests {
     use super::{FromArtinError, StaircaseQuadrant};
     use crate::generators::BandValidationError;
-    use crate::{BandGenerator, BraidIndex, Sign, Strand, artin};
-    use googletest::assert_that;
+    use crate::{BandGenerator, BraidIndex, Sign, Strand, StrandValidationError, artin};
     use googletest::matchers::{eq, err, is_false, is_true, ok};
-    use std::assert_matches;
+    use googletest::{assert_that, expect_that, gtest};
 
     // Basic Construction
 
@@ -218,23 +226,49 @@ mod tests {
         );
     }
 
+    #[gtest]
+    fn validation_error_when_either_strand_is_zero() {
+        let bad_foot = BandGenerator::new(0, 1, Sign::Positive);
+        let bad_head = BandGenerator::new(1, 0, Sign::Negative);
+
+        expect_that!(
+            bad_foot,
+            err(eq(&BandValidationError::from(StrandValidationError::Zero)))
+        );
+        expect_that!(
+            bad_head,
+            err(eq(&BandValidationError::from(StrandValidationError::Zero)))
+        );
+    }
+
     #[test]
     fn validation_error_when_head_equals_foot() {
-        let band = BandGenerator::new(3, 3, Sign::Positive);
+        let bad_band = BandGenerator::new(3, 3, Sign::Positive);
 
-        assert_matches!(band, Err(BandValidationError::FootOnHead(_)))
+        assert_that!(
+            bad_band,
+            err(eq(&BandValidationError::FootOnHead(
+                Strand::new(3).unwrap()
+            )))
+        )
     }
 
     #[test]
     fn validation_error_when_foot_over_head() {
-        let band = BandGenerator::new(5, 3, Sign::Positive);
+        let bad_band = BandGenerator::new(5, 3, Sign::Positive);
 
-        assert_matches!(band, Err(BandValidationError::FootOverHead { .. }))
+        assert_that!(
+            bad_band,
+            err(eq(&BandValidationError::FootOverHead {
+                foot: Strand::new(5).unwrap(),
+                head: Strand::new(3).unwrap()
+            }))
+        )
     }
 
     // Construction from Artin generators
 
-    #[test]
+    #[gtest]
     fn valid_collection_of_artin_generators_successfully_construct_band_generator() {
         let good_bands = [
             (
@@ -284,11 +318,11 @@ mod tests {
 
         for (artin_list, expected) in good_bands {
             let band = BandGenerator::from_artin(&artin_list);
-            assert_that!(band, ok(eq(&expected)))
+            expect_that!(band, ok(eq(&expected)))
         }
     }
 
-    #[test]
+    #[gtest]
     fn invalid_collections_of_artin_generators_fail_to_construct_band_generator() {
         let bad_artin_words = [
             (vec![], FromArtinError::NoGenerators),
@@ -338,7 +372,7 @@ mod tests {
 
         for (bad_artin_word, error) in bad_artin_words {
             let bad_band = BandGenerator::from_artin(&bad_artin_word);
-            assert_that!(bad_band, err(eq(&error)))
+            expect_that!(bad_band, err(eq(&BandValidationError::from(error))))
         }
     }
 

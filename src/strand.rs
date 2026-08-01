@@ -1,13 +1,36 @@
 use std::ops::{Add, Sub};
 
-#[derive(Debug, thiserror::Error)]
+/// Error type for failed [`Strand`] construction or bad [`Strand`] arithmetic.
+///
+/// Validation of [`Strand`] construction mostly boils down to verifying that the strand index is
+/// positive.
+///
+/// # Examples
+///
+/// ```
+/// use braided::{Strand, StrandValidationError};
+/// use std::assert_matches;
+///
+/// // Strands are 1-indexed:
+/// let zero_strand = Strand::new(0);
+/// assert_matches!(zero_strand, Err(StrandValidationError::Zero));
+///
+/// // Negative strand indices are not allowed:
+/// let strand_1 = Strand::new(1).unwrap();
+/// let strand_2 = Strand::new(2).unwrap();
+/// assert_matches!(strand_1 - strand_2, Err(StrandValidationError::Negative { .. }));
+/// ```
+#[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum StrandValidationError {
-    #[error("Strand index cannot be negative.")]
-    NegativeStrand,
     #[error("Strand index cannot be zero.")]
-    ZeroStrand,
-    #[error(transparent)]
-    Unexpected(#[from] anyhow::Error),
+    Zero,
+    #[error("Attempt to subtract {right:?} from {left:?} results in negative-indexed strand.")]
+    Negative { left: Strand, right: u16 },
+    #[error(
+        "Attempt to add {left:?} to {right:?} results in strand index larger than {max}",
+        max = u16::MAX,
+    )]
+    TooLarge { left: Strand, right: u16 },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -16,7 +39,7 @@ pub struct Strand(u16);
 impl Strand {
     pub fn new(index: u16) -> Result<Self, StrandValidationError> {
         if index == 0 {
-            return Err(StrandValidationError::ZeroStrand);
+            return Err(StrandValidationError::Zero);
         }
         Ok(Self(index))
     }
@@ -31,7 +54,10 @@ impl Sub for Strand {
 
     fn sub(self, rhs: Self) -> Self::Output {
         if self.0 < rhs.0 {
-            return Err(StrandValidationError::NegativeStrand);
+            return Err(StrandValidationError::Negative {
+                left: self,
+                right: rhs.0,
+            });
         }
         Self::new(self.0 - rhs.0)
     }
@@ -42,25 +68,42 @@ impl Sub<u16> for Strand {
 
     fn sub(self, rhs: u16) -> Self::Output {
         if self.0 < rhs {
-            return Err(StrandValidationError::NegativeStrand);
+            return Err(StrandValidationError::Negative {
+                left: self,
+                right: rhs,
+            });
         }
         Self::new(self.0 - rhs)
     }
 }
 
 impl Add for Strand {
-    type Output = Self;
+    type Output = Result<Self, StrandValidationError>;
 
     fn add(self, rhs: Self) -> Self::Output {
-        Self(self.0 + rhs.0)
+        if u16::MAX - self.0 < rhs.0 {
+            Err(StrandValidationError::TooLarge {
+                left: self,
+                right: rhs.0,
+            })
+        } else {
+            Ok(Self(self.0 + rhs.0))
+        }
     }
 }
 
 impl Add<u16> for Strand {
-    type Output = Self;
+    type Output = Result<Self, StrandValidationError>;
 
     fn add(self, rhs: u16) -> Self::Output {
-        Self(self.0 + rhs)
+        if u16::MAX - self.0 < rhs {
+            Err(StrandValidationError::TooLarge {
+                left: self,
+                right: rhs,
+            })
+        } else {
+            Ok(Self(self.0 + rhs))
+        }
     }
 }
 
@@ -68,8 +111,7 @@ impl Add<u16> for Strand {
 mod tests {
     use super::{Strand, StrandValidationError};
     use googletest::assert_that;
-    use googletest::matchers::{anything, eq, ok};
-    use std::assert_matches;
+    use googletest::matchers::{anything, eq, err, ok};
 
     #[test]
     fn valid_strand_can_be_constructed() {
@@ -81,7 +123,7 @@ mod tests {
     #[test]
     fn zero_strand_cannot_be_constructed() {
         let strand = Strand::new(0);
-        assert_matches!(strand, Err(StrandValidationError::ZeroStrand));
+        assert_that!(strand, err(eq(&StrandValidationError::Zero)));
     }
 
     #[test]
@@ -97,7 +139,13 @@ mod tests {
         let s1 = Strand::new(3).unwrap();
         let s2 = Strand::new(5).unwrap();
         let result = s1 - s2;
-        assert_matches!(result, Err(StrandValidationError::NegativeStrand));
+        assert_that!(
+            result,
+            err(eq(&StrandValidationError::Negative {
+                left: s1,
+                right: s2.index(),
+            }))
+        );
     }
 
     #[test]
@@ -111,7 +159,10 @@ mod tests {
     fn invalid_subtraction_of_u16_from_strand_fails() {
         let s1 = Strand::new(3).unwrap();
         let result = s1 - 5;
-        assert_matches!(result, Err(StrandValidationError::NegativeStrand));
+        assert_that!(
+            result,
+            err(eq(&StrandValidationError::Negative { left: s1, right: 5 }))
+        );
     }
 
     #[test]
@@ -119,13 +170,36 @@ mod tests {
         let s1 = Strand::new(5).unwrap();
         let s2 = Strand::new(3).unwrap();
         let result = s1 + s2;
-        assert_that!(result, eq(Strand(8)));
+        assert_that!(result, ok(eq(&Strand(8))));
     }
 
     #[test]
     fn a_u16_can_be_added_to_a_strand() {
         let s1 = Strand::new(5).unwrap();
         let result = s1 + 3;
-        assert_that!(result, eq(Strand(8)));
+        assert_that!(result, ok(eq(&Strand(8))));
+    }
+
+    #[test]
+    fn strand_index_cannot_exceed_max_u16() {
+        let s1 = Strand::new(u16::MAX).unwrap();
+        let s2 = Strand::new(1).unwrap();
+        let result = s1 + s2;
+        assert_that!(
+            result,
+            err(eq(&StrandValidationError::TooLarge {
+                left: s1,
+                right: s2.index()
+            }))
+        );
+
+        let s3 = Strand::new(1).unwrap();
+        assert_that!(
+            s3 + u16::MAX,
+            err(eq(&StrandValidationError::TooLarge {
+                left: s3,
+                right: u16::MAX
+            }))
+        );
     }
 }

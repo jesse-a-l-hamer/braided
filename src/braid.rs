@@ -1,15 +1,14 @@
 use crate::generators::{artin_to_band, band_to_artin};
-use crate::{ArtinGenerator, BandGenerator, BraidIndex, Sign};
-use anyhow::Context;
+use crate::{ArtinGenerator, BandGenerator, BraidIndex, IndexValidationError, Sign};
 use std::ops::Mul;
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum BraidValidationError {
     #[error(
         "Braid index {index:?} too small for Artin generator requiring minimal index {min_idx:?}.",
         min_idx = .generator.minimal_required_braid_index(),
     )]
-    BadArtin {
+    IndexTooSmallForArtin {
         index: BraidIndex,
         generator: ArtinGenerator,
     },
@@ -17,12 +16,16 @@ pub enum BraidValidationError {
         "Braid index {index:?} too small for band requiring minimal index {min_idx:?}.",
         min_idx = .band.minimal_required_braid_index(),
         )]
-    BadBand {
+    IndexTooSmallForBand {
         index: BraidIndex,
         band: BandGenerator,
     },
     #[error(transparent)]
-    Unexpected(#[from] anyhow::Error),
+    IndexValidation(#[from] IndexValidationError),
+    #[error("Received {0} > {max} Artin generators", max=u16::MAX)]
+    TooManyArtinGenerators(usize),
+    #[error("Received {0} > {max} band generators", max=u16::MAX)]
+    TooManyBandGenerators(usize),
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -33,13 +36,15 @@ pub struct Braid {
 
 impl Braid {
     pub fn from_bands(index: u16, bands: &[BandGenerator]) -> Result<Self, BraidValidationError> {
-        let index = BraidIndex::new(index).context(format!(
-            "Falied to define braid index from given integer {}",
-            index
-        ))?;
+        if let num_bands = bands.len()
+            && num_bands > u16::MAX as usize
+        {
+            return Err(BraidValidationError::TooManyBandGenerators(num_bands));
+        }
+        let index = BraidIndex::new(index).map_err(BraidValidationError::from)?;
         for band in bands {
             if index < band.minimal_required_braid_index() {
-                return Err(BraidValidationError::BadBand { index, band: *band });
+                return Err(BraidValidationError::IndexTooSmallForBand { index, band: *band });
             }
         }
         Ok(Self {
@@ -51,13 +56,15 @@ impl Braid {
         index: u16,
         generators: &[ArtinGenerator],
     ) -> Result<Self, BraidValidationError> {
-        let index = BraidIndex::new(index).context(format!(
-            "Falied to define braid index from given integer {}",
-            index
-        ))?;
+        if let num_generators = generators.len()
+            && num_generators > u16::MAX as usize
+        {
+            return Err(BraidValidationError::TooManyArtinGenerators(num_generators));
+        }
+        let index = BraidIndex::new(index).map_err(BraidValidationError::from)?;
         for generator in generators {
             if index < generator.minimal_required_braid_index() {
-                return Err(BraidValidationError::BadArtin {
+                return Err(BraidValidationError::IndexTooSmallForArtin {
                     index,
                     generator: *generator,
                 });
@@ -104,7 +111,7 @@ impl Braid {
             None => BraidIndex::new(1).unwrap(),
         }
     }
-    pub fn writhe(&self) -> i16 {
+    pub fn writhe(&self) -> i32 {
         self.word.iter().fold(0, |a, b| {
             if b.sign() == Sign::Positive {
                 a + 1
@@ -113,8 +120,8 @@ impl Braid {
             }
         })
     }
-    pub fn band_length(&self) -> usize {
-        self.word.len()
+    pub fn band_length(&self) -> u16 {
+        self.word.len().try_into().unwrap()
     }
     pub fn artin_length(&self) -> u16 {
         self.word.iter().fold(0, |a, b| a + b.artin_length())
@@ -141,10 +148,11 @@ impl Mul for Braid {
 #[cfg(test)]
 mod tests {
     use super::{Braid, BraidValidationError};
-    use crate::{BandGenerator, BraidIndex, artin, band};
-    use googletest::assert_that;
-    use googletest::matchers::{eq, ok};
-    use std::assert_matches;
+    use crate::{
+        BandGenerator, BandValidationError, BraidIndex, IndexValidationError, artin, band,
+    };
+    use googletest::matchers::{eq, err, ok};
+    use googletest::{assert_that, expect_that, gtest};
 
     #[test]
     fn construction_from_valid_bands_is_successful() {
@@ -166,32 +174,6 @@ mod tests {
     }
 
     #[test]
-    fn construction_from_bad_bands_fails() {
-        let bands = [
-            band![1 => 3; 3].unwrap(),
-            band![1 => 2; 1].unwrap(),
-            band![2 => 3; -4].unwrap(),
-            band![1 => 4; -2].unwrap(),
-        ]
-        .concat();
-        let braid = Braid::from_bands(3, &bands);
-        assert_matches!(braid, Err(BraidValidationError::BadBand { .. }))
-    }
-
-    #[test]
-    fn construction_from_zero_index_fails() {
-        let bands = [
-            band![1 => 3; 3].unwrap(),
-            band![1 => 2; 1].unwrap(),
-            band![2 => 3; -4].unwrap(),
-            band![1 => 4; -2].unwrap(),
-        ]
-        .concat();
-        let braid = Braid::from_bands(0, &bands);
-        assert_matches!(braid, Err(BraidValidationError::Unexpected(_)))
-    }
-
-    #[test]
     fn construction_from_valid_artin_generators_is_successful() {
         let generators = [
             // band 1
@@ -200,23 +182,23 @@ mod tests {
             artin![1; 1].unwrap(),
             artin![2; -1].unwrap(),
             artin![3; -1].unwrap(),
-            // band 2  1
+            // band 2
             artin![3; 1].unwrap(),
             artin![2; -1].unwrap(),
             artin![3; -1].unwrap(),
-            // band 3  1
+            // band 3
             artin![4; 1].unwrap(),
             artin![2; -1].unwrap(),
             artin![3; -1].unwrap(),
             artin![4; -1].unwrap(),
             artin![2; 1].unwrap(),
-            // band 4  1
+            // band 4
             artin![1; -1].unwrap(),
-            // band 5  1
+            // band 5
             artin![2; 1].unwrap(),
             artin![1; 1].unwrap(),
             artin![2; -1].unwrap(),
-            // band 6  1
+            // band 6
             artin![4; 1].unwrap(),
             artin![3; 1].unwrap(),
             artin![4; -1].unwrap(),
@@ -241,38 +223,63 @@ mod tests {
     }
 
     #[test]
-    fn construction_from_bad_artin_generators_fails() {
-        let generators = [
-            // band 1
-            artin![3; 1].unwrap(),
-            artin![2; 1].unwrap(),
-            artin![1; 1].unwrap(),
-            artin![2; -1].unwrap(),
-            artin![3; -1].unwrap(),
-            // band 2  1
-            artin![3; 1].unwrap(),
-            artin![2; -1].unwrap(),
-            artin![3; -1].unwrap(),
-            // band 3  1
-            artin![4; 1].unwrap(),
-            artin![2; -1].unwrap(),
-            artin![3; -1].unwrap(),
-            artin![4; -1].unwrap(),
-            artin![2; 1].unwrap(),
-            // band 4  1
-            artin![1; -1].unwrap(),
-            // band 5  1
-            artin![2; 1].unwrap(),
-            artin![1; 1].unwrap(),
-            artin![2; -1].unwrap(),
-            // band 6  1
-            artin![4; 1].unwrap(),
-            artin![3; 1].unwrap(),
-            artin![4; -1].unwrap(),
+    fn construction_from_bad_bands_fails() {
+        let bad_band = band![1 => 4; -2].unwrap();
+        let bands = [
+            band![1 => 3; 3].unwrap(),
+            band![1 => 2; 1].unwrap(),
+            band![2 => 3; -4].unwrap(),
+            bad_band.clone(),
         ]
         .concat();
-        let braid = Braid::from_artin(3, &generators);
-        assert_matches!(braid, Err(BraidValidationError::BadArtin { .. }))
+        let bad_index: u16 = 3;
+        let braid = Braid::from_bands(bad_index, &bands);
+        assert_that!(
+            braid,
+            err(eq(&BraidValidationError::IndexTooSmallForBand {
+                index: BraidIndex::new(bad_index).unwrap(),
+                band: *bad_band.last().unwrap(),
+            }))
+        )
+    }
+
+    #[test]
+    fn construction_from_bad_artin_generators_fails() {
+        let bad_artin = artin![3; -2].unwrap();
+        let generators = [
+            bad_artin.clone(),
+            artin![1; -5].unwrap(),
+            artin![2; 3].unwrap(),
+        ]
+        .concat();
+        let bad_index: u16 = 3;
+        let braid = Braid::from_artin(bad_index, &generators);
+        assert_that!(
+            braid,
+            err(eq(&BraidValidationError::IndexTooSmallForArtin {
+                index: BraidIndex::new(bad_index).unwrap(),
+                generator: *bad_artin.last().unwrap(),
+            }))
+        )
+    }
+
+    #[test]
+    fn construction_from_zero_index_fails() {
+        let bands = [
+            band![1 => 3; 3].unwrap(),
+            band![1 => 2; 1].unwrap(),
+            band![2 => 3; -4].unwrap(),
+            band![1 => 4; -2].unwrap(),
+        ]
+        .concat();
+        let bad_index = 0;
+        let braid = Braid::from_bands(bad_index, &bands);
+        assert_that!(
+            braid,
+            err(eq(&BraidValidationError::IndexValidation(
+                IndexValidationError::ZeroIndex
+            )))
+        )
     }
 
     #[test]
@@ -324,7 +331,7 @@ mod tests {
     }
 
     #[test]
-    fn index_computes_as_expected() {
+    fn band_length_computes_as_expected() {
         let bands = [
             band![1 => 3; 3].unwrap(),
             band![1 => 2; 1].unwrap(),
@@ -333,23 +340,20 @@ mod tests {
         ]
         .concat();
         let braid = Braid::from_bands(3, &bands).unwrap();
-        assert_that!(
-            braid.index(),
-            eq(BraidIndex::new(bands.iter().map(|b| b.head()).max().unwrap().index()).unwrap())
-        )
+        assert_that!(braid.band_length(), eq(bands.len() as u16))
     }
 
     #[test]
-    fn length_computes_as_expected() {
-        let bands = [
-            band![1 => 3; 3].unwrap(),
-            band![1 => 2; 1].unwrap(),
-            band![2 => 3; -4].unwrap(),
-            band![1 => 3; -2].unwrap(),
+    fn artin_length_computes_as_expected() {
+        let generators = [
+            artin![1; 3].unwrap(),
+            artin![1; 1].unwrap(),
+            artin![2; -4].unwrap(),
+            artin![1; -2].unwrap(),
         ]
         .concat();
-        let braid = Braid::from_bands(3, &bands).unwrap();
-        assert_that!(braid.band_length(), eq(bands.len()))
+        let braid = Braid::from_artin(3, &generators).unwrap();
+        assert_that!(braid.artin_length(), eq(generators.len() as u16))
     }
 
     #[test]
@@ -363,6 +367,36 @@ mod tests {
         .concat();
         let braid = Braid::from_bands(3, &bands).unwrap();
         assert_that!(braid.writhe(), eq(3 + 1 - 4 - 2))
+    }
+
+    #[test]
+    fn index_computes_as_expected() {
+        let index: u16 = 10;
+        let bands = [
+            band![1 => 3; 3].unwrap(),
+            band![1 => 2; 1].unwrap(),
+            band![2 => 3; -4].unwrap(),
+            band![1 => 3; -2].unwrap(),
+        ]
+        .concat();
+        let braid = Braid::from_bands(index, &bands).unwrap();
+        assert_that!(braid.index(), eq(BraidIndex::new(index).unwrap()));
+    }
+
+    #[test]
+    fn minimal_braid_index_computes_as_expected() {
+        let bands = [
+            band![1 => 3; 3].unwrap(),
+            band![1 => 2; 1].unwrap(),
+            band![2 => 3; -4].unwrap(),
+            band![1 => 3; -2].unwrap(),
+        ]
+        .concat();
+        let braid = Braid::from_bands(10, &bands).unwrap();
+        assert_that!(
+            braid.minimal_required_braid_index(),
+            eq(BraidIndex::new(bands.iter().map(|b| b.head()).max().unwrap().index()).unwrap())
+        )
     }
 
     #[test]

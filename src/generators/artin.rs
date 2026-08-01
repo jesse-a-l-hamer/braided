@@ -1,10 +1,9 @@
-use crate::{BraidIndex, Sign, Strand};
-use anyhow::Context;
+use crate::{BraidIndex, Sign, Strand, StrandValidationError};
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum ArtinValidationError {
     #[error(transparent)]
-    Unexpected(#[from] anyhow::Error),
+    BadFoot(#[from] StrandValidationError),
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -15,8 +14,20 @@ pub struct ArtinGenerator {
 
 impl ArtinGenerator {
     pub fn new(foot: u16, sign: Sign) -> Result<Self, ArtinValidationError> {
-        let foot = Strand::new(foot).context("Failed to construct foot strand.")?;
-        Ok(Self { foot, sign })
+        if foot == u16::MAX {
+            // The head strand is too large.
+            Err(ArtinValidationError::BadFoot(
+                StrandValidationError::TooLarge {
+                    left: Strand::new(foot)?,
+                    right: 1,
+                },
+            ))
+        } else {
+            Ok(Self {
+                foot: Strand::new(foot)?,
+                sign,
+            })
+        }
     }
 
     pub fn foot(&self) -> Strand {
@@ -42,8 +53,7 @@ impl ArtinGenerator {
 mod tests {
     use super::*;
     use googletest::assert_that;
-    use googletest::matchers::{eq, ok};
-    use std::assert_matches;
+    use googletest::matchers::{eq, err, ok};
 
     // Basic construction
 
@@ -74,8 +84,26 @@ mod tests {
     #[test]
     fn zero_foot_cannot_be_constructed() {
         let result = ArtinGenerator::new(0, Sign::Positive);
-        // The constructor calls Strand::new, which returns Err when foot == 0.
-        assert_matches!(result, Err(ArtinValidationError::Unexpected(_)));
+        assert_that!(
+            result,
+            err(eq(&ArtinValidationError::BadFoot(
+                StrandValidationError::Zero
+            )))
+        );
+    }
+
+    #[test]
+    fn too_large_foot_cannot_be_constructed() {
+        let result = ArtinGenerator::new(u16::MAX, Sign::Positive);
+        assert_that!(
+            result,
+            err(eq(&ArtinValidationError::BadFoot(
+                StrandValidationError::TooLarge {
+                    left: Strand::new(u16::MAX).unwrap(),
+                    right: 1,
+                }
+            )))
+        )
     }
 
     // Inversion
