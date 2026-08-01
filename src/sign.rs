@@ -1,8 +1,36 @@
 use std::ops::Neg;
 
+/// Represents the sign of a crossing in a braid.
+///
+/// # Examples
+///
+/// [`Sign`] can be negated:
+///
+/// ```
+/// use braided::Sign;
+///
+/// assert_eq!(-Sign::Positive, Sign::Negative);
+/// assert_eq!(-Sign::Negative, Sign::Positive);
+/// ```
+///
+/// There is no "zero" variant. Something like the following will not compile:
+///
+/// ```compile_fail
+/// let s = Sign::Zero;
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Sign {
+    /// The sign of a _positive_ crossing.
+    ///
+    /// If strands are stacked vertically and oriented left-to-right, then a positive crossing
+    /// corresponds to the foot strand passing _under_ the head strand. This can be verified via
+    /// the right-hand rule.
     Positive,
+    /// The sign of a _negative_ crossing.
+    ///
+    /// If strands are stacked vertically and oriented left-to-right, then a negative crossing
+    /// corresponds to the foot strand passing _over_ the head strand. This can be verified via
+    /// the right-hand rule.
     Negative,
 }
 
