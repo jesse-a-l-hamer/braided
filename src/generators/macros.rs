@@ -46,6 +46,36 @@ macro_rules! artin {
     }};
 }
 
+/// Constructs a [`BandGenerator`](crate::BandGenerator) given foot and head strands, and exponent.
+///
+/// This macro is primarily a convenience wrapper around the constructor
+/// [`BandGenerator::new`](crate::BandGenerator::new). However, unlike that constructor,
+/// [`band!`] returns a `Vec<BandGenerator>` on success, even if the given exponent is 1 or -1.
+///
+/// # Examples
+///
+/// ```
+/// use braided::{BandGenerator, Sign, band};
+///
+/// # #[macro_use] extern crate braided;
+/// # fn main() {
+/// let my_band = band![2 => 5; 1].unwrap();
+/// assert_eq!(*my_band.first().unwrap(), BandGenerator::new(2, 5, Sign::Positive).unwrap());
+///
+/// let my_many_bands = band![1 => 3; -7].unwrap();
+/// assert_eq!(my_many_bands, vec![BandGenerator::new(1, 3, Sign::Negative).unwrap(); 7]);
+///
+/// // Using an exponent of 0 returns an empty vector:
+/// let trivial = band![9 => 19; 0].unwrap();
+/// assert!(trivial.is_empty());
+/// # }
+/// ```
+///
+/// # Errors
+///
+/// This macro calls [`BandGenerator::new`](crate::BandGenerator::new), and will fail with the
+/// same errors if an invalid foot or head strand index is given, or if the exponent cannot be
+/// parsed as an `i16`. Please consult the documentation for that function for more information.
 #[macro_export]
 macro_rules! band {
     ($foot:expr => $head:expr; $exp:expr) => {{
