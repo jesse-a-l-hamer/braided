@@ -85,6 +85,91 @@ macro_rules! letter {
     };
 }
 
+/// Constructs a [`Word`](crate::Word) given a sequence of letters with exponents.
+///
+/// The syntax for specifying each letter in the word is similar to that used in [`letter!`],
+/// except that the single sign (+/-) is replaced by an integer exponent, which is used to infer
+/// both the [`Sign`](crate::Sign) of the corresponding [`Letter`](crate::Letter) as well as the
+/// number of consecutive occurrences of the given letter in the associated factor of the word.
+/// See the examples below for illustration.
+///
+/// Note that, as with the [`Word`](crate::Word) struct itself, it is an error if the length of
+/// the word _in [Artin letters](crate::Letter::Artin)_ cannot be coerced into a [`u16`]. In
+/// particular, because each [band letter](crate::Letter::Band) is composed of `1 + 2*(height - 1)`,
+/// where `height = band.head - band.foot`, it is possible to have an word whose
+/// [Artin length](crate::Word::artin_length) exceeds [`u16::MAX`], even when its
+/// [letter length](crate::Word::length) does not. More information on the fallibility of this
+/// macro can be found in the _**Errors**_ section below.
+///
+/// # Examples
+///
+/// ```
+/// use braided::{Sign, Word, word};
+/// # #[macro_use] extern crate braided;
+/// # fn main() {
+/// // Passing nothing constructs the trivial word:
+/// let trivial = word![];
+/// assert_eq!(trivial, Word::trivial());
+///
+/// // Create a word from a single letter repeated several times:
+/// let positive_artin_cubed = word![[2; 3]];
+/// assert_eq!(positive_artin_cubed, Word::new(vec![(2, None::<u16>, Sign::Positive); 3]));
+/// let negative_band_squared = word![[1 => 4; -2]];
+/// assert_eq!(negative_band_squared, Word::new(vec![(1, Some(4), Sign::Negative); 2]));
+/// # }
+///
+/// // Create a word from an arbitrary sequence of factors, using either generator variant:
+/// let wacky_word = word![[2 => 5; 7], [3; -2], [1 => 2; -3], [2; 9]];
+/// assert_eq!(
+///     wacky_word,
+///     Word::new([
+///         vec![(2, Some(5), Sign::Positive); 7],
+///         vec![(3, None, Sign::Negative); 2],
+///         vec![(1, Some(2), Sign::Negative); 3],
+///         vec![(2, None, Sign::Positive); 9],
+///     ].concat()),
+/// );
+/// ```
+///
+/// # Errors
+///
+/// [`word!`] will return a [`WordValidationError`](crate::WordValidationError) in any context
+/// where the associated [`Word::new`](crate::Word::new) function does. In particular, all of the
+/// following are errors:
+///
+/// 1. Having an Artin length which exceeds [`u16::MAX`]
+///    ([`WordValidationError::TooLong`](crate::WordValidationError::TooLong)).
+/// ```
+/// use braided::{Word, WordValidationError, word};
+/// use std::assert_matches;
+/// # #[macro_use] extern crate braided;
+/// # fn main() {
+/// let long_word_artin = word![[1; -(u16::MAX as i64 + 1)]];
+/// let long_word_bands = word![[1 => 3; (u16::MAX as u32).div_euclid(3) + 1]];
+/// let long_product = word![[1; u16::MAX as u32 -1], [3; 2]];
+///
+/// assert_matches!(long_word_artin, Err(WordValidationError::TooLong(_)));
+/// assert_matches!(long_word_bands, Err(WordValidationError::TooLong(_)));
+/// assert_matches!(long_product, Err(WordValidationError::TooLong(_)));
+/// # }
+/// ```
+///
+/// 2. Having a malformed letter/factor
+///    ([`WordValidationError::LetterValidation`](crate::WordValidationError::LetterValidation)).
+/// ```
+/// use braided::{Word, WordValidationError, word};
+/// use std::assert_matches;
+/// # #[macro_use] extern crate braided;
+/// # fn main() {
+/// let malformed_at_start = word![[-1; 2], [1 => 4; -3], [2; -1]];
+/// let malformed_in_middle = word![[1; 2], [4 => 1; -3], [0; -1]];
+/// let malformed_at_end = word![[1; 2], [1 => 4; -3], [0; -1]];
+///
+/// assert_matches!(malformed_at_start, Err(WordValidationError::LetterValidation(_)));
+/// assert_matches!(malformed_in_middle, Err(WordValidationError::LetterValidation(_)));
+/// assert_matches!(malformed_at_end, Err(WordValidationError::LetterValidation(_)));
+/// # }
+/// ```
 #[macro_export]
 macro_rules! word {
     () => {
