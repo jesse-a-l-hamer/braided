@@ -116,7 +116,6 @@ macro_rules! letter {
 /// assert_eq!(positive_artin_cubed, Word::new(vec![(2, None::<u16>, Sign::Positive); 3]));
 /// let negative_band_squared = word![[1 => 4; -2]];
 /// assert_eq!(negative_band_squared, Word::new(vec![(1, Some(4), Sign::Negative); 2]));
-/// # }
 ///
 /// // Create a word from an arbitrary sequence of factors, using either generator variant:
 /// let wacky_word = word![[2 => 5; 7], [3; -2], [1 => 2; -3], [2; 9]];
@@ -129,6 +128,7 @@ macro_rules! letter {
 ///         vec![(2, None, Sign::Positive); 9],
 ///     ].concat()),
 /// );
+/// # }
 /// ```
 ///
 /// # Errors
@@ -140,7 +140,7 @@ macro_rules! letter {
 /// 1. Having an Artin length which exceeds [`u16::MAX`]
 ///    ([`WordValidationError::TooLong`](crate::WordValidationError::TooLong)).
 /// ```
-/// use braided::{Word, WordValidationError, word};
+/// use braided::{WordValidationError, word};
 /// use std::assert_matches;
 /// # #[macro_use] extern crate braided;
 /// # fn main() {
@@ -157,7 +157,7 @@ macro_rules! letter {
 /// 2. Having a malformed letter/factor
 ///    ([`WordValidationError::LetterValidation`](crate::WordValidationError::LetterValidation)).
 /// ```
-/// use braided::{Word, WordValidationError, word};
+/// use braided::{WordValidationError, word};
 /// use std::assert_matches;
 /// # #[macro_use] extern crate braided;
 /// # fn main() {
@@ -170,13 +170,25 @@ macro_rules! letter {
 /// assert_matches!(malformed_at_end, Err(WordValidationError::LetterValidation(_)));
 /// # }
 /// ```
+///
+/// 3. Passing an exponent that fails to coerce into an [`i64`]
+///    ([`WordValidationError::FromInt`](crate::WordValidationError::FromInt)).
+/// ```
+/// use braided::{WordValidationError, word};
+/// use std::assert_matches;
+/// # #[macro_use] extern crate braided;
+/// # fn main() {
+/// let too_big_exponent = word![[1; u64::MAX]];
+/// assert_matches!(too_big_exponent, Err(WordValidationError::FromInt(_)));
+/// # }
+/// ```
 #[macro_export]
 macro_rules! word {
     () => {
         $crate::Word::trivial()
     };
     ([$foot:expr; $exponent:expr]) => {{
-        match TryInto::<isize>::try_into($exponent) {
+        match TryInto::<i64>::try_into($exponent) {
             Ok(exponent) => {
                 let letter = if exponent < 0 {
                     $crate::letter![$foot; -]
@@ -184,7 +196,9 @@ macro_rules! word {
                     $crate::letter![$foot; +]
                 };
                 match letter {
-                    Ok(letter) => $crate::Word::try_from(vec![letter; exponent.unsigned_abs()]),
+                    Ok(letter) => $crate::Word::try_from(
+                        vec![letter; exponent.unsigned_abs().try_into().unwrap()]
+                    ),
                     Err(e) => Err($crate::WordValidationError::from(e)),
                 }
             },
@@ -192,7 +206,7 @@ macro_rules! word {
         }
     }};
     ([$foot:expr => $head:expr; $exponent:expr]) => {{
-        match TryInto::<isize>::try_into($exponent) {
+        match TryInto::<i64>::try_into($exponent) {
             Ok(exponent) => {
                 let letter = if exponent < 0 {
                     $crate::letter![$foot => $head; -]
@@ -201,7 +215,7 @@ macro_rules! word {
                 };
                 match letter {
                     Ok(letter) => $crate::Word::try_from(
-                        vec![letter; exponent.abs().try_into().unwrap()]
+                        vec![letter; exponent.unsigned_abs().try_into().unwrap()]
                     ),
                     Err(e) => Err($crate::WordValidationError::from(e)),
                 }
@@ -225,6 +239,112 @@ macro_rules! word {
     }};
 }
 
+/// Constructs a [`Braid`](crate::Braid) given an optional [index](crate::BraidIndex) and a
+/// [word](crate::Word).
+///
+/// The macro input must always begin with a (possibly empty) expression surrounded by parentheses,
+/// which is parsed as the braid index if given. After the parentheses is a semicolon (";"),
+/// followed by an arbitrary sequence of bracketed expressions, each of which denotes a power of
+/// a single letter in the resulting word. The word syntax is identical to that of the [`word!`]
+/// macro.
+///
+/// If the braid index is not explicitly given, then it will be inferred as the minial required
+/// index for the given word.
+///
+/// If an explicit index is provided but the word is empty, then the corresponding trivial braid
+/// will be returned.
+///
+/// The macro will panic if neither the index nor the word are specified.
+///
+/// # Examples
+///
+/// ```
+/// use braided::{Braid, Sign, braid};
+/// # #[macro_use] extern crate braided;
+/// # fn main() {
+/// let trivial_3_braid = braid![(3)];
+/// assert_eq!(trivial_3_braid, Braid::trivial(3));
+///
+/// let braid_with_inferred_index = braid![(); [1 => 3; -2], [3; 3], [1; 4]];
+/// assert_eq!(braid_with_inferred_index, Braid::from_data(
+///     None::<u16>,
+///     [
+///         vec![(1, Some(3), Sign::Negative); 2],
+///         vec![(3, None, Sign::Positive); 3],
+///         vec![(1, None, Sign::Positive); 4],
+///     ]
+///     .concat()
+/// ));
+/// assert_eq!(*braid_with_inferred_index.unwrap().index(), 4);
+///
+/// let braid_with_explicit_index = braid![(10); [1 => 3; -2], [3; 3], [1; 4]];
+/// assert_eq!(braid_with_explicit_index, Braid::from_data(
+///     Some(10),
+///     [
+///         vec![(1, Some(3), Sign::Negative); 2],
+///         vec![(3, None, Sign::Positive); 3],
+///         vec![(1, None, Sign::Positive); 4],
+///     ]
+///     .concat()
+/// ));
+/// assert_eq!(*braid_with_explicit_index.unwrap().index(), 10);
+/// # }
+/// ```
+///
+/// # Errors
+///
+/// The macro will return a [`BraidValidationError`](crate::BraidValidationError) in any of the
+/// following circumstances:
+///
+/// 1. An explicitly provided index is smaller than is required by the given word
+///    ([`BraidValidationError::IndexTooSmall`](crate::BraidValidationError::IndexTooSmall)).
+///
+/// ```
+/// use braided::{Braid, BraidValidationError, Sign, braid};
+/// use std::assert_matches;
+/// # #[macro_use] extern crate braided;
+/// # fn main() {
+/// let index_too_small = braid![(1); [1; 1]];
+///
+/// assert_matches!(index_too_small, Err(BraidValidationError::IndexTooSmall { .. }));
+/// # }
+/// ```
+///
+/// 2. An explicitly given index fails validation
+///    ([`BraidValidationError::IndexValidation`](crate::BraidValidationError::IndexValidation)).
+///
+/// ```
+/// use braided::{Braid, BraidValidationError, Sign, braid};
+/// use std::assert_matches;
+/// # #[macro_use] extern crate braided;
+/// # fn main() {
+/// let negative_index = braid![(-1); [1; 1]];
+/// let zero_index = braid![(0); [1; 1]];
+/// let big_index = braid![(u16::MAX as u32 + 1); [1; 1]];
+///
+/// assert_matches!(negative_index, Err(BraidValidationError::IndexValidation(_)));
+/// assert_matches!(zero_index, Err(BraidValidationError::IndexValidation(_)));
+/// assert_matches!(big_index, Err(BraidValidationError::IndexValidation(_)));
+/// # }
+/// ```
+///
+/// 3. An explicitly given word fails validation
+///    ([`BraidValidationError::WordValidation`](crate::BraidValidationError::WordValidation)).
+///
+/// ```
+/// use braided::{Braid, BraidValidationError, Sign, braid};
+/// use std::assert_matches;
+/// # #[macro_use] extern crate braided;
+/// # fn main() {
+/// let too_long = braid![(); [1; u16::MAX], [2; -1]];
+/// let invalid_letter = braid![(); [4 => 1; 2]];
+/// let invalid_exponent = braid![(); [1; u64::MAX]];
+///
+/// assert_matches!(too_long, Err(BraidValidationError::WordValidation(_)));
+/// assert_matches!(invalid_letter, Err(BraidValidationError::WordValidation(_)));
+/// assert_matches!(invalid_exponent, Err(BraidValidationError::WordValidation(_)));
+/// # }
+/// ```
 #[macro_export]
 macro_rules! braid {
     (($index:expr) $(;)?) => {$crate::Braid::trivial($index)};
