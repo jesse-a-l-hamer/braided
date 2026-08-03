@@ -27,7 +27,7 @@ impl ArtinGenerator {
             // The head strand is too large.
             Err(ArtinValidationError::StrandValidation(
                 StrandValidationError::Addition {
-                    left: Strand::new(foot).unwrap(),
+                    left: foot,
                     right: 1,
                 },
             ))
