@@ -1,16 +1,16 @@
 #[macro_export]
 macro_rules! letter {
     ($foot:expr; +) => {
-        $crate::Letter::new($foot, None, $crate::Sign::Positive)
+        $crate::Letter::new::<isize, isize>($foot, None, $crate::Sign::Positive)
     };
     ($foot:expr; -) => {
-        $crate::Letter::new($foot, None, $crate::Sign::Negative)
+        $crate::Letter::new::<isize, isize>($foot, None, $crate::Sign::Negative)
     };
     ($foot:expr => $head:expr; +) => {
-        $crate::Letter::new($foot, Some($head), $crate::Sign::Positive)
+        $crate::Letter::new::<isize, isize>($foot, Some($head), $crate::Sign::Positive)
     };
     ($foot:expr => $head:expr; -) => {
-        $crate::Letter::new($foot, Some($head), $crate::Sign::Negative)
+        $crate::Letter::new::<isize, isize>($foot, Some($head), $crate::Sign::Negative)
     };
 }
 
@@ -20,24 +20,26 @@ macro_rules! word {
         $crate::Word::trivial()
     };
     ([$foot:expr; $exponent:expr]) => {{
-        let letter = if $exponent < 0 {
-            letter![$foot; -]
+        let exponent:isize = $exponent;
+        let letter = if exponent < 0 {
+            $crate::letter![$foot; -]
         } else {
-            letter![$foot; +]
+            $crate::letter![$foot; +]
         };
         match letter {
-            Ok(letter) => $crate::Word::from(vec![letter; $exponent.abs().try_into().unwrap()]),
+            Ok(letter) => $crate::Word::try_from(vec![letter; exponent.abs().try_into().unwrap()]),
             Err(e) => Err($crate::WordValidationError::from(e)),
         }
     }};
     ([$foot:expr => $head:expr; $exponent:expr]) => {{
-        let letter = if $exponent < 0 {
-            letter![$foot => $head; -]
+        let exponent:isize = $exponent;
+        let letter = if exponent < 0 {
+            $crate::letter![$foot => $head; -]
         } else {
-            letter![$foot => $head; +]
+            $crate::letter![$foot => $head; +]
         };
         match letter {
-            Ok(letter) => $crate::Word::from(vec![letter; $exponent.abs().try_into().unwrap()]),
+            Ok(letter) => $crate::Word::try_from(vec![letter; exponent.abs().try_into().unwrap()]),
             Err(e) => Err($crate::WordValidationError::from(e)),
         }
     }};
@@ -59,7 +61,17 @@ macro_rules! word {
 
 #[macro_export]
 macro_rules! braid {
-    ($index:expr; $($tail:tt)*) => {
-        Braid::new($index, word![$($tail)*])
+    (($index:expr) $(;)?) => {$crate::Braid::trivial($index)};
+    (($index:expr); $($tail:tt)+) => {
+        match $crate::word![$($tail)+] {
+            Ok(word) => $crate::Braid::new(Some($index), word),
+            Err(e) => Err($crate::BraidValidationError::from(e)),
+        }
+    };
+    ((); $($tail:tt)+) => {
+        match $crate::word![$($tail)+] {
+            Ok(w) => Ok($crate::Braid::from(w)),
+            Err(e) => Err($crate::BraidValidationError::from(e)),
+        }
     };
 }

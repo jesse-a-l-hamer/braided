@@ -1,11 +1,14 @@
-use crate::{BraidIndex, IndexValidationError, Letter, Sign, Word, WordValidationError};
+use crate::{
+    BraidIndex, IndexValidationError, Letter, LetterValidationError, Sign, StrandValidationError,
+    Word, WordValidationError,
+};
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum BraidValidationError {
-    #[error("Braid index {index:?} too small for word requiring minimal index {required_index:?}.")]
+    #[error("Given index {index:?} less than minimal required index {minimal_required_index:?}.")]
     IndexTooSmall {
         index: BraidIndex,
-        required_index: BraidIndex,
+        minimal_required_index: BraidIndex,
     },
     #[error("Attempt to multiply braids of unequal indices: {left:?} != {right:?}")]
     UnequalIndices { left: BraidIndex, right: BraidIndex },
@@ -24,33 +27,57 @@ pub struct Braid {
 }
 
 impl Braid {
-    pub fn new<I, W>(index: I, word: W) -> Result<Self, BraidValidationError>
+    pub fn new<N>(index: Option<N>, word: Word) -> Result<Self, BraidValidationError>
     where
-        I: TryInto<u16>,
-        W: TryInto<Word>,
-        BraidValidationError: From<<W as TryInto<Word>>::Error>,
-        IndexValidationError: From<<I as TryInto<u16>>::Error>,
+        N: TryInto<u16>,
+        IndexValidationError: From<<N as TryInto<u16>>::Error>,
     {
-        let index = BraidIndex::new(index)?;
-        let word: Word = word.try_into()?;
+        let minimal_required_index = word.minimal_required_braid_index();
+        let index = if let Some(index) = index {
+            BraidIndex::new(index)?
+        } else {
+            minimal_required_index
+        };
 
-        if let required_index = word.minimal_required_braid_index()
-            && index < required_index
-        {
+        if index < minimal_required_index {
             Err(BraidValidationError::IndexTooSmall {
                 index,
-                required_index,
+                minimal_required_index,
             })
         } else {
             Ok(Self { index, word })
         }
     }
-    pub fn trivial<I>(index: I) -> Result<Self, BraidValidationError>
+
+    pub fn from_data<N, D, F, H>(
+        index: Option<N>,
+        word_data: D,
+    ) -> Result<Self, BraidValidationError>
     where
-        I: TryInto<u16>,
-        IndexValidationError: From<<I as TryInto<u16>>::Error>,
+        N: TryInto<u16>,
+        IndexValidationError: From<<N as TryInto<u16>>::Error>,
+        D: IntoIterator<Item = (F, Option<H>, Sign)>,
+        F: TryInto<u16>,
+        H: TryInto<u16>,
+        WordValidationError: From<<F as TryInto<u16>>::Error>
+            + From<<H as TryInto<u16>>::Error>
+            + From<std::convert::Infallible>,
+        LetterValidationError: From<<F as TryInto<u16>>::Error>
+            + From<<H as TryInto<u16>>::Error>
+            + From<std::convert::Infallible>,
+        StrandValidationError: From<<F as TryInto<u16>>::Error>
+            + From<<H as TryInto<u16>>::Error>
+            + From<std::convert::Infallible>,
     {
-        Self::new(index, Word::trivial())
+        let word: Word = Word::new(word_data)?;
+        Self::new(index, word)
+    }
+    pub fn trivial<N>(index: N) -> Result<Self, BraidValidationError>
+    where
+        N: TryInto<u16>,
+        IndexValidationError: From<<N as TryInto<u16>>::Error>,
+    {
+        Self::from_data(Some(index), Vec::<(u16, Option<u16>, Sign)>::new())
     }
 
     pub fn inverse(&self) -> Self {
@@ -65,6 +92,10 @@ impl Braid {
     }
     pub fn word(&self) -> Word {
         self.word.clone()
+    }
+
+    pub fn letters(&self) -> Vec<Letter> {
+        self.word.letters()
     }
 
     pub fn decompose(&self) -> Self {
@@ -115,24 +146,6 @@ impl From<&Word> for Braid {
         Self::from(value.clone())
     }
 }
-impl<L> TryFrom<Vec<L>> for Braid
-where
-    L: Into<Letter>,
-{
-    type Error = BraidValidationError;
-    fn try_from(value: Vec<L>) -> Result<Self, Self::Error> {
-        Ok(Self::from(Word::try_from(value)?))
-    }
-}
-impl<L> TryFrom<&[L]> for Braid
-where
-    L: Into<Letter> + Clone,
-{
-    type Error = BraidValidationError;
-    fn try_from(value: &[L]) -> Result<Self, Self::Error> {
-        Ok(Self::from(Word::try_from(value)?))
-    }
-}
 
 impl Default for Braid {
     fn default() -> Self {
@@ -148,10 +161,34 @@ impl std::ops::Mul<Letter> for Braid {
         {
             Err(BraidValidationError::IndexTooSmall {
                 index: self.index,
-                required_index,
+                minimal_required_index: required_index,
             })
         } else {
-            Self::new(self.index, (self.word * rhs)?)
+            let word = (self.word * rhs)?;
+            Ok(Self {
+                index: self.index,
+                word,
+            })
+        }
+    }
+}
+impl std::ops::Mul<Braid> for Letter {
+    type Output = Result<Braid, BraidValidationError>;
+
+    fn mul(self, rhs: Braid) -> Self::Output {
+        if let required_index = self.minimal_required_braid_index()
+            && rhs.index() < required_index
+        {
+            Err(BraidValidationError::IndexTooSmall {
+                index: rhs.index(),
+                minimal_required_index: required_index,
+            })
+        } else {
+            let word = (self * rhs.word)?;
+            Ok(Braid {
+                index: rhs.index,
+                word,
+            })
         }
     }
 }
@@ -163,10 +200,34 @@ impl std::ops::Mul<Word> for Braid {
         {
             Err(BraidValidationError::IndexTooSmall {
                 index: self.index,
-                required_index,
+                minimal_required_index: required_index,
             })
         } else {
-            Self::new(self.index, (self.word * rhs)?)
+            let word = (self.word * rhs)?;
+            Ok(Self {
+                index: self.index,
+                word,
+            })
+        }
+    }
+}
+impl std::ops::Mul<Braid> for Word {
+    type Output = Result<Braid, BraidValidationError>;
+
+    fn mul(self, rhs: Braid) -> Self::Output {
+        if let required_index = self.minimal_required_braid_index()
+            && rhs.index() < required_index
+        {
+            Err(BraidValidationError::IndexTooSmall {
+                index: rhs.index(),
+                minimal_required_index: required_index,
+            })
+        } else {
+            let word = (self * rhs.word)?;
+            Ok(Braid {
+                index: rhs.index,
+                word,
+            })
         }
     }
 }
@@ -179,13 +240,17 @@ impl std::ops::Mul for Braid {
                 right: rhs.index,
             })
         } else {
-            Self::new(self.index, (self.word * rhs.word)?)
+            let word = (self.word * rhs.word)?;
+            Ok(Self {
+                index: self.index,
+                word,
+            })
         }
     }
 }
 
 impl IntoIterator for Braid {
-    type Item = Letter;
+    type Item = (u16, Option<u16>, Sign);
     type IntoIter = <Word as IntoIterator>::IntoIter;
 
     fn into_iter(self) -> Self::IntoIter {

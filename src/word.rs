@@ -1,6 +1,6 @@
 use crate::{
-    ArtinGenerator, BandGenerator, Braid, BraidIndex, BraidValidationError, Letter,
-    LetterValidationError, Sign, StrandValidationError,
+    ArtinGenerator, BandGenerator, BraidIndex, Letter, LetterValidationError, Sign,
+    StrandValidationError,
 };
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
@@ -9,6 +9,8 @@ pub enum WordValidationError {
     TooLong(usize),
     #[error(transparent)]
     LetterValidation(#[from] LetterValidationError),
+    #[error(transparent)]
+    FromInt(#[from] std::num::TryFromIntError),
     #[error(transparent)]
     Infallible(#[from] std::convert::Infallible),
 }
@@ -143,11 +145,18 @@ where
 }
 
 impl IntoIterator for Word {
-    type Item = Letter;
-    type IntoIter = <Vec<Letter> as IntoIterator>::IntoIter;
+    type Item = (u16, Option<u16>, Sign);
+    type IntoIter = <Vec<(u16, Option<u16>, Sign)> as IntoIterator>::IntoIter;
 
     fn into_iter(self) -> Self::IntoIter {
-        self.0.into_iter()
+        self.0
+            .iter()
+            .map(|l| match l {
+                Letter::Artin(artin) => (artin.foot().into(), None, artin.sign()),
+                Letter::Band(band) => (band.foot().into(), Some(band.head().into()), band.sign()),
+            })
+            .collect::<Vec<_>>()
+            .into_iter()
     }
 }
 impl std::ops::Deref for Word {
@@ -185,22 +194,6 @@ impl std::ops::Mul for Word {
         } else {
             let (first, rem) = rhs.split_first().unwrap();
             (self * first.clone())? * Word::try_from(rem)?
-        }
-    }
-}
-impl std::ops::Mul<Braid> for Word {
-    type Output = Result<Braid, BraidValidationError>;
-
-    fn mul(self, rhs: Braid) -> Self::Output {
-        if let required_index = self.minimal_required_braid_index()
-            && rhs.index() < required_index
-        {
-            Err(BraidValidationError::IndexTooSmall {
-                index: rhs.index(),
-                required_index,
-            })
-        } else {
-            Braid::new(rhs.index(), (self * rhs.word())?)
         }
     }
 }

@@ -1,6 +1,6 @@
 use crate::{
-    ArtinGenerator, ArtinValidationError, BandGenerator, BandValidationError, Braid, BraidIndex,
-    BraidValidationError, Sign, Strand, StrandValidationError, Word, WordValidationError,
+    ArtinGenerator, ArtinValidationError, BandGenerator, BandValidationError, BraidIndex, Sign,
+    Strand, StrandValidationError, Word, WordValidationError,
 };
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
@@ -9,6 +9,8 @@ pub enum LetterValidationError {
     ArtinValidation(#[from] ArtinValidationError),
     #[error(transparent)]
     BandValidation(#[from] BandValidationError),
+    #[error(transparent)]
+    FromInt(#[from] std::num::TryFromIntError),
     #[error(transparent)]
     Infallible(#[from] std::convert::Infallible),
 }
@@ -144,22 +146,6 @@ impl std::ops::Mul<Word> for Letter {
             Word::try_from([&(self * first.clone())?, rem].concat())
         } else {
             Word::try_from(vec![self])
-        }
-    }
-}
-impl std::ops::Mul<Braid> for Letter {
-    type Output = Result<Braid, BraidValidationError>;
-
-    fn mul(self, rhs: Braid) -> Self::Output {
-        if let required_index = self.minimal_required_braid_index()
-            && rhs.index() < required_index
-        {
-            Err(BraidValidationError::IndexTooSmall {
-                index: rhs.index(),
-                required_index,
-            })
-        } else {
-            Braid::new(rhs.index(), (self * rhs.word())?)
         }
     }
 }
