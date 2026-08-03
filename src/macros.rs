@@ -14,12 +14,12 @@
 /// // A single integer and a sign is interpreted as an Artin generator:
 /// let artin = letter![1; +];
 /// assert_matches!(artin, Ok(Letter::Artin(_)));
-/// assert_eq!(artin, Letter::new::<isize, isize>(1, None, Sign::Positive));
+/// assert_eq!(artin, Letter::new(1, None::<u16>, Sign::Positive));
 ///
 /// // Two integers and a sign is interpreted as a Band generator:
 /// let band = letter![2 => 4; -];
 /// assert_matches!(band, Ok(Letter::Band(_)));
-/// assert_eq!(band, Letter::new::<isize, isize>(2, Some(4), Sign::Negative));
+/// assert_eq!(band, Letter::new(2, Some(4), Sign::Negative));
 /// # }
 /// ```
 ///
@@ -49,7 +49,7 @@
 /// );
 ///
 /// // Strand indices must also be within the [`u16`] range:
-/// let bad_letter_3 = letter![(u16::MAX as isize) + 1; +];
+/// let bad_letter_3 = letter![u16::MAX as u32 + 1; +];
 /// assert_matches!(
 ///     bad_letter_3,
 ///     Err(
@@ -72,16 +72,16 @@
 #[macro_export]
 macro_rules! letter {
     ($foot:expr; +) => {
-        $crate::Letter::new::<isize, isize>($foot, None, $crate::Sign::Positive)
+        $crate::Letter::new($foot, None::<u16>, $crate::Sign::Positive)
     };
     ($foot:expr; -) => {
-        $crate::Letter::new::<isize, isize>($foot, None, $crate::Sign::Negative)
+        $crate::Letter::new($foot, None::<u16>, $crate::Sign::Negative)
     };
     ($foot:expr => $head:expr; +) => {
-        $crate::Letter::new::<isize, isize>($foot, Some($head), $crate::Sign::Positive)
+        $crate::Letter::new($foot, Some($head), $crate::Sign::Positive)
     };
     ($foot:expr => $head:expr; -) => {
-        $crate::Letter::new::<isize, isize>($foot, Some($head), $crate::Sign::Negative)
+        $crate::Letter::new($foot, Some($head), $crate::Sign::Negative)
     };
 }
 
@@ -176,26 +176,36 @@ macro_rules! word {
         $crate::Word::trivial()
     };
     ([$foot:expr; $exponent:expr]) => {{
-        let exponent:isize = $exponent;
-        let letter = if exponent < 0 {
-            $crate::letter![$foot; -]
-        } else {
-            $crate::letter![$foot; +]
-        };
-        match letter {
-            Ok(letter) => $crate::Word::try_from(vec![letter; exponent.abs().try_into().unwrap()]),
-            Err(e) => Err($crate::WordValidationError::from(e)),
+        match TryInto::<isize>::try_into($exponent) {
+            Ok(exponent) => {
+                let letter = if exponent < 0 {
+                    $crate::letter![$foot; -]
+                } else {
+                    $crate::letter![$foot; +]
+                };
+                match letter {
+                    Ok(letter) => $crate::Word::try_from(vec![letter; exponent.unsigned_abs()]),
+                    Err(e) => Err($crate::WordValidationError::from(e)),
+                }
+            },
+            Err(e) => Err($crate::WordValidationError::from(e))
         }
     }};
     ([$foot:expr => $head:expr; $exponent:expr]) => {{
-        let exponent:isize = $exponent;
-        let letter = if exponent < 0 {
-            $crate::letter![$foot => $head; -]
-        } else {
-            $crate::letter![$foot => $head; +]
-        };
-        match letter {
-            Ok(letter) => $crate::Word::try_from(vec![letter; exponent.abs().try_into().unwrap()]),
+        match TryInto::<isize>::try_into($exponent) {
+            Ok(exponent) => {
+                let letter = if exponent < 0 {
+                    $crate::letter![$foot => $head; -]
+                } else {
+                    $crate::letter![$foot => $head; +]
+                };
+                match letter {
+                    Ok(letter) => $crate::Word::try_from(
+                        vec![letter; exponent.abs().try_into().unwrap()]
+                    ),
+                    Err(e) => Err($crate::WordValidationError::from(e)),
+                }
+            },
             Err(e) => Err($crate::WordValidationError::from(e)),
         }
     }};
@@ -244,7 +254,7 @@ mod tests {
     // letter!
     #[gtest]
     fn macro_letter_constructs_artin_letters() {
-        let artins: [(Result<Letter, LetterValidationError>, isize, Sign); 2] = [
+        let artins: [(Result<Letter, LetterValidationError>, u16, Sign); 2] = [
             (letter![1; +], 1, Sign::Positive),
             (letter![2; -], 2, Sign::Negative),
         ];
@@ -257,7 +267,7 @@ mod tests {
     }
     #[gtest]
     fn macro_letter_constructs_band_letters() {
-        let artins: [(Result<Letter, LetterValidationError>, isize, isize, Sign); 2] = [
+        let artins: [(Result<Letter, LetterValidationError>, u16, u16, Sign); 2] = [
             (letter![1 => 3; +], 1, 3, Sign::Positive),
             (letter![2 => 5; -], 2, 5, Sign::Negative),
         ];
@@ -284,9 +294,9 @@ mod tests {
                 ),
             ),
             (
-                letter![(u16::MAX as isize) + 1; -],
+                letter![(u16::MAX as usize) + 1; -],
                 LetterValidationError::from(
-                    ArtinGenerator::new((u16::MAX as isize) + 1, Sign::Negative)
+                    ArtinGenerator::new(u16::MAX as u32 + 1, Sign::Negative)
                         .err()
                         .unwrap(),
                 ),
@@ -312,7 +322,7 @@ mod tests {
     }
     #[gtest]
     fn macro_word_constructs_exponent_of_single_artin() {
-        let words: [(Result<Word, WordValidationError>, isize, isize); 2] =
+        let words: [(Result<Word, WordValidationError>, u16, i32); 2] =
             [(word![[1; 3]], 1, 3), (word![[2; -4]], 2, -4)];
         for (word, foot, exp) in words {
             let letter = if exp < 0 {
@@ -322,15 +332,17 @@ mod tests {
             };
             expect_that!(
                 word,
-                ok(eq(
-                    &Word::try_from(vec![letter; exp.unsigned_abs()]).unwrap()
-                ))
+                ok(eq(&Word::try_from(vec![
+                    letter;
+                    exp.unsigned_abs() as usize
+                ])
+                .unwrap()))
             )
         }
     }
     #[gtest]
     fn macro_word_constructs_exponent_of_single_band() {
-        let words: [(Result<Word, WordValidationError>, isize, isize, isize); 2] = [
+        let words: [(Result<Word, WordValidationError>, u16, u16, i32); 2] = [
             (word![[1 => 4; 3]], 1, 4, 3),
             (word![[2 => 7; -4]], 2, 7, -4),
         ];
@@ -342,9 +354,11 @@ mod tests {
             };
             expect_that!(
                 word,
-                ok(eq(
-                    &Word::try_from(vec![letter; exp.unsigned_abs()]).unwrap()
-                ))
+                ok(eq(&Word::try_from(vec![
+                    letter;
+                    exp.unsigned_abs() as usize
+                ])
+                .unwrap()))
             )
         }
     }
@@ -440,12 +454,12 @@ mod tests {
                 .unwrap(),
             ),
             (
-                word![[1; 2], [2 => 5; -3], [u16::MAX as isize + 1; 2]],
+                word![[1; 2], [2 => 5; -3], [u16::MAX as u32 + 1; 2]],
                 Word::new(
                     [
                         vec![(1, None, Sign::Positive); 2],
                         vec![(2, Some(5), Sign::Negative); 3],
-                        vec![(u16::MAX as isize + 1, None, Sign::Positive); 2],
+                        vec![(u16::MAX as u32 + 1, None, Sign::Positive); 2],
                     ]
                     .concat(),
                 )
@@ -466,16 +480,22 @@ mod tests {
                 .unwrap(),
             ),
             (
-                word![[1; u16::MAX as isize + 1]],
+                word![[1; u16::MAX as u32 + 1]],
                 Word::try_from(vec![letter![1; +].unwrap(); u16::MAX as usize + 1])
                     .err()
                     .unwrap(),
             ),
             (
-                word![[1 => 3; u16::MAX as isize - 1], [3; -2]],
-                Word::try_from([vec![letter![1 => 3; +].unwrap(); u16::MAX as usize - 1]].concat())
-                    .err()
-                    .unwrap(),
+                word![[1 => 3; (u16::MAX as u32).div_euclid(3)], [3; -1]],
+                Word::try_from(
+                    [
+                        vec![letter![1 => 3; +].unwrap(); (u16::MAX as usize).div_euclid(3)],
+                        vec![letter![3; -].unwrap(); 1],
+                    ]
+                    .concat(),
+                )
+                .err()
+                .unwrap(),
             ),
         ];
         for (invalid_word, error) in invalid_words {
@@ -533,9 +553,9 @@ mod tests {
                     .unwrap(),
             ),
             (
-                braid![(u16::MAX as isize + 1);[1 => 3; 2], [2; -4], [3 => 4; 3]],
+                braid![(u16::MAX as u32 + 1);[1 => 3; 2], [2; -4], [3 => 4; 3]],
                 Braid::from_data(
-                    Some(u16::MAX as isize + 1),
+                    Some(u16::MAX as u32 + 1),
                     word![[1 => 3; 2], [2; -4], [3 => 4; 3]].unwrap(),
                 )
                 .err()
@@ -544,7 +564,7 @@ mod tests {
             (
                 braid![();[-1; 1], [1; 2], [2 => 5; -3]],
                 Braid::from_data(
-                    None::<isize>,
+                    None::<u16>,
                     [
                         vec![(-1, None, Sign::Positive); 1],
                         vec![(1, None, Sign::Positive); 2],
@@ -558,7 +578,7 @@ mod tests {
             (
                 braid![();[1; 2], [0 => 4; -2], [2 => 5; -3]],
                 Braid::from_data(
-                    None::<isize>,
+                    None::<u16>,
                     [
                         vec![(1, None, Sign::Positive); 2],
                         vec![(0, Some(4), Sign::Negative); 2],
@@ -570,13 +590,13 @@ mod tests {
                 .unwrap(),
             ),
             (
-                braid![();[1; 2], [2 => 5; -3], [u16::MAX as isize + 1; 2]],
+                braid![();[1; 2], [2 => 5; -3], [u16::MAX as u32 + 1; 2]],
                 Braid::from_data(
-                    None::<isize>,
+                    None::<u16>,
                     [
                         vec![(1, None, Sign::Positive); 2],
                         vec![(2, Some(5), Sign::Negative); 3],
-                        vec![(u16::MAX as isize + 1, None, Sign::Positive); 2],
+                        vec![(u16::MAX as u32 + 1, None, Sign::Positive); 2],
                     ]
                     .concat(),
                 )
@@ -586,7 +606,7 @@ mod tests {
             (
                 braid![();[4 => 1; 3], [1; 2], [2 => 5; -3]],
                 Braid::from_data(
-                    None::<isize>,
+                    None::<u16>,
                     [
                         vec![(4, Some(1), Sign::Positive); 3],
                         vec![(1, None, Sign::Positive); 2],
@@ -598,11 +618,11 @@ mod tests {
                 .unwrap(),
             ),
             (
-                braid![();[1; u16::MAX as isize + 1]],
+                braid![();[1; u16::MAX as u32 + 1]],
                 Braid::from_data(
-                    None::<isize>,
+                    None::<u16>,
                     [vec![
-                        (1, None::<isize>, Sign::Positive);
+                        (1, None::<u16>, Sign::Positive);
                         u16::MAX as usize + 1
                     ]]
                     .concat(),
@@ -611,9 +631,9 @@ mod tests {
                 .unwrap(),
             ),
             (
-                braid![();[1 => 3; u16::MAX as isize - 1], [3; -2]],
+                braid![();[1 => 3; u16::MAX as u32 - 1], [3; -2]],
                 Braid::from_data(
-                    None::<isize>,
+                    None::<u16>,
                     [vec![(1, Some(3), Sign::Positive); u16::MAX as usize - 1]].concat(),
                 )
                 .err()
