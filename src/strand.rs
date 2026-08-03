@@ -73,6 +73,16 @@ pub enum StrandValidationError {
 /// it seems reasonable that a library dedicated to braids should have a means of representing such
 /// a fundamental concept. That is the purpose of this struct.
 ///
+/// # Why [`u16`]?
+///
+/// The [`u16`] type was chosen as the inner type for both [`Strand`] and
+/// [`BraidIndex`](crate::BraidIndex) in an attempt at balancing performance with practicality.
+/// While the maximal size of the [`u8`] type is plenty large for any visualization purposes, there
+/// may nevertheless be computational applications which can make use of the larger upper bound on
+/// the number of strands. If it turns out that the performance gains of using a relatively small
+/// integer type are negligible in comparison to the demand for greater computational freedom, then
+/// a refactor should be straightforward to perform in the future.
+///
 /// # Construction
 ///
 /// The recommended means of constructing a [`Strand`] is via the associated function
@@ -111,6 +121,8 @@ pub enum StrandValidationError {
 ///
 /// assert_eq!(double(Strand::new(2).unwrap()), 4);
 /// ```
+/// Note that as [`BraidIndex`](crate::BraidIndex) also implements [`AsRef<u16>`], this allows for
+/// defining generic functions which accept both [`Strand`] and [`BraidIndex`](crate::BraidIndex).
 ///
 /// # Strand Arithmetic
 ///
@@ -194,6 +206,15 @@ impl Strand {
     /// use std::assert_matches;
     ///
     /// assert_matches!(Strand::new(Strand::new(1).unwrap()), Ok(_));
+    /// ```
+    ///
+    /// as well as [`BraidIndex`](crate::BraidIndex):
+    ///
+    /// ```
+    /// use braided::{BraidIndex, Strand};
+    /// use std::assert_matches;
+    ///
+    /// assert_matches!(Strand::new(BraidIndex::new(1).unwrap()), Ok(_));
     /// ```
     pub fn new<K>(index: K) -> Result<Self, StrandValidationError>
     where
@@ -315,7 +336,7 @@ impl std::ops::Sub<Strand> for u16 {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Strand, StrandValidationError};
+    use crate::{BraidIndex, Strand, StrandValidationError};
     use googletest::matchers::{anything, derefs_to, each, eq, err, ok, result_of_ref};
     use googletest::{assert_that, expect_that, gtest};
 
@@ -325,6 +346,7 @@ mod tests {
             Strand::try_from(1),
             Strand::new(1),
             Strand::new(Strand::try_from(1).unwrap()),
+            Strand::new(BraidIndex::try_from(1).unwrap()),
         ];
 
         assert_that!(valid_strands, each(ok(anything())));
@@ -336,6 +358,7 @@ mod tests {
             Strand::try_from(1),
             Strand::new(1),
             Strand::new(Strand::try_from(1).unwrap()),
+            Strand::new(BraidIndex::try_from(1).unwrap()),
         ];
 
         assert_that!(test_strands, each(ok(derefs_to(eq(&1)))));
@@ -343,10 +366,13 @@ mod tests {
 
     #[test]
     fn can_coerce_strand_into_u16() {
-        let coerced_strands: [u16; 3] = [
+        let coerced_strands: [u16; 4] = [
             Strand::try_from(1).unwrap().into(),
             Strand::new(1).unwrap().into(),
             Strand::new(Strand::try_from(1).unwrap()).unwrap().into(),
+            Strand::new(BraidIndex::try_from(1).unwrap())
+                .unwrap()
+                .into(),
         ];
 
         assert_that!(coerced_strands, each(eq(1)));
@@ -362,6 +388,7 @@ mod tests {
             Strand::try_from(1).unwrap(),
             Strand::new(1).unwrap(),
             Strand::new(Strand::try_from(1).unwrap()).unwrap(),
+            Strand::new(BraidIndex::try_from(1).unwrap()).unwrap(),
         ];
 
         assert_that!(
