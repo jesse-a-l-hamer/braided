@@ -1,24 +1,200 @@
+/// Error type representing failed validation when attempting to construct a [`Strand`].
+///
+/// A [`Strand`] wraps a [`u16`], so all variants of [`StrandValidationError`] concern the failure
+/// to convert an input into a [`u16`].
+///
+/// # Examples
+///
+/// ```
+/// use braided::{Strand, StrandValidationError};
+/// use std::assert_matches;
+///
+/// assert_matches!(
+///     Strand::new(0),
+///     Err(StrandValidationError::Zero),
+/// );
+///
+/// assert_matches!(
+///     Strand::new(u16::MAX as u32 + 1),
+///     Err(StrandValidationError::FromInt(_)),
+/// );
+///
+/// assert_matches!(
+///     Strand::new(1).unwrap() - 2,
+///     Err(StrandValidationError::Subtraction { .. }),
+///     );
+///
+/// assert_matches!(
+///     Strand::new(u16::MAX - 1).unwrap() + 2,
+///     Err(StrandValidationError::Addition { .. }),
+/// );
+/// ```
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum StrandValidationError {
+    /// Indicates failure to construct a [`Strand`] from zero.
     #[error("Strand index cannot be zero.")]
     Zero,
+    /// Indicates a failed [`Strand`] subtraction result: the subtraction would yield a non-positive
+    /// strand index.
     #[error("Attempt to subtract {right:?} from {left:?} results in non-positive-indexed strand.")]
-    Subtraction { left: u16, right: u16 },
+    Subtraction {
+        /// The index of the left operand in the failed subtraction.
+        left: u16,
+        /// The index of the right operand in the failed subtraction.
+        right: u16,
+    },
+    /// Indicates a failed [`Strand`] addition result: the addition would yield a result that
+    /// exceeds [`u16::MAX`].
     #[error(
         "Attempt to add {left:?} to {right:?} results in strand index larger than {max}",
         max = u16::MAX,
     )]
-    Addition { left: u16, right: u16 },
+    Addition {
+        /// The index of the left operand in the failed addition.
+        left: u16,
+        /// The index of the right operand in the failed addition.
+        right: u16,
+    },
+    /// Wrapper around a [`std::num::TryFromIntError`], indicating failure to convert an integer
+    /// value into a [`u16`] during [`Strand`] construction.
     #[error(transparent)]
     FromInt(#[from] std::num::TryFromIntError),
+    /// Wrapper around a [`std::convert::Infallible`].
+    ///
+    /// This variant exists purely to make the type system happy; in practice this variant cannot
+    /// occur.
     #[error(transparent)]
     Infallible(#[from] std::convert::Infallible),
 }
 
+/// A wrapper around a [`u16`] representing the index of a braid strand.
+///
+/// Braids encode weaving patterns among a collection of disjoint _strands_, or _strings_. Thus,
+/// it seems reasonable that a library dedicated to braids should have a means of representing such
+/// a fundamental concept. That is the purpose of this struct.
+///
+/// # Construction
+///
+/// The recommended means of constructing a [`Strand`] is via the associated function
+/// [`Strand::new`]. The reader is referred to the documentation for that function for further
+/// detail.
+///
+/// # Interoperability with [`u16`]
+///
+/// To make [`Strand`] more ergonomic, a few traits are implemented to make it easy to use in place
+/// of a [`u16`].
+///
+/// First, we implement [`From<Strand>`] for [`u16`]:
+///
+/// ```
+/// use braided::Strand;
+///
+/// assert_eq!(u16::from(Strand::new(1).unwrap()), 1);
+/// ```
+///
+/// Second, [`std::ops::Deref`] is iplemented on [`Strand`] to allow easy dereferencing into a
+/// [`u16`]:
+///
+/// ```
+/// use braided::Strand;
+///
+/// assert_eq!(*Strand::new(1).unwrap(), 1);
+/// ```
+///
+/// Finally, [`AsRef<u16>`] is implemented on [`Strand`], allowing for [`Strand`] to be used in
+/// generic function contexts where the input is any reference that can be converted into a [`u16`].
+///
+/// ```
+/// use braided::Strand;
+///
+/// fn double<S: AsRef<u16>>(s: S) -> u16 { s.as_ref() * 2 }
+///
+/// assert_eq!(double(Strand::new(2).unwrap()), 4);
+/// ```
+///
+/// # Strand Arithmetic
+///
+/// We also implement all of the following to enable [`Strand`] to be used more ergonomically in
+/// arithmetic contexts:
+///
+/// - [`std::ops::Add<Strand>`] and [`std::ops::Add<u16>`] for [`Strand`]:
+///
+/// ```
+/// use braided::Strand;
+///
+/// assert_eq!(Strand::new(2).unwrap() + Strand::new(3).unwrap(), Strand::new(5));
+///
+/// assert_eq!(Strand::new(2).unwrap() + 3, Strand::new(5));
+/// ```
+///
+/// - [`std::ops::Add<Strand>`] and for [`u16`]:
+///
+/// ```
+/// use braided::Strand;
+///
+/// assert_eq!(2 + Strand::new(3).unwrap(), Strand::new(5));
+/// ```
+///
+/// - [`std::ops::Sub<Strand>`] and [`std::ops::Sub<u16>`] for [`Strand`]:
+///
+/// ```
+/// use braided::Strand;
+///
+/// assert_eq!(Strand::new(3).unwrap() - Strand::new(2).unwrap(), Strand::new(1));
+///
+/// assert_eq!(Strand::new(3).unwrap() - 2, Strand::new(1));
+/// ```
+///
+/// - [`std::ops::Sub<Strand>`] for [`u16`]:
+///
+/// ```
+/// use braided::Strand;
+///
+/// assert_eq!(3 - Strand::new(2).unwrap(), Strand::new(1));
+/// ```
+///
+/// Note that each of the arithmetic operations above is fallible. See the documentation for
+/// [`StrandValidationError`] for more information on the possible error results.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Strand(u16);
 
 impl Strand {
+    /// Attempts to construct a [`Strand`] from any type implementing [`TryInto<u16>`], failing if
+    /// the input cannot be validated.
+    ///
+    /// This is the recommended means of constructing a new strand.
+    ///
+    /// # Examples
+    ///
+    /// One may construct a new [`Strand`] directly from a [`u16`]:
+    ///
+    /// ```
+    /// use braided::Strand;
+    /// use std::assert_matches;
+    ///
+    /// assert_matches!(Strand::new(1), Ok(_));
+    /// ```
+    ///
+    /// or from anything that coerces into a [`u16`]:
+    ///
+    /// ```
+    /// use braided::Strand;
+    /// use std::assert_matches;
+    ///
+    /// assert_matches!(Strand::new(i16::MAX), Ok(_));
+    /// assert_matches!(Strand::new(-(i16::MIN + 1)), Ok(_));
+    /// assert_matches!(Strand::new(1 as usize), Ok(_));
+    /// assert_matches!(Strand::new(-(-1 as isize)), Ok(_));
+    /// ```
+    ///
+    /// including other [`Strand`]s:
+    ///
+    /// ```
+    /// use braided::Strand;
+    /// use std::assert_matches;
+    ///
+    /// assert_matches!(Strand::new(Strand::new(1).unwrap()), Ok(_));
+    /// ```
     pub fn new<K>(index: K) -> Result<Self, StrandValidationError>
     where
         K: TryInto<u16>,
@@ -141,7 +317,6 @@ impl std::ops::Sub<Strand> for u16 {
 mod tests {
     use crate::{Strand, StrandValidationError};
     use googletest::matchers::{anything, derefs_to, each, eq, err, ok, result_of_ref};
-    use googletest::prelude::__internal_unstable_do_not_depend_on_these::result_of_ref;
     use googletest::{assert_that, expect_that, gtest};
 
     #[test]
@@ -191,11 +366,7 @@ mod tests {
 
         assert_that!(
             test_strands,
-            each(result_of_ref(
-                |s: Strand| as_ref_tester(s),
-                eq(&1),
-                "A dummy function that accepts an AsRef<u16>-bounded argument."
-            ))
+            each(result_of_ref!(|s: Strand| as_ref_tester(s), eq(&1)))
         );
     }
 
