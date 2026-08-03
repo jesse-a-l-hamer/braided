@@ -51,13 +51,9 @@ impl std::ops::Deref for Strand {
         &self.0
     }
 }
-impl<T> AsRef<T> for Strand
-where
-    T: ?Sized,
-    <Strand as std::ops::Deref>::Target: AsRef<T>,
-{
-    fn as_ref(&self) -> &T {
-        <Strand as std::ops::Deref>::deref(self).as_ref()
+impl AsRef<u16> for Strand {
+    fn as_ref(&self) -> &u16 {
+        self
     }
 }
 
