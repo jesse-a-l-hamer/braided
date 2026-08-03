@@ -144,7 +144,7 @@ macro_rules! letter {
 /// use std::assert_matches;
 /// # #[macro_use] extern crate braided;
 /// # fn main() {
-/// let long_word_artin = word![[1; -(u16::MAX as i64 + 1)]];
+/// let long_word_artin = word![[1; -(u16::MAX as i32 + 1)]];
 /// let long_word_bands = word![[1 => 3; (u16::MAX as u32).div_euclid(3) + 1]];
 /// let long_product = word![[1; u16::MAX as u32 -1], [3; 2]];
 ///
@@ -188,7 +188,7 @@ macro_rules! word {
         $crate::Word::trivial()
     };
     ([$foot:expr; $exponent:expr]) => {{
-        match TryInto::<i64>::try_into($exponent) {
+        match TryInto::<i32>::try_into($exponent) {
             Ok(exponent) => {
                 let letter = if exponent < 0 {
                     $crate::letter![$foot; -]
@@ -206,7 +206,7 @@ macro_rules! word {
         }
     }};
     ([$foot:expr => $head:expr; $exponent:expr]) => {{
-        match TryInto::<i64>::try_into($exponent) {
+        match TryInto::<i32>::try_into($exponent) {
             Ok(exponent) => {
                 let letter = if exponent < 0 {
                     $crate::letter![$foot => $head; -]
@@ -338,7 +338,7 @@ macro_rules! word {
 /// # fn main() {
 /// let too_long = braid![(); [1; u16::MAX], [2; -1]];
 /// let invalid_letter = braid![(); [4 => 1; 2]];
-/// let invalid_exponent = braid![(); [1; u64::MAX]];
+/// let invalid_exponent = braid![(); [1; u32::MAX]];
 ///
 /// assert_matches!(too_long, Err(BraidValidationError::WordValidation(_)));
 /// assert_matches!(invalid_letter, Err(BraidValidationError::WordValidation(_)));
