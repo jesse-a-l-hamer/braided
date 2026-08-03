@@ -1,5 +1,3 @@
-use std::ops::Neg;
-
 /// Represents the sign of a crossing in a braid.
 ///
 /// # Examples
@@ -34,7 +32,7 @@ pub enum Sign {
     Negative,
 }
 
-impl Neg for Sign {
+impl std::ops::Neg for Sign {
     type Output = Self;
 
     fn neg(self) -> Self::Output {

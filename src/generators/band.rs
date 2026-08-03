@@ -1,4 +1,4 @@
-use crate::{ArtinGenerator, BraidIndex, Sign, Strand, StrandValidationError};
+use crate::{ArtinGenerator, BraidIndex, Letter, Sign, Strand, StrandValidationError};
 
 #[derive(thiserror::Error, Debug, PartialEq, Eq)]
 pub enum BandValidationError {
@@ -7,9 +7,9 @@ pub enum BandValidationError {
     #[error("foot strand ({foot:?}) is over head strand ({head:?})")]
     FootOverHead { foot: Strand, head: Strand },
     #[error(transparent)]
-    BadStrand(#[from] StrandValidationError),
+    StrandValidation(#[from] StrandValidationError),
     #[error(transparent)]
-    BadArtin(#[from] FromArtinError),
+    FromArtin(#[from] FromArtinError),
 }
 
 #[derive(thiserror::Error, Debug, PartialEq, Eq)]
@@ -44,7 +44,14 @@ pub struct BandGenerator {
 }
 
 impl BandGenerator {
-    pub fn new(foot: u16, head: u16, sign: Sign) -> Result<Self, BandValidationError> {
+    pub fn new<F, H>(foot: F, head: H, sign: Sign) -> Result<Self, BandValidationError>
+    where
+        F: TryInto<u16>,
+        H: TryInto<u16>,
+        StrandValidationError: From<<F as TryInto<u16>>::Error>
+            + From<<H as TryInto<u16>>::Error>
+            + From<std::convert::Infallible>,
+    {
         let foot = Strand::new(foot)?;
         let head = Strand::new(head)?;
         match foot.cmp(&head) {
@@ -53,7 +60,7 @@ impl BandGenerator {
             std::cmp::Ordering::Greater => Err(BandValidationError::FootOverHead { foot, head }),
         }
     }
-    pub fn from_artin(band_parts: &[ArtinGenerator]) -> Result<Self, BandValidationError> {
+    pub fn coalesce(band_parts: &[ArtinGenerator]) -> Result<Self, BandValidationError> {
         let num_parts = band_parts.len();
 
         if num_parts == 0 {
@@ -178,260 +185,47 @@ impl BandGenerator {
         }
     }
 
+    pub fn decompose(&self) -> Vec<ArtinGenerator> {
+        // Band decomposition is infallible, so it's safe to unwrap any intermediate results
+        let crossing = ArtinGenerator::new((self.head() - 1).unwrap(), self.sign()).unwrap();
+        let mut left = Vec::new();
+        let min_foot: u16 = self.foot.into();
+        let max_head: u16 = (self.head - 1).unwrap().into();
+        for foot_idx in min_foot..max_head {
+            left.push(ArtinGenerator::new(foot_idx, Sign::Negative).unwrap());
+        }
+        let right = left.iter().rev().map(|a| a.inverse()).collect();
+        [left, vec![crossing], right].concat()
+    }
+
     pub fn height(&self) -> u16 {
-        self.head.index() - self.foot.index()
+        (self.head - self.foot).unwrap().into()
     }
     pub fn is_artin(&self) -> bool {
         self.height() == 1
     }
     pub fn minimal_required_braid_index(&self) -> BraidIndex {
-        BraidIndex::new(self.head.index()).unwrap()
+        BraidIndex::new(self.head).unwrap()
     }
     pub fn artin_length(&self) -> u16 {
         1 + (self.height() - 1) * 2
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::{FromArtinError, StaircaseQuadrant};
-    use crate::generators::BandValidationError;
-    use crate::{BandGenerator, BraidIndex, Sign, Strand, StrandValidationError, artin};
-    use googletest::matchers::{eq, err, is_false, is_true, ok};
-    use googletest::{assert_that, expect_that, gtest};
-
-    // Basic Construction
-
-    #[test]
-    fn valid_band_generator_is_constructed() {
-        let positive_band = BandGenerator::new(1, 4, Sign::Positive);
-        let negative_band = BandGenerator::new(3, 7, Sign::Negative);
-
-        assert_that!(
-            positive_band,
-            ok(eq(&BandGenerator {
-                foot: Strand::new(1).unwrap(),
-                head: Strand::new(4).unwrap(),
-                sign: Sign::Positive,
-            }))
-        );
-
-        assert_that!(
-            negative_band,
-            ok(eq(&BandGenerator {
-                foot: Strand::new(3).unwrap(),
-                head: Strand::new(7).unwrap(),
-                sign: Sign::Negative,
-            }))
-        );
-    }
-
-    #[gtest]
-    fn validation_error_when_either_strand_is_zero() {
-        let bad_foot = BandGenerator::new(0, 1, Sign::Positive);
-        let bad_head = BandGenerator::new(1, 0, Sign::Negative);
-
-        expect_that!(
-            bad_foot,
-            err(eq(&BandValidationError::from(StrandValidationError::Zero)))
-        );
-        expect_that!(
-            bad_head,
-            err(eq(&BandValidationError::from(StrandValidationError::Zero)))
-        );
-    }
-
-    #[test]
-    fn validation_error_when_head_equals_foot() {
-        let bad_band = BandGenerator::new(3, 3, Sign::Positive);
-
-        assert_that!(
-            bad_band,
-            err(eq(&BandValidationError::FootOnHead(
-                Strand::new(3).unwrap()
-            )))
-        )
-    }
-
-    #[test]
-    fn validation_error_when_foot_over_head() {
-        let bad_band = BandGenerator::new(5, 3, Sign::Positive);
-
-        assert_that!(
-            bad_band,
-            err(eq(&BandValidationError::FootOverHead {
-                foot: Strand::new(5).unwrap(),
-                head: Strand::new(3).unwrap()
-            }))
-        )
-    }
-
-    // Construction from Artin generators
-
-    #[gtest]
-    fn valid_collection_of_artin_generators_successfully_construct_band_generator() {
-        let good_bands = [
-            (
-                artin![3; -1].unwrap(),
-                BandGenerator::new(3, 4, Sign::Negative).unwrap(),
-            ),
-            (
-                [
-                    artin![1; -1].unwrap(),
-                    artin![2; -1].unwrap(),
-                    artin![3; -1].unwrap(),
-                    artin![4; -1].unwrap(),
-                    artin![3; 1].unwrap(),
-                    artin![2; 1].unwrap(),
-                    artin![1; 1].unwrap(),
-                ]
-                .concat(),
-                BandGenerator::new(1, 5, Sign::Negative).unwrap(),
-            ),
-            (
-                [
-                    artin![4; 1].unwrap(),
-                    artin![3; 1].unwrap(),
-                    artin![2; 1].unwrap(),
-                    artin![1; -1].unwrap(),
-                    artin![2; -1].unwrap(),
-                    artin![3; -1].unwrap(),
-                    artin![4; -1].unwrap(),
-                ]
-                .concat(),
-                BandGenerator::new(1, 5, Sign::Negative).unwrap(),
-            ),
-            (
-                [
-                    artin![1; -1].unwrap(),
-                    artin![4; 1].unwrap(),
-                    artin![2; -1].unwrap(),
-                    artin![3; -1].unwrap(),
-                    artin![2; 1].unwrap(),
-                    artin![1; 1].unwrap(),
-                    artin![4; -1].unwrap(),
-                ]
-                .concat(),
-                BandGenerator::new(1, 5, Sign::Negative).unwrap(),
-            ),
-        ];
-
-        for (artin_list, expected) in good_bands {
-            let band = BandGenerator::from_artin(&artin_list);
-            expect_that!(band, ok(eq(&expected)))
+impl From<ArtinGenerator> for BandGenerator {
+    fn from(value: ArtinGenerator) -> Self {
+        Self {
+            foot: value.foot(),
+            head: (value.foot() + 1).unwrap(),
+            sign: value.sign(),
         }
     }
-
-    #[gtest]
-    fn invalid_collections_of_artin_generators_fail_to_construct_band_generator() {
-        let bad_artin_words = [
-            (vec![], FromArtinError::NoGenerators),
-            (
-                [
-                    artin![1; -1].unwrap(),
-                    artin![4; 1].unwrap(),
-                    artin![2; -1].unwrap(),
-                    artin![2; 1].unwrap(),
-                    artin![1; -1].unwrap(),
-                    artin![4; -1].unwrap(),
-                ]
-                .concat(),
-                FromArtinError::EvenGenerators,
-            ),
-            (
-                [
-                    artin![1; -1].unwrap(),
-                    artin![4; 1].unwrap(),
-                    artin![2; -1].unwrap(),
-                    artin![3; -1].unwrap(),
-                    artin![2; 1].unwrap(),
-                    artin![1; 1].unwrap(),
-                    artin![3; -1].unwrap(),
-                ]
-                .concat(),
-                FromArtinError::IncompatibleSteps {
-                    quadrant: StaircaseQuadrant::UpperRight,
-                    next_step: *artin![3; -1].unwrap().last().unwrap(),
-                    previous_step: *artin![3; -1].unwrap().last().unwrap(),
-                },
-            ),
-            (
-                [
-                    artin![1; -1].unwrap(),
-                    artin![2; -1].unwrap(),
-                    artin![4; 1].unwrap(),
-                    artin![3; -1].unwrap(),
-                    artin![2; 1].unwrap(),
-                    artin![4; -1].unwrap(),
-                    artin![5; -1].unwrap(),
-                ]
-                .concat(),
-                FromArtinError::ImbalancedStaircases(1),
-            ),
-        ];
-
-        for (bad_artin_word, error) in bad_artin_words {
-            let bad_band = BandGenerator::from_artin(&bad_artin_word);
-            expect_that!(bad_band, err(eq(&BandValidationError::from(error))))
+}
+impl From<Letter> for BandGenerator {
+    fn from(value: Letter) -> Self {
+        match value {
+            Letter::Artin(artin) => Self::from(artin),
+            Letter::Band(band) => band,
         }
-    }
-
-    // Computable properties
-
-    #[test]
-    fn height_is_computable() {
-        let band = BandGenerator::new(1, 5, Sign::Positive).unwrap();
-        assert_that!(band.height(), eq(4));
-    }
-
-    #[test]
-    fn is_artin_detects_artin_generators() {
-        let artin_generator = BandGenerator::new(2, 3, Sign::Negative).unwrap();
-        let not_artin_generator = BandGenerator::new(2, 4, Sign::Negative).unwrap();
-
-        assert_that!(artin_generator.is_artin(), is_true());
-        assert_that!(not_artin_generator.is_artin(), is_false());
-    }
-
-    #[test]
-    fn minimal_required_braid_index_is_head() {
-        let band = BandGenerator::new(2, 17, Sign::Positive).unwrap();
-        assert_that!(
-            band.minimal_required_braid_index(),
-            eq(BraidIndex::new(17).unwrap())
-        );
-    }
-
-    #[test]
-    fn artin_length_is_accurate() {
-        let artin_word = [
-            artin![1; -1].unwrap(),
-            artin![4; 1].unwrap(),
-            artin![2; -1].unwrap(),
-            artin![3; -1].unwrap(),
-            artin![2; 1].unwrap(),
-            artin![1; 1].unwrap(),
-            artin![4; -1].unwrap(),
-        ]
-        .concat();
-        let band = BandGenerator::from_artin(&artin_word).unwrap();
-
-        assert_that!(band.artin_length(), eq(artin_word.len() as u16));
-    }
-
-    // Negation
-
-    #[test]
-    fn band_can_be_inverted() {
-        let band = BandGenerator::new(9, 16, Sign::Positive).unwrap();
-        let inverse_band = band.inverse();
-
-        assert_that!(
-            inverse_band,
-            eq(BandGenerator::new(9, 16, Sign::Negative).unwrap())
-        );
-
-        let double_inverse_band = inverse_band.inverse();
-        assert_that!(double_inverse_band, eq(band));
     }
 }

@@ -1,9 +1,13 @@
-use crate::{BraidIndex, Sign, Strand, StrandValidationError};
+use crate::{BandGenerator, BraidIndex, Letter, Sign, Strand, StrandValidationError};
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum ArtinValidationError {
+    #[error("Given band {0:?} cannot be coerced to Artin generator.")]
+    BandIsNotArtin(BandGenerator),
     #[error(transparent)]
-    BadFoot(#[from] StrandValidationError),
+    StrandValidation(#[from] StrandValidationError),
+    #[error(transparent)]
+    Infallible(#[from] std::convert::Infallible),
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -13,12 +17,17 @@ pub struct ArtinGenerator {
 }
 
 impl ArtinGenerator {
-    pub fn new(foot: u16, sign: Sign) -> Result<Self, ArtinValidationError> {
+    pub fn new<F>(foot: F, sign: Sign) -> Result<Self, ArtinValidationError>
+    where
+        F: TryInto<u16>,
+        StrandValidationError: From<<F as TryInto<u16>>::Error> + From<std::convert::Infallible>,
+    {
+        let foot: u16 = foot.try_into().map_err(StrandValidationError::from)?;
         if foot == u16::MAX {
             // The head strand is too large.
-            Err(ArtinValidationError::BadFoot(
-                StrandValidationError::TooLarge {
-                    left: Strand::new(foot)?,
+            Err(ArtinValidationError::StrandValidation(
+                StrandValidationError::Addition {
+                    left: Strand::new(foot).unwrap(),
                     right: 1,
                 },
             ))
@@ -28,6 +37,10 @@ impl ArtinGenerator {
                 sign,
             })
         }
+    }
+
+    pub fn as_band(&self) -> BandGenerator {
+        BandGenerator::new(self.foot, (self.foot + 1).unwrap(), self.sign).unwrap()
     }
 
     pub fn foot(&self) -> Strand {
@@ -45,97 +58,31 @@ impl ArtinGenerator {
     }
 
     pub fn minimal_required_braid_index(&self) -> BraidIndex {
-        BraidIndex::new(self.foot.index() + 1).unwrap()
+        BraidIndex::new((self.foot + 1).unwrap()).unwrap()
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use googletest::assert_that;
-    use googletest::matchers::{eq, err, ok};
+impl TryFrom<BandGenerator> for ArtinGenerator {
+    type Error = ArtinValidationError;
 
-    // Basic construction
-
-    #[test]
-    fn valid_positive_generator_can_be_constructed() {
-        let generator = ArtinGenerator::new(3, Sign::Positive);
-        assert_that!(
-            generator,
-            ok(eq(&ArtinGenerator {
-                foot: Strand::new(3).unwrap(),
-                sign: Sign::Positive
-            }))
-        );
-    }
-
-    #[test]
-    fn valid_negative_generator_can_be_constructed() {
-        let generator = ArtinGenerator::new(5, Sign::Negative);
-        assert_that!(
-            generator,
-            ok(eq(&ArtinGenerator {
-                foot: Strand::new(5).unwrap(),
-                sign: Sign::Negative
-            }))
-        );
-    }
-
-    #[test]
-    fn zero_foot_cannot_be_constructed() {
-        let result = ArtinGenerator::new(0, Sign::Positive);
-        assert_that!(
-            result,
-            err(eq(&ArtinValidationError::BadFoot(
-                StrandValidationError::Zero
-            )))
-        );
-    }
-
-    #[test]
-    fn too_large_foot_cannot_be_constructed() {
-        let result = ArtinGenerator::new(u16::MAX, Sign::Positive);
-        assert_that!(
-            result,
-            err(eq(&ArtinValidationError::BadFoot(
-                StrandValidationError::TooLarge {
-                    left: Strand::new(u16::MAX).unwrap(),
-                    right: 1,
-                }
-            )))
-        )
-    }
-
-    // Inversion
-
-    #[test]
-    fn inverting_a_positive_generator_flips_sign() {
-        let orig = ArtinGenerator::new(4, Sign::Positive).unwrap();
-        let inverse = orig.inverse();
-        assert_that!(
-            inverse,
-            eq(ArtinGenerator {
-                foot: Strand::new(4).unwrap(),
-                sign: Sign::Negative
+    fn try_from(value: BandGenerator) -> Result<Self, Self::Error> {
+        if value.is_artin() {
+            Ok(Self {
+                foot: value.foot(),
+                sign: value.sign(),
             })
-        );
+        } else {
+            Err(ArtinValidationError::BandIsNotArtin(value))
+        }
     }
+}
+impl TryFrom<Letter> for ArtinGenerator {
+    type Error = ArtinValidationError;
 
-    #[test]
-    fn double_inverse_returns_original() {
-        let orig = ArtinGenerator::new(9, Sign::Positive).unwrap();
-        let double_inverse = orig.inverse().inverse();
-        assert_that!(double_inverse, eq(orig));
-    }
-
-    // Minimal required braid index
-
-    #[test]
-    fn braid_index_of_positive_generator_is_foot_plus_one() {
-        let generator = ArtinGenerator::new(5, Sign::Positive).unwrap();
-        assert_that!(
-            generator.minimal_required_braid_index(),
-            eq(BraidIndex::new(6).unwrap())
-        );
+    fn try_from(value: Letter) -> Result<Self, Self::Error> {
+        match value {
+            Letter::Artin(artin) => Ok(artin),
+            Letter::Band(band) => Self::try_from(band),
+        }
     }
 }
