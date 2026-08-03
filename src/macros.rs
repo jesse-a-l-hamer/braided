@@ -1,3 +1,74 @@
+/// Macro for conveniently constructing a [`Letter`](crate::Letter) of a braid word.
+///
+/// The syntax allows specifying either a single positive integer and sign (for the
+/// [`Letter::Artin`](crate::Letter::Artin) variant) or two positive integers and a sign (for the
+/// [`Letter::Band`](crate::Letter::Band) variant). See the examples below for details.
+///
+/// # Examples
+///
+/// ```
+/// use braided::{Letter, Sign, letter};
+/// use std::assert_matches;
+/// # #[macro_use] extern crate braided;
+/// # fn main() {
+/// // A single integer and a sign is interpreted as an Artin generator:
+/// let artin = letter![1; +];
+/// assert_matches!(artin, Ok(Letter::Artin(_)));
+/// assert_eq!(artin, Letter::new::<isize, isize>(1, None, Sign::Positive));
+///
+/// // Two integers and a sign is interpreted as a Band generator:
+/// let band = letter![2 => 4; -];
+/// assert_matches!(band, Ok(Letter::Band(_)));
+/// assert_eq!(band, Letter::new::<isize, isize>(2, Some(4), Sign::Negative));
+/// # }
+/// ```
+///
+/// # Errors
+///
+/// Under the hood, a call is made to the [`Letter::new`](crate::Letter::new) constructor, and
+/// will return errors under the same circumstances.
+///
+/// ```
+/// use braided::{
+///     ArtinValidationError, BandValidationError, Letter, LetterValidationError,
+///     StrandValidationError, letter,
+/// };
+/// use std::assert_matches;
+/// # #[macro_use] extern crate braided;
+/// # fn main() {
+/// // Strand indices must be positive:
+/// let bad_letter_1 = letter![-1; +];
+/// assert_matches!(
+///     bad_letter_1,
+///     Err(LetterValidationError::ArtinValidation(ArtinValidationError::StrandValidation(_))),
+/// );
+/// let bad_letter_2 = letter![0 => 4; -];
+/// assert_matches!(
+///     bad_letter_2,
+///     Err(LetterValidationError::BandValidation(BandValidationError::StrandValidation(_))),
+/// );
+///
+/// // Strand indices must also be within the [`u16`] range:
+/// let bad_letter_3 = letter![(u16::MAX as isize) + 1; +];
+/// assert_matches!(
+///     bad_letter_3,
+///     Err(
+///         LetterValidationError::ArtinValidation(
+///             ArtinValidationError::StrandValidation(
+///                 StrandValidationError::FromInt(_)
+///             )
+///         )
+///     ),
+/// );
+///
+/// // Bands must be well-formed:
+/// let bad_letter_4 = letter![4 => 1; +];
+/// assert_matches!(
+///     bad_letter_4,
+///     Err(LetterValidationError::BandValidation(BandValidationError::FootOverHead {..})),
+/// )
+/// # }
+/// ```
 #[macro_export]
 macro_rules! letter {
     ($foot:expr; +) => {
