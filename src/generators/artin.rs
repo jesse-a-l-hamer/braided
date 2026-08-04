@@ -1,13 +1,92 @@
 use crate::{BandGenerator, BraidIndex, Letter, Sign, Strand, StrandValidationError};
 
+/// Represents failure during construction of an [`ArtinGenerator`].
+///
+/// An [`ArtinGenerator`] can either be constructed directly (i.e., using [`ArtinGenerator::new`]),
+/// or by converting from a [`BandGenerator`] or [`Letter`] (using [`ArtinGenerator::try_from`]).
+///
+/// # Errors from [`ArtinGenerator::new`]
+///
+/// 1. Construction will fail with [`ArtinValidationError::StrandValidation`] if construction of the
+///    underlying [`Strand`] fails (see [`StrandValidationError`] for more details on the wrapped
+///    error type):
+///
+/// ```
+/// use braided::{ArtinGenerator, ArtinValidationError, Sign};
+/// use std::assert_matches;
+///
+/// assert_matches!(
+///     ArtinGenerator::new(-1, Sign::Positive),
+///     Err(ArtinValidationError::StrandValidation(_)),
+/// );
+///
+/// assert_matches!(
+///     ArtinGenerator::new(0, Sign::Negative),
+///     Err(ArtinValidationError::StrandValidation(_)),
+/// );
+///
+/// assert_matches!(
+///     ArtinGenerator::new(u16::MAX as u32 + 1, Sign::Positive),
+///     Err(ArtinValidationError::StrandValidation(_)),
+/// );
+/// ```
+///
+/// 2. Construction will fail if attempting to use [`u16::MAX`] as the foot strand, since then the
+///    corresponding head strand would not be a valid [`u16`]:
+///
+/// ```
+/// use braided::{ArtinGenerator, ArtinValidationError, Sign};
+///
+/// assert_eq!(
+///     ArtinGenerator::new(u16::MAX, Sign::Negative),
+///     Err(ArtinValidationError::InvalidHead),
+/// );
+/// ```
+///
+/// # Errors from [`ArtinGenerator::try_from`]
+///
+/// Construction using [`ArtinGenerator::try_from`] will fail whenever an attempt is made at
+/// converting from a [`BandGenerator`] for which [`BandGenerator::is_artin`] is false, which is
+/// equivalent to the band's head strand being more than one strand above its foot.
+///
+/// ```
+/// use braided::{ArtinGenerator, ArtinValidationError, BandGenerator, Letter, Sign};
+///
+/// let non_artin_band = BandGenerator::new(1, 3, Sign::Positive).unwrap();
+///
+/// assert_eq!(non_artin_band.is_artin(), false);
+/// assert_eq!(
+///     ArtinGenerator::try_from(non_artin_band),
+///     Err(ArtinValidationError::FromBand(non_artin_band)),
+/// );
+///
+/// let non_artin_letter = Letter::new(2, Some(7), Sign::Negative).unwrap();
+///
+/// assert_eq!(non_artin_letter.is_artin(), false);
+/// assert_eq!(
+///     ArtinGenerator::try_from(non_artin_letter),
+///     Err(ArtinValidationError::FromBand(BandGenerator::new(2, 7, Sign::Negative).unwrap())),
+/// )
+/// ```
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum ArtinValidationError {
+    /// Indicates attempt to construct [`ArtinGenerator`] with foot index [`u16::MAX`].
     #[error("The head strand index for such an Artin generator exceeds {max:?}", max = u16::MAX)]
-    HeadTooLarge,
+    InvalidHead,
+    /// Indicates failed conversion from [`BandGenerator`] or [`Letter`] when using
+    /// [`ArtinGenerator::try_from`].
+    ///
+    /// Wraps the offending [`BandGenerator`].
     #[error("Given band {0:?} cannot be coerced to Artin generator.")]
     FromBand(BandGenerator),
+    /// Indicates failed attepmt to build foot [`Strand`] when using [`ArtinGenerator::new`].
+    ///
+    /// Wrapper around [`StrandValidationError`].
     #[error(transparent)]
     StrandValidation(#[from] StrandValidationError),
+    /// Included purely to make the type system happy; cannot occur in practice.
+    ///
+    /// Wraps [`std::convert::Infallible`].
     #[error(transparent)]
     Infallible(#[from] std::convert::Infallible),
 }
@@ -26,7 +105,7 @@ impl ArtinGenerator {
     {
         let foot = Strand::new(foot)?;
         if *foot == u16::MAX {
-            Err(ArtinValidationError::HeadTooLarge)
+            Err(ArtinValidationError::InvalidHead)
         } else {
             Ok(Self { foot, sign })
         }
@@ -141,7 +220,7 @@ mod tests {
             ),
             (
                 ArtinGenerator::new(u16::MAX, Sign::Negative),
-                ArtinValidationError::HeadTooLarge,
+                ArtinValidationError::InvalidHead,
             ),
             (
                 ArtinGenerator::try_from(BandGenerator::new(1, 3, Sign::Positive).unwrap()),
