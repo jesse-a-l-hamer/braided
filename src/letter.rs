@@ -62,6 +62,13 @@ impl Letter {
         }
     }
 
+    pub fn is_artin(&self) -> bool {
+        match self {
+            Self::Artin(_) => true,
+            Self::Band(band) => band.is_artin(),
+        }
+    }
+
     pub fn artin_length(&self) -> u16 {
         match self {
             Self::Artin(_) => 1,
