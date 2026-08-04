@@ -50,7 +50,7 @@ impl Letter {
     }
     pub fn head(&self) -> Strand {
         match self {
-            Self::Artin(artin) => (artin.foot() + 1).unwrap(),
+            Self::Artin(artin) => artin.head(),
             Self::Band(band) => band.head(),
         }
     }
@@ -115,14 +115,14 @@ impl std::ops::Mul for Letter {
                 }
             }
             (Self::Artin(lhs), Self::Band(rhs)) => {
-                if lhs.as_band() == rhs.inverse() {
+                if rhs.inverse() == lhs.into() {
                     Ok(Word::trivial())
                 } else {
                     Word::try_from(vec![Self::Artin(lhs), Self::Band(rhs)])
                 }
             }
             (Self::Band(lhs), Self::Artin(rhs)) => {
-                if lhs.inverse() == rhs.as_band() {
+                if lhs.inverse() == rhs.into() {
                     Ok(Word::trivial())
                 } else {
                     Word::try_from(vec![Self::Band(lhs), Self::Artin(rhs)])
