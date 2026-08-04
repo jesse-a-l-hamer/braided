@@ -180,6 +180,17 @@ impl std::ops::Mul<Letter> for Word {
         }
     }
 }
+impl std::ops::Mul<Word> for Letter {
+    type Output = Result<Word, WordValidationError>;
+
+    fn mul(self, rhs: Word) -> Self::Output {
+        if let Some((first, rem)) = rhs.split_first() {
+            Word::try_from([&(self * first.clone())?, rem].concat())
+        } else {
+            Word::try_from(vec![self])
+        }
+    }
+}
 impl std::ops::Mul for Word {
     type Output = Result<Word, WordValidationError>;
 
