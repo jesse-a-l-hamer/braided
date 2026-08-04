@@ -90,7 +90,7 @@ impl Word {
                 let remaining_left = Word(self[0..pivot - radius].to_vec());
                 let window: Vec<ArtinGenerator> = self[pivot - radius..pivot + radius + 1]
                     .iter()
-                    .map(|l| l.clone().try_into().unwrap())
+                    .map(|l| (*l).try_into().unwrap())
                     .collect();
                 let remaining_right = Word(self[pivot + radius + 1..num_letters].to_vec());
                 if let Ok(band) = BandGenerator::coalesce(&window) {
@@ -174,7 +174,7 @@ impl std::ops::Mul<Letter> for Word {
 
     fn mul(self, rhs: Letter) -> Self::Output {
         if let Some((last, rem)) = self.split_last() {
-            Self::try_from([rem, &(last.clone() * rhs)?].concat())
+            Self::try_from([rem, &(*last * rhs)?].concat())
         } else {
             Self::try_from(vec![rhs])
         }
@@ -185,7 +185,7 @@ impl std::ops::Mul<Word> for Letter {
 
     fn mul(self, rhs: Word) -> Self::Output {
         if let Some((first, rem)) = rhs.split_first() {
-            Word::try_from([&(self * first.clone())?, rem].concat())
+            Word::try_from([&(self * *first)?, rem].concat())
         } else {
             Word::try_from(vec![self])
         }
@@ -201,7 +201,7 @@ impl std::ops::Mul for Word {
             Ok(self)
         } else {
             let (first, rem) = rhs.split_first().unwrap();
-            (self * first.clone())? * Word::try_from(rem)?
+            (self * *first)? * Word::try_from(rem)?
         }
     }
 }

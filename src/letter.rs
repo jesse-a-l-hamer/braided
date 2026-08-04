@@ -11,7 +11,7 @@ pub enum LetterValidationError {
     BandValidation(#[from] BandValidationError),
 }
 
-#[derive(Debug, Clone, Eq)]
+#[derive(Debug, Clone, Copy, Eq)]
 pub enum Letter {
     Artin(ArtinGenerator),
     Band(BandGenerator),
