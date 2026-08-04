@@ -1,4 +1,4 @@
-/// Error type representing failed validation when attempting to construct a [`Strand`].
+/// Represents failure during construction of a [`Strand`].
 ///
 /// A [`Strand`] wraps a [`u16`], so all variants of [`StrandValidationError`] concern the failure
 /// to convert an input into a [`u16`].
