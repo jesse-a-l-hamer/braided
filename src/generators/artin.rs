@@ -88,15 +88,19 @@ pub enum ArtinValidationError {
 
 /// Represents a generator in the standard Artin presentation of the braid group.
 ///
+/// <div class="warning">
+///
+/// Consider using [`Letter`] instead of [`ArtinGenerator`] unless you need low-level access to the
+/// underlying generating set.
+///
+/// </div>
+///
 /// Geometrically, an Artin generator corresponds to a crossing of _adjacent_ [strands][Strand]. In
 /// particular, suppose we picture the braid strands as being a collection of vertically stacked
 /// parallel lines (except near crossings), each of which is oriented left-to-right. Choose any
 /// strand besides the topmost, and suppose its index is `k`. Then an `ArtinGenerator` with _foot_
 /// strand `k` and [_positive_](Sign::Positive) ([_negative_](Sign::Negative)) _sign_ corresponds to
 /// the crossing of strand `k + 1` _over_ (_under_) the strand `k`.
-///
-/// Note that interacting directly with [`ArtinGenerator`] is _not_ recommended; instead one should
-/// work with the [`Letter`] enum, which abstracts over the specific choice of generating set.
 ///
 /// # Construction
 ///

@@ -175,6 +175,279 @@ pub enum StaircaseQuadrant {
     UpperRight,
 }
 
+/// Represents a _band generator_ of some braid group.
+///
+/// <div class="warning">
+///
+/// Consider using [`Letter`] instead of [`BandGenerator`] unless you need low-level access to the
+/// underlying generating set.
+///
+/// </div>
+///
+/// # A Bit About Band Generators
+///
+/// The band generators are a generalization of the standard [artin generators](ArtinGenerator) in
+/// which each generating element represents a crossing of two [strands](Strand) of _arbitrary_
+/// distance apart, with the two interchanging strands passing _over_ any intermediate strands.
+/// Consequently, one specifies a band generator by giving the indices of both its foot _and head_
+/// strands, together with the [sign](Sign) of the crossing. The resulting picture looks something
+/// like one has attached a half-twisted "band" between the foot and head strands, hence the name
+/// (when one considers [Seifert surfaces](https://en.wikipedia.org/wiki/Seifert_surface) of
+/// [closed braids](https://en.wikipedia.org/wiki/Braid_group#Closed_braids), the "band" is quite
+/// literal).
+///
+/// It is hopefully clear that the band generators form a superset of the standard Artin generators
+/// (one which is strictly larger except for 2-stranded braids, where the two sets coincide). While
+/// the band generators are thus a less efficient generating set, many arguments are made easier (at
+/// least notationally) through their use, and certain concepts which are straightforward to define
+/// using band generators are cumbersome when expressed via Artin generators (e.g., certain forms of
+/// braid _positivity_, such as
+/// [_strong quasipositivity_](https://knotinfo.org/descriptions/strongly_quasipositive.html)).
+///
+/// That said, the Artin generators still _generate_ the braid groups, thus we ought to be able to
+/// [decompose](BandGenerator::decompose) any band generator into a collection of Artin generators
+/// (and likewise [coalesce](BandGenerator::coalesce) an appropriate collection of Artin generators
+/// into a band generator). Let `b[f, h, s]` denote a band generator with foot `f`, head `h`, and
+/// sign `s`. There are in fact `h - f` distinct decompositions of `b[f, h, s]` into Artin
+/// generators, depending on where we situate the "crossing". Let `a[i, t]` denote the Artin
+/// generator with foot `i` and sign `t`. Then for any `f <= c < h`, we may write
+///
+/// `b[f, h, s] = a[f,-]...a[c-1,-]a[h-1,+]...a[c+1,+]a[c, s]a[c+1,-]...a[h-1,-]a[c-1,-]...a[f,-]`
+///
+/// In `braided`, we assume the convention that `c = h-1` when
+/// [decomposing](BandGenerator::decompose) a band generator; however, our implementation of the
+/// [coalescing algorithm](BandGenerator::coalesce) makes no assumptions as to the value of `c`, or
+/// the order of the surrounding Artin generators (as long as the order is obtainable from that
+/// given above through applications of the _far commutativity_ relations).
+///
+/// # Construction
+///
+/// A [`BandGenerator`] may be constructed in multiple ways. The direct approach passes low-level
+/// band data directly to [`BandGenerator::new`]. A band can also be _infallibly_ converted from
+/// either an [`ArtinGenerator`] or a [`Letter`] using the [`BandGenerator::from`] function.
+/// Finally, one may use [`BandGenerator::coalesce`] in order to convert a collection of Artin
+/// generators into a band (see the previous section for more details on the relationship between
+/// Artin generators and band generators).
+///
+/// 1. Direct construction using [`BandGenerator::new`].
+///
+/// ```
+/// use braided::{BandGenerator, Sign, Strand};
+/// use std::assert_matches;
+///
+/// // Anything which coerces to a `u16` can be used for the foot or head data:
+///
+/// assert_matches!(
+///     BandGenerator::new(3, 4, Sign::Positive),
+///     Ok(_),
+/// );
+///
+/// assert_matches!(
+///     BandGenerator::new(1, u16::MAX, Sign::Negative),
+///     Ok(_),
+/// );
+///
+/// assert_matches!(
+///     BandGenerator::new(2_usize, 5_isize, Sign::Positive),
+///     Ok(_),
+/// );
+///
+/// assert_matches!(
+///     BandGenerator::new(Strand::new(9).unwrap(),40_u32, Sign::Negative),
+///     Ok(_),
+/// );
+///
+/// assert_matches!(
+///     BandGenerator::new(-(-3), Strand::new(10).unwrap(), Sign::Positive),
+///     Ok(_),
+/// );
+/// ```
+///
+/// 2. Converting from an [`ArtinGenerator`] or [`Letter`] using [`BandGenerator::from`].
+///
+/// ```
+/// use braided::{ArtinGenerator, BandGenerator, Letter, Sign};
+///
+/// // We unwrap the target since conversions from ArtinGenerator and Letter are infallible
+/// let expected_band = BandGenerator::new(1, 2, Sign::Positive).unwrap();
+///
+/// assert_eq!(
+///     BandGenerator::from(ArtinGenerator::new(1, Sign::Positive).unwrap()),
+///     expected_band,
+/// );
+///
+/// assert_eq!(
+///     BandGenerator::from(Letter::new(1, None::<u16>, Sign::Positive).unwrap()),
+///     expected_band,
+/// );
+///
+/// assert_eq!(
+///     BandGenerator::from(Letter::new(1, Some(2), Sign::Positive).unwrap()),
+///     expected_band,
+/// );
+/// ```
+///
+/// 3. Converting from a collection of [`ArtinGenerator`] using [`BandGenerator::coalesce`].
+///
+/// ```
+/// use braided::{ArtinGenerator, BandGenerator, Sign};
+///
+/// let test_band = BandGenerator::new(1, 4, Sign::Positive);
+///
+/// // All of the following are valid means of constructing `test_band` via "coalescing":
+/// let coalesced_bands = [
+///     BandGenerator::coalesce(&[
+///         ArtinGenerator::new(1, Sign::Negative).unwrap(),
+///         ArtinGenerator::new(2, Sign::Negative).unwrap(),
+///         ArtinGenerator::new(3, Sign::Positive).unwrap(),
+///         ArtinGenerator::new(2, Sign::Positive).unwrap(),
+///         ArtinGenerator::new(1, Sign::Positive).unwrap(),
+///     ]),
+///     BandGenerator::coalesce(&[
+///         ArtinGenerator::new(3, Sign::Positive).unwrap(),
+///         ArtinGenerator::new(2, Sign::Positive).unwrap(),
+///         ArtinGenerator::new(1, Sign::Positive).unwrap(),
+///         ArtinGenerator::new(2, Sign::Negative).unwrap(),
+///         ArtinGenerator::new(3, Sign::Negative).unwrap(),
+///     ]),
+///     BandGenerator::coalesce(&[
+///         ArtinGenerator::new(3, Sign::Positive).unwrap(),
+///         ArtinGenerator::new(1, Sign::Negative).unwrap(),
+///         ArtinGenerator::new(2, Sign::Positive).unwrap(),
+///         ArtinGenerator::new(1, Sign::Positive).unwrap(),
+///         ArtinGenerator::new(3, Sign::Negative).unwrap(),
+///     ]),
+///     BandGenerator::coalesce(&[
+///         ArtinGenerator::new(1, Sign::Negative).unwrap(),
+///         ArtinGenerator::new(3, Sign::Positive).unwrap(),
+///         ArtinGenerator::new(2, Sign::Positive).unwrap(),
+///         ArtinGenerator::new(1, Sign::Positive).unwrap(),
+///         ArtinGenerator::new(3, Sign::Negative).unwrap(),
+///     ]),
+/// ];
+///
+/// for coalesced_band in coalesced_bands {
+///     assert_eq!(coalesced_band, test_band);
+/// }
+/// ```
+///
+/// ## Errors
+///
+/// Methods 1. and 3. above are _fallible_, and the associated error type for both
+/// [`BandGenerator::new`] and [`BandGenerator::coalesce`] is [`BandValidationError`]. Further
+/// details and examples can be found in the associated documentation.
+///
+/// # Decomposition
+///
+/// As discussed in the first section, every band generator can be decomposed into a product of
+/// Artin generators. The [`BandGenerator::decompose`] method implements this _infallible_ process,
+/// returning a [`Vec<ArtinGenerator>`].
+///
+/// ```
+/// use braided::{ArtinGenerator, BandGenerator, Sign};
+///
+/// // In each of the following pairs, the second element is the result of decomposing the first:
+///
+/// let tests = [
+///     (
+///         BandGenerator::new(1, 2, Sign::Positive),
+///         vec![ArtinGenerator::new(1, Sign::Positive).unwrap()],
+///     ),
+///     (
+///         BandGenerator::new(1, 4, Sign::Positive),
+///         vec![
+///             ArtinGenerator::new(1, Sign::Negative).unwrap(),
+///             ArtinGenerator::new(2, Sign::Negative).unwrap(),
+///             ArtinGenerator::new(3, Sign::Positive).unwrap(),
+///             ArtinGenerator::new(2, Sign::Positive).unwrap(),
+///             ArtinGenerator::new(1, Sign::Positive).unwrap(),
+///         ],
+///     ),
+///     (
+///         BandGenerator::coalesce(&[
+///             ArtinGenerator::new(1, Sign::Negative).unwrap(),
+///             ArtinGenerator::new(2, Sign::Negative).unwrap(),
+///             ArtinGenerator::new(3, Sign::Positive).unwrap(),
+///             ArtinGenerator::new(2, Sign::Positive).unwrap(),
+///             ArtinGenerator::new(1, Sign::Positive).unwrap(),
+///         ]),
+///         vec![
+///             ArtinGenerator::new(1, Sign::Negative).unwrap(),
+///             ArtinGenerator::new(2, Sign::Negative).unwrap(),
+///             ArtinGenerator::new(3, Sign::Positive).unwrap(),
+///             ArtinGenerator::new(2, Sign::Positive).unwrap(),
+///             ArtinGenerator::new(1, Sign::Positive).unwrap(),
+///         ],
+///     ),
+///     (
+///         BandGenerator::coalesce(&[
+///             ArtinGenerator::new(1, Sign::Negative).unwrap(),
+///             ArtinGenerator::new(3, Sign::Positive).unwrap(),
+///             ArtinGenerator::new(2, Sign::Positive).unwrap(),
+///             ArtinGenerator::new(1, Sign::Positive).unwrap(),
+///             ArtinGenerator::new(3, Sign::Negative).unwrap(),
+///         ]),
+///         vec![
+///             ArtinGenerator::new(1, Sign::Negative).unwrap(),
+///             ArtinGenerator::new(2, Sign::Negative).unwrap(),
+///             ArtinGenerator::new(3, Sign::Positive).unwrap(),
+///             ArtinGenerator::new(2, Sign::Positive).unwrap(),
+///             ArtinGenerator::new(1, Sign::Positive).unwrap(),
+///         ],
+///     ),
+/// ];
+///
+/// for (test_band, decomposed) in tests {
+///     assert_eq!(test_band.unwrap().decompose(), decomposed);
+/// }
+/// ```
+///
+/// # Accessors and Basic Properties
+///
+/// [`BandGenerator`] contains accessor methods for obtaining the inner data:
+///
+/// ```
+/// use braided::{BandGenerator, Sign, Strand};
+///
+/// let band = BandGenerator::new(2, 5, Sign::Negative).unwrap();
+///
+/// assert_eq!(band.foot(), Strand::new(2).unwrap());
+/// assert_eq!(band.head(), Strand::new(5).unwrap());
+/// assert_eq!(band.sign(), Sign::Negative);
+/// ```
+///
+/// There are also various methods for computing basic band properties:
+///
+/// ```
+/// use braided::{BandGenerator, BraidIndex, Sign, Strand};
+///
+/// let band = BandGenerator::new(2, 5, Sign::Negative).unwrap();
+///
+/// assert_eq!(
+///     band.inverse(),
+///     BandGenerator::new(2, 5, Sign::Positive).unwrap(),
+/// );
+///
+/// assert_eq!(
+///     band.height(),
+///     5 - 2,
+/// );
+///
+/// assert_eq!(
+///     band.is_artin(),
+///     false,
+/// );
+///
+/// assert_eq!(
+///     band.minimal_required_braid_index(),
+///     BraidIndex::new(5).unwrap(),
+/// );
+///
+/// assert_eq!(
+///     band.artin_length(),
+///     2 * (5 - 2) - 1,
+/// );
+/// ```
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct BandGenerator {
     foot: Strand,
@@ -183,6 +456,47 @@ pub struct BandGenerator {
 }
 
 impl BandGenerator {
+    /// Attempts to construct a new [`BandGenerator`] given [`u16`]-coercible data for the foot and
+    /// head [strands](Strand), together with a [sign](Sign).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use braided::{BandGenerator, Sign, Strand};
+    /// use std::assert_matches;
+    ///
+    /// // Anything which coerces to a `u16` can be used for the foot or head data:
+    ///
+    /// assert_matches!(
+    ///     BandGenerator::new(3, 4, Sign::Positive),
+    ///     Ok(_),
+    /// );
+    ///
+    /// assert_matches!(
+    ///     BandGenerator::new(1, u16::MAX, Sign::Negative),
+    ///     Ok(_),
+    /// );
+    ///
+    /// assert_matches!(
+    ///     BandGenerator::new(2_usize, 5_isize, Sign::Positive),
+    ///     Ok(_),
+    /// );
+    ///
+    /// assert_matches!(
+    ///     BandGenerator::new(Strand::new(9).unwrap(),40_u32, Sign::Negative),
+    ///     Ok(_),
+    /// );
+    ///
+    /// assert_matches!(
+    ///     BandGenerator::new(-(-3), Strand::new(10).unwrap(), Sign::Positive),
+    ///     Ok(_),
+    /// );
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// Please see the documentation for [`BandValidationError`] for more details on possible
+    /// failure causes.
     pub fn new<F, H>(foot: F, head: H, sign: Sign) -> Result<Self, BandValidationError>
     where
         F: TryInto<u16>,
@@ -199,6 +513,74 @@ impl BandGenerator {
             std::cmp::Ordering::Greater => Err(BandValidationError::FootOverHead { foot, head }),
         }
     }
+    /// Attempts to construct a new [`BandGenerator`] by coalescing a collection of [Artin
+    /// generators](ArtinGenerator).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use braided::{ArtinGenerator, BandGenerator, Sign};
+    ///
+    /// // In each of the following pairs, the second element is the result of decomposing the first:
+    ///
+    /// let tests = [
+    ///     (
+    ///         BandGenerator::new(1, 2, Sign::Positive),
+    ///         vec![ArtinGenerator::new(1, Sign::Positive).unwrap()],
+    ///     ),
+    ///     (
+    ///         BandGenerator::new(1, 4, Sign::Positive),
+    ///         vec![
+    ///             ArtinGenerator::new(1, Sign::Negative).unwrap(),
+    ///             ArtinGenerator::new(2, Sign::Negative).unwrap(),
+    ///             ArtinGenerator::new(3, Sign::Positive).unwrap(),
+    ///             ArtinGenerator::new(2, Sign::Positive).unwrap(),
+    ///             ArtinGenerator::new(1, Sign::Positive).unwrap(),
+    ///         ],
+    ///     ),
+    ///     (
+    ///         BandGenerator::coalesce(&[
+    ///             ArtinGenerator::new(1, Sign::Negative).unwrap(),
+    ///             ArtinGenerator::new(2, Sign::Negative).unwrap(),
+    ///             ArtinGenerator::new(3, Sign::Positive).unwrap(),
+    ///             ArtinGenerator::new(2, Sign::Positive).unwrap(),
+    ///             ArtinGenerator::new(1, Sign::Positive).unwrap(),
+    ///         ]),
+    ///         vec![
+    ///             ArtinGenerator::new(1, Sign::Negative).unwrap(),
+    ///             ArtinGenerator::new(2, Sign::Negative).unwrap(),
+    ///             ArtinGenerator::new(3, Sign::Positive).unwrap(),
+    ///             ArtinGenerator::new(2, Sign::Positive).unwrap(),
+    ///             ArtinGenerator::new(1, Sign::Positive).unwrap(),
+    ///         ],
+    ///     ),
+    ///     (
+    ///         BandGenerator::coalesce(&[
+    ///             ArtinGenerator::new(1, Sign::Negative).unwrap(),
+    ///             ArtinGenerator::new(3, Sign::Positive).unwrap(),
+    ///             ArtinGenerator::new(2, Sign::Positive).unwrap(),
+    ///             ArtinGenerator::new(1, Sign::Positive).unwrap(),
+    ///             ArtinGenerator::new(3, Sign::Negative).unwrap(),
+    ///         ]),
+    ///         vec![
+    ///             ArtinGenerator::new(1, Sign::Negative).unwrap(),
+    ///             ArtinGenerator::new(2, Sign::Negative).unwrap(),
+    ///             ArtinGenerator::new(3, Sign::Positive).unwrap(),
+    ///             ArtinGenerator::new(2, Sign::Positive).unwrap(),
+    ///             ArtinGenerator::new(1, Sign::Positive).unwrap(),
+    ///         ],
+    ///     ),
+    /// ];
+    ///
+    /// for (test_band, decomposed) in tests {
+    ///     assert_eq!(test_band.unwrap().decompose(), decomposed);
+    /// }
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// Please see the documentation for [`BandValidationError`] for more details on possible
+    /// failure causes.
     pub fn coalesce(band_parts: &[ArtinGenerator]) -> Result<Self, BandValidationError> {
         let num_parts = band_parts.len();
 
@@ -306,16 +688,63 @@ impl BandGenerator {
         Ok(Self { foot, head, sign })
     }
 
+    /// Accessor method returning the band's foot [strand](Strand).
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use braided::{BandGenerator, Sign, Strand};
+    ///
+    /// let band = BandGenerator::new(2, 5, Sign::Negative).unwrap();
+    ///
+    /// assert_eq!(band.foot(), Strand::new(2).unwrap());
+    /// ```
     pub fn foot(&self) -> Strand {
         self.foot
     }
+    /// Accessor method returning the band's head [strand](Strand).
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use braided::{BandGenerator, Sign, Strand};
+    ///
+    /// let band = BandGenerator::new(2, 5, Sign::Negative).unwrap();
+    ///
+    /// assert_eq!(band.head(), Strand::new(5).unwrap());
+    /// ```
     pub fn head(&self) -> Strand {
         self.head
     }
+    /// Accessor method returning the band's [sign](Sign).
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use braided::{BandGenerator, Sign};
+    ///
+    /// let band = BandGenerator::new(2, 5, Sign::Negative).unwrap();
+    ///
+    /// assert_eq!(band.sign(), Sign::Negative);
+    /// ```
     pub fn sign(&self) -> Sign {
         self.sign
     }
 
+    /// Computes the band's inverse, which amounts to just reversing its [sign](Sign).
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use braided::{BandGenerator, Sign};
+    ///
+    /// let band = BandGenerator::new(2, 5, Sign::Negative).unwrap();
+    ///
+    /// assert_eq!(
+    ///     band.inverse(),
+    ///     BandGenerator::new(2, 5, Sign::Positive).unwrap(),
+    /// );
+    /// ```
     pub fn inverse(&self) -> Self {
         Self {
             foot: self.foot,
@@ -323,19 +752,139 @@ impl BandGenerator {
             sign: -self.sign,
         }
     }
+    /// Computes the band's height, which is equal to `head - foot`.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use braided::{BandGenerator, Sign};
+    ///
+    /// let band = BandGenerator::new(2, 5, Sign::Negative).unwrap();
+    ///
+    /// assert_eq!(
+    ///     band.height(),
+    ///     5 - 2,
+    /// );
+    /// ```
     pub fn height(&self) -> u16 {
         (self.head - self.foot).unwrap().into()
     }
+    /// Computes whether or not the band is an [Artin generator](ArtinGenerator).
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use braided::{BandGenerator, Sign};
+    ///
+    /// let artin_band = BandGenerator::new(1, 2, Sign::Positive).unwrap();
+    /// let non_artin_band = BandGenerator::new(2, 5, Sign::Negative).unwrap();
+    ///
+    /// assert!(artin_band.is_artin());
+    /// assert!(!non_artin_band.is_artin());
+    /// ```
     pub fn is_artin(&self) -> bool {
         self.height() == 1
     }
+    /// Computes the minimal [index](BraidIndex) required to for a braid to use the band.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use braided::{BandGenerator, BraidIndex, Sign};
+    ///
+    /// let band = BandGenerator::new(2, 5, Sign::Negative).unwrap();
+    ///
+    /// assert_eq!(
+    ///     band.minimal_required_braid_index(),
+    ///     BraidIndex::new(5).unwrap(),
+    /// );
+    /// ```
     pub fn minimal_required_braid_index(&self) -> BraidIndex {
         BraidIndex::new(self.head).unwrap()
     }
+    /// Computes the number of [Artin generators](ArtinGenerator) required to represent the band.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use braided::{BandGenerator, Sign};
+    ///
+    /// let band = BandGenerator::new(2, 5, Sign::Negative).unwrap();
+    ///
+    /// assert_eq!(
+    ///     band.artin_length(),
+    ///     2 * (5 - 2) - 1,
+    /// );
+    /// ```
     pub fn artin_length(&self) -> u16 {
         2 * self.height() - 1
     }
 
+    /// Decomposes the band generator into a sequence of [Artin generators](`ArtinGenerator`).
+    ///
+    /// See the main documentation for [`BandGenerator`] for more information about the relationship
+    /// between Artin generators and band generators.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use braided::{ArtinGenerator, BandGenerator, Sign};
+    ///
+    /// // In each of the following pairs, the second element is the result of decomposing the first:
+    ///
+    /// let tests = [
+    ///     (
+    ///         BandGenerator::new(1, 2, Sign::Positive),
+    ///         vec![ArtinGenerator::new(1, Sign::Positive).unwrap()],
+    ///     ),
+    ///     (
+    ///         BandGenerator::new(1, 4, Sign::Positive),
+    ///         vec![
+    ///             ArtinGenerator::new(1, Sign::Negative).unwrap(),
+    ///             ArtinGenerator::new(2, Sign::Negative).unwrap(),
+    ///             ArtinGenerator::new(3, Sign::Positive).unwrap(),
+    ///             ArtinGenerator::new(2, Sign::Positive).unwrap(),
+    ///             ArtinGenerator::new(1, Sign::Positive).unwrap(),
+    ///         ],
+    ///     ),
+    ///     (
+    ///         BandGenerator::coalesce(&[
+    ///             ArtinGenerator::new(1, Sign::Negative).unwrap(),
+    ///             ArtinGenerator::new(2, Sign::Negative).unwrap(),
+    ///             ArtinGenerator::new(3, Sign::Positive).unwrap(),
+    ///             ArtinGenerator::new(2, Sign::Positive).unwrap(),
+    ///             ArtinGenerator::new(1, Sign::Positive).unwrap(),
+    ///         ]),
+    ///         vec![
+    ///             ArtinGenerator::new(1, Sign::Negative).unwrap(),
+    ///             ArtinGenerator::new(2, Sign::Negative).unwrap(),
+    ///             ArtinGenerator::new(3, Sign::Positive).unwrap(),
+    ///             ArtinGenerator::new(2, Sign::Positive).unwrap(),
+    ///             ArtinGenerator::new(1, Sign::Positive).unwrap(),
+    ///         ],
+    ///     ),
+    ///     (
+    ///         BandGenerator::coalesce(&[
+    ///             ArtinGenerator::new(1, Sign::Negative).unwrap(),
+    ///             ArtinGenerator::new(3, Sign::Positive).unwrap(),
+    ///             ArtinGenerator::new(2, Sign::Positive).unwrap(),
+    ///             ArtinGenerator::new(1, Sign::Positive).unwrap(),
+    ///             ArtinGenerator::new(3, Sign::Negative).unwrap(),
+    ///         ]),
+    ///         vec![
+    ///             ArtinGenerator::new(1, Sign::Negative).unwrap(),
+    ///             ArtinGenerator::new(2, Sign::Negative).unwrap(),
+    ///             ArtinGenerator::new(3, Sign::Positive).unwrap(),
+    ///             ArtinGenerator::new(2, Sign::Positive).unwrap(),
+    ///             ArtinGenerator::new(1, Sign::Positive).unwrap(),
+    ///         ],
+    ///     ),
+    /// ];
+    ///
+    /// for (test_band, decomposed) in tests {
+    ///     assert_eq!(test_band.unwrap().decompose(), decomposed);
+    /// }
+    /// ```
     pub fn decompose(&self) -> Vec<ArtinGenerator> {
         // Band decomposition is infallible, so it's safe to unwrap any intermediate results
         let crossing = ArtinGenerator::new((self.head() - 1).unwrap(), self.sign()).unwrap();
