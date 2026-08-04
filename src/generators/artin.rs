@@ -84,11 +84,6 @@ pub enum ArtinValidationError {
     /// Wrapper around [`StrandValidationError`].
     #[error(transparent)]
     StrandValidation(#[from] StrandValidationError),
-    /// Included purely to make the type system happy; cannot occur in practice.
-    ///
-    /// Wraps [`std::convert::Infallible`].
-    #[error(transparent)]
-    Infallible(#[from] std::convert::Infallible),
 }
 
 /// Represents a generator in the standard Artin presentation of the braid group.
