@@ -1,13 +1,152 @@
 use crate::{ArtinGenerator, BraidIndex, Letter, Sign, Strand, StrandValidationError};
 
+/// Represents failed attempt to construct a [`BandGenerator`].
+///
+/// [Bands](BandGenerator) can be fallibly constructed in two ways: by providing band data directly
+/// to [`BandGenerator::new`], or by passing a list of [`ArtinGenerator`] to
+/// [`BandGenerator::coalesce`].
+///
+/// # Failure When Using [`BandGenerator::new`]
+///
+/// 1. The given foot and head strand have equal index ([`BandValidationError::FootOnHead`]):
+///
+/// ```
+/// use braided::{BandGenerator, BandValidationError, Sign};
+/// use std::assert_matches;
+///
+/// assert_matches!(
+///     BandGenerator::new(1, 1, Sign::Positive),
+///     Err(BandValidationError::FootOnHead(_)),
+/// );
+/// ```
+///
+/// 2. The given foot index is larger than the given head index (
+///    [`BandValidationError::FootOverHead`]):
+///
+///
+/// ```
+/// use braided::{BandGenerator, BandValidationError, Sign};
+/// use std::assert_matches;
+///
+/// assert_matches!(
+///     BandGenerator::new(4, 1, Sign::Negative),
+///     Err(BandValidationError::FootOverHead { .. }),
+/// );
+/// ```
+///
+/// 3. A valid strand cannot be constructed from one of the given foot or head indices
+///    ([`BandValidationError::StrandValidation`]):
+///
+///
+/// ```
+/// use braided::{BandGenerator, BandValidationError, Sign};
+/// use std::assert_matches;
+///
+/// let zero_foot = BandGenerator::new(0, 4, Sign::Negative);
+/// let negative_foot = BandGenerator::new(-1, 4, Sign::Positive);
+/// let big_head = BandGenerator::new(1, u16::MAX as u32 + 1, Sign::Negative);
+///
+/// assert_matches!(zero_foot, Err(BandValidationError::StrandValidation(_)));
+/// assert_matches!(negative_foot, Err(BandValidationError::StrandValidation(_)));
+/// assert_matches!(big_head, Err(BandValidationError::StrandValidation(_)));
+/// ```
+///
+/// # Failure When Using [`BandGenerator::coalesce`]
+///
+/// In each of these failure contexts, a [`BandValidationError::FromArtin`] is returned.
+///
+/// 1. The input slice is empty:
+///
+///
+/// ```
+/// use braided::{ArtinGenerator, BandGenerator, BandValidationError, Sign};
+/// use std::assert_matches;
+///
+/// let empty_input = BandGenerator::coalesce(&[]);
+///
+/// assert_matches!(empty_input, Err(BandValidationError::FromArtin(_)))
+/// ```
+///
+/// 2. The input slice contains an even number of [Artin generators](ArtinGenerator):
+///
+///
+/// ```
+/// use braided::{ArtinGenerator, BandGenerator, BandValidationError, Sign};
+/// use std::assert_matches;
+///
+/// let even_length_input = BandGenerator::coalesce(&[
+///     ArtinGenerator::new(1, Sign::Positive).unwrap(),
+///     ArtinGenerator::new(2, Sign::Negative).unwrap(),
+/// ]);
+///
+/// assert_matches!(even_length_input, Err(BandValidationError::FromArtin(_)))
+/// ```
+///
+/// 3. The coalescing algorithm failed because some [Artin generator](ArtinGenerator) is not
+///    contiguous with the partially constructed band:
+///
+///
+/// ```
+/// use braided::{ArtinGenerator, BandGenerator, BandValidationError, Sign};
+/// use std::assert_matches;
+///
+/// let non_contiguous_generator = BandGenerator::coalesce(&[
+///     // should be 1-2-3 on the left, not 2-1-3
+///     ArtinGenerator::new(2, Sign::Negative).unwrap(),
+///     ArtinGenerator::new(1, Sign::Negative).unwrap(),
+///     ArtinGenerator::new(3, Sign::Positive).unwrap(),
+///     ArtinGenerator::new(2, Sign::Positive).unwrap(),
+///     ArtinGenerator::new(1, Sign::Positive).unwrap(),
+/// ]);
+///
+/// assert_matches!(non_contiguous_generator, Err(BandValidationError::FromArtin(_)))
+/// ```
+///
+/// 4. The coalescing algorithm failed because set of [Artin generators](ArtinGenerator) left of the
+///    crossing generator fails to mirror those to its right:
+///
+///
+/// ```
+/// use braided::{ArtinGenerator, BandGenerator, BandValidationError, Sign};
+/// use std::assert_matches;
+///
+///
+/// let imbalanced = BandGenerator::coalesce(&[
+///     ArtinGenerator::new(4, Sign::Positive).unwrap(), // above crossing
+///     ArtinGenerator::new(2, Sign::Negative).unwrap(), // below crossing
+///     ArtinGenerator::new(3, Sign::Positive).unwrap(), // crossing
+///     ArtinGenerator::new(2, Sign::Positive).unwrap(), // below crossing
+///     ArtinGenerator::new(1, Sign::Positive).unwrap(), // below crossing
+/// ]);
+///
+/// assert_matches!(imbalanced, Err(BandValidationError::FromArtin(_)))
+/// ```
 #[derive(thiserror::Error, Debug, PartialEq, Eq)]
 pub enum BandValidationError {
+    /// Indicates that the given foot and head strands are the same.
+    ///
+    /// Wraps the offending [strand](Strand).
     #[error("foot strand and head strand are the same ({0:?})")]
     FootOnHead(Strand),
+    /// Indicates that the given foot strand lies above the given head strand.
+    ///
+    /// Wraps both offending [strands](Strand).
     #[error("foot strand ({foot:?}) is over head strand ({head:?})")]
-    FootOverHead { foot: Strand, head: Strand },
+    FootOverHead {
+        /// The offending foot [strand](Strand).
+        foot: Strand,
+        /// The offending head [strand](Strand).
+        head: Strand,
+    },
+    /// Indicates failure to construct at least one of the foot or head [strand](Strand).
+    ///
+    /// Transparent wrapper around [`StrandValidationError`].
     #[error(transparent)]
     StrandValidation(#[from] StrandValidationError),
+    /// Indicates failure to construct band by coalescing a collection of
+    /// [Artin generators](ArtinGenerator).
+    ///
+    /// Transparent wrapper around an internal error type relating to the coalescing algorithm.
     #[error(transparent)]
     FromArtin(#[from] FromArtinError),
 }
