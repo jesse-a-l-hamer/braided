@@ -1,6 +1,6 @@
 use crate::{
-    BraidIndex, IndexValidationError, Letter, LetterValidationError, Sign, StrandValidationError,
-    Word, WordValidationError,
+    BraidIndex, IndexValidationError, Letter, Sign, StrandValidationError, Word,
+    WordValidationError,
 };
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
@@ -16,8 +16,6 @@ pub enum BraidValidationError {
     IndexValidation(#[from] IndexValidationError),
     #[error(transparent)]
     WordValidation(#[from] WordValidationError),
-    #[error(transparent)]
-    Infallible(#[from] std::convert::Infallible),
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -59,12 +57,6 @@ impl Braid {
         D: IntoIterator<Item = (F, Option<H>, Sign)>,
         F: TryInto<u16>,
         H: TryInto<u16>,
-        WordValidationError: From<<F as TryInto<u16>>::Error>
-            + From<<H as TryInto<u16>>::Error>
-            + From<std::convert::Infallible>,
-        LetterValidationError: From<<F as TryInto<u16>>::Error>
-            + From<<H as TryInto<u16>>::Error>
-            + From<std::convert::Infallible>,
         StrandValidationError: From<<F as TryInto<u16>>::Error>
             + From<<H as TryInto<u16>>::Error>
             + From<std::convert::Infallible>,

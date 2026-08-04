@@ -24,9 +24,6 @@ impl Word {
         D: IntoIterator<Item = (F, Option<H>, Sign)>,
         F: TryInto<u16>,
         H: TryInto<u16>,
-        LetterValidationError: From<<F as TryInto<u16>>::Error>
-            + From<<H as TryInto<u16>>::Error>
-            + From<std::convert::Infallible>,
         StrandValidationError: From<<F as TryInto<u16>>::Error>
             + From<<H as TryInto<u16>>::Error>
             + From<std::convert::Infallible>,

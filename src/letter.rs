@@ -9,10 +9,6 @@ pub enum LetterValidationError {
     ArtinValidation(#[from] ArtinValidationError),
     #[error(transparent)]
     BandValidation(#[from] BandValidationError),
-    #[error(transparent)]
-    FromInt(#[from] std::num::TryFromIntError),
-    #[error(transparent)]
-    Infallible(#[from] std::convert::Infallible),
 }
 
 #[derive(Debug, Clone, Eq)]
