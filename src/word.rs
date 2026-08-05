@@ -118,14 +118,13 @@ impl Default for Word {
 
 impl<L> TryFrom<Vec<L>> for Word
 where
-    L: TryInto<Letter>,
-    WordValidationError: From<<L as TryInto<Letter>>::Error>,
+    L: Into<Letter>,
 {
     type Error = WordValidationError;
     fn try_from(value: Vec<L>) -> Result<Self, Self::Error> {
         let mut letters: Vec<Letter> = Vec::new();
         for l in value.into_iter() {
-            letters.push(l.try_into()?)
+            letters.push(l.into())
         }
         if let total_len = letters.iter().map(|l| l.artin_length() as usize).sum()
             && total_len > u16::MAX as usize
@@ -138,8 +137,7 @@ where
 }
 impl<L> TryFrom<&[L]> for Word
 where
-    L: TryInto<Letter> + std::clone::Clone,
-    WordValidationError: From<<L as TryInto<Letter>>::Error>,
+    L: Into<Letter> + std::clone::Clone,
 {
     type Error = WordValidationError;
     fn try_from(value: &[L]) -> Result<Self, Self::Error> {

@@ -72,24 +72,6 @@ impl Braid {
         Self::from_data(Some(index), Vec::<(u16, Option<u16>, Sign)>::new())
     }
 
-    pub fn inverse(&self) -> Self {
-        Self {
-            index: self.index,
-            word: self.word.inverse(),
-        }
-    }
-
-    pub fn index(&self) -> BraidIndex {
-        self.index
-    }
-    pub fn word(&self) -> Word {
-        self.word.clone()
-    }
-
-    pub fn letters(&self) -> Vec<Letter> {
-        self.word.letters()
-    }
-
     pub fn decompose(&self) -> Self {
         Self {
             index: self.index,
@@ -123,6 +105,21 @@ impl Braid {
         // Length checks performed on underlying word: safe to unwrap
         self.word.iter().fold(0, |a, b| a + b.artin_length())
     }
+    pub fn inverse(&self) -> Self {
+        Self {
+            index: self.index,
+            word: self.word.inverse(),
+        }
+    }
+    pub fn index(&self) -> BraidIndex {
+        self.index
+    }
+    pub fn word(&self) -> Word {
+        self.word.clone()
+    }
+    pub fn letters(&self) -> Vec<Letter> {
+        self.word.letters()
+    }
 }
 
 impl Default for Braid {
@@ -147,9 +144,7 @@ impl From<&Word> for Braid {
 
 impl<L> TryFrom<Vec<L>> for Braid
 where
-    L: TryInto<Letter>,
-    BraidValidationError: From<<L as TryInto<Letter>>::Error>,
-    Word: TryFrom<Vec<L>, Error = WordValidationError>,
+    L: Into<Letter>,
 {
     type Error = BraidValidationError;
     fn try_from(value: Vec<L>) -> Result<Self, Self::Error> {
@@ -161,9 +156,7 @@ where
 }
 impl<L> TryFrom<&[L]> for Braid
 where
-    L: TryInto<Letter> + std::clone::Clone,
-    BraidValidationError: From<<L as TryInto<Letter>>::Error>,
-    Word: TryFrom<Vec<L>, Error = WordValidationError>,
+    L: Into<Letter> + std::clone::Clone,
 {
     type Error = BraidValidationError;
     fn try_from(value: &[L]) -> Result<Self, Self::Error> {
