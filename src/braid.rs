@@ -3,21 +3,225 @@ use crate::{
     WordValidationError,
 };
 
+/// Represents failure during attempt to construct a [`Braid`].
+///
+/// The only _infallible_ context in which a [braid](Braid) can be constructed is via the
+/// [`Braid::from`] method, by passing an already-validated [`Word`] and _inferring_ the
+/// [`BraidIndex`] from it. Every other constructor---including the [braid!](crate::braid) macro as
+/// well as multiplication---may return a [`BraidValidationError`]. We go through the possible
+/// failure cases now.
+///
+/// <div class="warning">
+///
+/// Please see the documentation for the [braid!](crate::braid) macro for more information on its
+/// failure scenarios.
+///
+/// </div>
+///
+/// # Invalid Construction Using [`Braid::new`]
+///
+/// 1. Failure to construct an explicitly provided [`BraidIndex`]
+///    ([`BraidValidationError::IndexValidation`]):
+///
+/// ```
+/// ```
+///
+/// 2. An explicitly provided [`BraidIndex`] is smaller than required by the given [`Word`]
+///    ([`BraidValidationError::IndexTooSmall`]):
+///
+/// ```
+/// ```
+///
+/// # Invalid Construction Using [`Braid::from_data`]
+///
+/// 1. Failure to construct an explicitly provided [`BraidIndex`]
+///    ([`BraidValidationError::IndexValidation`]):
+///
+/// ```
+/// ```
+///
+/// 2. An explicitly provided [`BraidIndex`] is smaller than required by the given [`Letter`] data
+///    ([`BraidValidationError::IndexTooSmall`]):
+///
+/// ```
+/// ```
+///
+/// 3. Failure to construct a valid [`Word`] from the given [`Letter`] data
+///    ([`BraidValidationError::WordValidation`]):
+///
+/// ```
+/// ```
+///
+/// # Invalid Construction Using [`Braid::try_from`]
+///
+/// 1. Failure to construct a valid [`Word`] from the given [letters](Letter), (e.g., because the
+///    number of [letters](Letter) provided exceeds [`u16::MAX`]; uses a
+///    [`BraidValidationError::WordValidation`]).
+///
+/// ```
+/// ```
+///
+/// # Invalid Construction When Using  [`Braid::trivial`]
+///
+/// 1. Failure to construct a valid [`BraidIndex`] ([`BraidValidationError::IndexValidation`]):
+///
+/// ```
+/// ```
+///
+/// # Invalid Construction When Multiplying a [`Braid`] and a ([`Letter`], [`Word`], or [`Braid`])
+///
+///
+/// 1. The [index](BraidIndex) of one of the [`Braid`] operands is smaller than required by some
+///    [letter](Letter) of the other operand ([`BraidValidationError::IndexTooSmall`]):
+///
+/// ```
+/// ```
+///
+/// 2. The [Artin length](Braid::artin_length) of the product exceeds the maximum length of
+///    [`u16::MAX`] ([`BraidValidationError::WordValidation`]):
+///
+/// ```
+/// ```
+///
+/// 3. Attempting to multiply two [braids](Braids) whose [braid indices](BraidIndex) are not equal
+///    ([`BraidValidationError::UnequalIndices`]):
+///
+/// ```
+/// ```
 #[derive(Debug, thiserror::Error, PartialEq, Eq, Clone, Copy)]
 pub enum BraidValidationError {
+    /// Indicates that the [index](BraidIndex) of the [`Braid`] is not large enough to accommodate a
+    /// certain [`Letter`].
+    ///
+    /// This variant may be returned when explicitly providing a [`BraidIndex`] to a [`Braid`]
+    /// constructor, or when multiplying an existing [braid](Braid) by an offending [`Letter`],
+    /// [`Word`], or [`Braid`].
     #[error("Given index {index:?} less than minimal required index {minimal_required_index:?}.")]
     IndexTooSmall {
+        /// The [index](`BraidIndex`) of the inadequate braid.
         index: BraidIndex,
+        /// The [index](`BraidIndex`) which is required to accommodate the offending [`Letter`].
         minimal_required_index: BraidIndex,
     },
+    /// Indicates an attempt to multiply two [braids](Braid) of unequal (`index`)[BraidIndex].
     #[error("Attempt to multiply braids of unequal indices: {left:?} != {right:?}")]
-    UnequalIndices { left: BraidIndex, right: BraidIndex },
+    UnequalIndices {
+        /// The [index](BraidIndex) of the left operand of the product.
+        left: BraidIndex,
+        /// The [index](BraidIndex) of the right operand of the product.
+        right: BraidIndex,
+    },
+    /// Indicates failure to construct the [index](BraidIndex) of the [braid](Braid).
+    ///
+    /// Transparent wrapper around [`IndexValidationError`].
     #[error(transparent)]
     IndexValidation(#[from] IndexValidationError),
+    /// Indicates failure to construct the [word](Word) of the [braid](Braid).
+    ///
+    /// Transparent wrapper around [`WordValidationError`].
     #[error(transparent)]
     WordValidation(#[from] WordValidationError),
 }
 
+/// The core struct of `braided`; may be thought of as describing a [weaving pattern](Word) among a
+/// [fixed number](BraidIndex) of disjoint [strands](crate::Strand).
+///
+/// # Constructing a [`Braid`]
+///
+/// <div class="warning">
+///
+/// The most ergonomic way to construct a [`Braid`] is via the [`braid!`](crate::braid) macro,
+/// though we do not discuss this macro here. Please consult the macro's docs for usage details and
+/// examples.
+///
+/// </div>
+///
+/// The following account for all means of directly constructing a [`Braid`] using associated
+/// functions and trait implementations on [`Braid`] itself.
+///
+/// 1. Using [`Braid::new`]
+///
+/// ```
+/// ```
+///
+/// 2. Using [`Braid::from_data`]
+///
+/// ```
+/// ```
+///
+/// 3. Using [`Braid::from`]
+///
+/// ```
+/// ```
+///
+/// 4. Using [`Braid::try_from`]
+///
+/// ```
+/// ```
+///
+/// 5. Using [`Braid::trivial`]
+///
+/// ```
+/// ```
+///
+/// 6. Using [`Braid::default`]
+///
+/// ```
+/// ```
+///
+/// # [Decomposition](Braid::decompose) and [Coalescing](Braid::coalesce)
+///
+/// ```
+/// ```
+///
+/// # Convenience Traits - [`IntoIterator`], [`Deref`](std::ops::Deref), and [`AsRef`]
+///
+/// ```
+/// ```
+///
+/// # Accessors and Basic Properties
+///
+/// The underlying data of the [`Braid`] may be accessed as follows:
+///
+/// ```
+/// ```
+///
+/// One may also compute several basic [`Braid`] properties:
+///
+/// ```
+/// ```
+///
+/// # Multiplication of [Braids](Braid)
+///
+/// The collection of all [braids](Braid) of a given [braid index](`BraidIndex`) form a mathematical
+/// structure known as a [_group_](https://en.wikipedia.org/wiki/Group_(mathematics)), which means
+/// that there is an associative multiplication operation between [braids](Braid), such that an
+/// identity element exists (the [trivial braid](Braid::trivial) of the given [index](BraidIndex))
+/// and an [inverse](Braid::inverse) with respect to the multiplication exists for every
+/// [braid](Braid).
+///
+/// There are many different _relations_ among [braids](Braid) (i.e., equations involving the
+/// [braid](Braid) multiplication) which take different forms depending on the generating set (e.g.,
+/// _far commutativity_ and the _braid relations_, to name the two sets of relations that hold in
+/// the standard Artin presentation of the group). Of primary importance on the roadmap of
+/// `braided` is the implementation of mechanisms to detect and apply as many of these relations as
+/// possible. However, as of the initial release (v0.1.0), only the bare multiplication operation
+/// has been implemented.
+///
+/// The multiplication of two [braids](Braid) amounts to a simple concatenation of their
+/// [words](Word). By default, the product is simplified as much as possible, meaning that as many
+/// cancelling pairs of [letters](Letter) are removed as possible. However, note that the
+/// operand [braids](Braid) are not necessarily simplified in this sense _prior_ to the
+/// multiplication, so there is no guarantee that the product has no cancelling pairs.
+///
+/// ```
+/// ```
+///
+/// # Errors
+///
+/// All of the constructors mentioned above, as well as the multiplication operation, are fallible.
+/// See the documentation of the associated error type [`BraidValidationError`] for more details and
+/// examples as to possible failures.
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Braid {
     index: BraidIndex,
@@ -25,6 +229,20 @@ pub struct Braid {
 }
 
 impl Braid {
+    /// Constructs a [`Braid`] from an optional [`BraidIndex`] and a valid [`Word`].
+    ///
+    /// If [None] is given for the `index` argument, then the [`BraidIndex`] is inferred from the
+    /// [`Word`].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// See the documentation for the associated error type [`BraidValidationError`] for more
+    /// information.
     pub fn new<N>(index: Option<N>, word: Word) -> Result<Self, BraidValidationError>
     where
         N: TryInto<u16>,
@@ -47,6 +265,20 @@ impl Braid {
         }
     }
 
+    /// Constructs a [`Braid`] from an optional [`BraidIndex`] and an iterable of [`Word`] data.
+    ///
+    /// The input data to this function is identical to that of the [`Word::new`] constructor,
+    /// except for the [`index`](BraidIndex) argument.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// See the documentation for the associated error type [`BraidValidationError`] for more
+    /// information.
     pub fn from_data<N, D, F, H>(
         index: Option<N>,
         word_data: D,
@@ -64,6 +296,19 @@ impl Braid {
         let word: Word = Word::new(word_data)?;
         Self::new(index, word)
     }
+    /// Constructs the trivial [braid](Braid) of the given [index](BraidIndex).
+    ///
+    /// Serves as the multiplicative identity.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// See the documentation for the associated error type [`BraidValidationError`] for more
+    /// information.
     pub fn trivial<N>(index: N) -> Result<Self, BraidValidationError>
     where
         N: TryInto<u16>,
@@ -72,12 +317,32 @@ impl Braid {
         Self::from_data(Some(index), Vec::<(u16, Option<u16>, Sign)>::new())
     }
 
+    /// Decomposes all [band letters](Letter::Band) of the underlying [`Word`] into equivalent
+    /// sub-words of [Artin letters](Letter::Artin).
+    ///
+    /// See the documentation for [`BandGenerator`](crate::BandGenerator) and [`Word::decompose`]
+    /// for more details as to how this method works.
+    ///
+    /// # Examples
+    ///
+    /// ````
+    /// ````
     pub fn decompose(&self) -> Self {
         Self {
             index: self.index,
             word: self.word.decompose(),
         }
     }
+    /// Coalesces all maximal spans of [Artin letters](Letter::Artin) in the underlying [`Word`]
+    /// into [band letters](Letter::Band).
+    ///
+    /// See the documentation for [`BandGenerator`](crate::BandGenerator) and [`Word::coalesce`]
+    /// for more details as to how this method works.
+    ///
+    /// # Examples
+    ///
+    /// ````
+    /// ````
     pub fn coalesce(&self) -> Self {
         Self {
             index: self.index,
@@ -85,9 +350,23 @@ impl Braid {
         }
     }
 
+    /// Computes the minimal [`BraidIndex`] required for the [braid's](Braid) [word](Word) to exist.
+    ///
+    /// Note that this is not necessarily the same as the actual [Braid::braid_index()].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// ```
     pub fn minimal_required_braid_index(&self) -> BraidIndex {
         self.word.minimal_required_braid_index()
     }
+    /// Computes the sum of all [signs](Sign) across the [braid's](Braid) [word](Word).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// ```
     pub fn writhe(&self) -> i32 {
         self.word.iter().fold(0, |a, b| {
             if b.sign() == Sign::Positive {
@@ -97,29 +376,77 @@ impl Braid {
             }
         })
     }
+    /// Computes the total number of [letters](Letter) (in any generating set) of the
+    /// [braid's](Braid) [word](Word).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// ```
     pub fn letter_length(&self) -> u16 {
         // Length checks performed on underlying word: safe to unwrap
-        self.word.len().try_into().unwrap()
+        self.word.length()
     }
+    /// Computes the _equivalent_ number of [Artin letters](Letter::Artin) of the [braid's](Braid)
+    /// [word](Word).
+    ///
+    /// See the documentation for [`Word::artin_length`] for more details.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// ```
     pub fn artin_length(&self) -> u16 {
         // Length checks performed on underlying word: safe to unwrap
         self.word.iter().fold(0, |a, b| a + b.artin_length())
     }
+    /// Computes the multiplicative inverse of the [`braid`](Braid).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// ```
     pub fn inverse(&self) -> Self {
         Self {
             index: self.index,
             word: self.word.inverse(),
         }
     }
+    /// Accessor method to the contained [`BraidIndex`].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// ```
     pub fn braid_index(&self) -> BraidIndex {
         self.index
     }
+    /// Accessor method to (a clone of the) the underlying [`Word`] contained in the [`Braid`].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// ```
     pub fn word(&self) -> Word {
         self.word.clone()
     }
+    /// Accessor method to the underlying [letters](Letter) of the [`Word`] contained in the
+    /// [`Braid`].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// ```
     pub fn letters(&self) -> Vec<Letter> {
         self.word.letters()
     }
+    /// Returns a bool indicating whether the [`Braid`] is the [trivial braid](Braid::trivial) for
+    /// its [index](BraidIndex).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// ```
     pub fn is_trivial(&self) -> bool {
         self.word.is_trivial()
     }
