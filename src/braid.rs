@@ -125,6 +125,12 @@ impl Braid {
     }
 }
 
+impl Default for Braid {
+    fn default() -> Self {
+        Self::trivial(1).unwrap()
+    }
+}
+
 impl From<Word> for Braid {
     fn from(value: Word) -> Self {
         Self {
@@ -139,9 +145,50 @@ impl From<&Word> for Braid {
     }
 }
 
-impl Default for Braid {
-    fn default() -> Self {
-        Self::trivial(1).unwrap()
+impl<L> TryFrom<Vec<L>> for Braid
+where
+    L: TryInto<Letter>,
+    BraidValidationError: From<<L as TryInto<Letter>>::Error>,
+    Word: TryFrom<Vec<L>, Error = WordValidationError>,
+{
+    type Error = BraidValidationError;
+    fn try_from(value: Vec<L>) -> Result<Self, Self::Error> {
+        let word = Word::try_from(value)?;
+        let index = word.minimal_required_braid_index();
+
+        Ok(Self { index, word })
+    }
+}
+impl<L> TryFrom<&[L]> for Braid
+where
+    L: TryInto<Letter> + std::clone::Clone,
+    BraidValidationError: From<<L as TryInto<Letter>>::Error>,
+    Word: TryFrom<Vec<L>, Error = WordValidationError>,
+{
+    type Error = BraidValidationError;
+    fn try_from(value: &[L]) -> Result<Self, Self::Error> {
+        Self::try_from(value.to_vec())
+    }
+}
+
+impl IntoIterator for Braid {
+    type Item = (u16, Option<u16>, Sign);
+    type IntoIter = <Word as IntoIterator>::IntoIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.word.into_iter()
+    }
+}
+impl std::ops::Deref for Braid {
+    type Target = [Letter];
+
+    fn deref(&self) -> &Self::Target {
+        &self.word
+    }
+}
+impl AsRef<[Letter]> for Braid {
+    fn as_ref(&self) -> &[Letter] {
+        self
     }
 }
 
@@ -238,26 +285,5 @@ impl std::ops::Mul for Braid {
                 word,
             })
         }
-    }
-}
-
-impl IntoIterator for Braid {
-    type Item = (u16, Option<u16>, Sign);
-    type IntoIter = <Word as IntoIterator>::IntoIter;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.word.into_iter()
-    }
-}
-impl std::ops::Deref for Braid {
-    type Target = [Letter];
-
-    fn deref(&self) -> &Self::Target {
-        &self.word
-    }
-}
-impl std::ops::DerefMut for Braid {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.word
     }
 }
