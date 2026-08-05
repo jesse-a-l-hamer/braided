@@ -171,7 +171,7 @@ macro_rules! letter {
 /// # }
 /// ```
 ///
-/// 3. Passing an exponent that fails to coerce into an [`i64`]
+/// 3. Passing an exponent that fails to coerce into an [`i32`]
 ///    ([`WordValidationError::FromInt`](crate::WordValidationError::FromInt)).
 /// ```
 /// use braided::{WordValidationError, word};

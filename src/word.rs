@@ -6,7 +6,7 @@ use crate::{
 #[derive(Debug, thiserror::Error, PartialEq, Eq, Clone, Copy)]
 pub enum WordValidationError {
     #[error("Attempting to create word of length {0} > {max}", max = u16::MAX)]
-    TooLong(usize),
+    TooLong(u32),
     #[error(transparent)]
     LetterValidation(#[from] LetterValidationError),
     #[error(transparent)]
@@ -125,13 +125,13 @@ where
         let (total_len, letters) = value
             .into_iter()
             .map(|l| l.into())
-            .map(|l| (l.artin_length() as usize, l))
-            .fold((0usize, Vec::<Letter>::new()), |mut acc, (al, l)| {
+            .map(|l| (l.artin_length() as u32, l))
+            .fold((0u32, Vec::<Letter>::new()), |mut acc, (al, l)| {
                 acc.0 += al;
                 acc.1.push(l);
                 acc
             });
-        if total_len > u16::MAX as usize {
+        if total_len > u16::MAX as u32 {
             Err(WordValidationError::TooLong(total_len))
         } else {
             Ok(Self(letters))
@@ -186,8 +186,8 @@ impl std::ops::Mul<Letter> for Word {
                     Err(WordValidationError::TooLong(
                         lhs_initial
                             .iter()
-                            .map(|l| l.artin_length() as usize)
-                            .sum::<usize>()
+                            .map(|l| l.artin_length() as u32)
+                            .sum::<u32>()
                             + tail_length,
                     ))
                 }
@@ -209,8 +209,8 @@ impl std::ops::Mul<Word> for Letter {
                         initial_length
                             + rhs_tail
                                 .iter()
-                                .map(|l| l.artin_length() as usize)
-                                .sum::<usize>(),
+                                .map(|l| l.artin_length() as u32)
+                                .sum::<u32>(),
                     ))
                 }
                 Err(e) => Err(e),
@@ -223,26 +223,31 @@ impl std::ops::Mul<Word> for Letter {
 impl std::ops::Mul for Word {
     type Output = Result<Word, WordValidationError>;
     fn mul(self, rhs: Self) -> Self::Output {
-        if self.is_trivial() {
-            Ok(rhs)
-        } else if rhs.is_trivial() {
-            Ok(self)
-        } else {
-            let (rhs_first, rhs_tail) = rhs.split_first().unwrap();
-            match self * *rhs_first {
-                Ok(initial) => initial * Word(rhs_tail.to_vec()),
-                Err(WordValidationError::TooLong(initial_length)) => {
-                    Err(WordValidationError::TooLong(
-                        initial_length
-                            + rhs_tail
-                                .iter()
-                                .map(|l| l.artin_length() as usize)
-                                .sum::<usize>(),
-                    ))
-                }
-                Err(e) => Err(e),
-            }
+        let product_length = self.artin_length() as u32 + rhs.artin_length() as u32;
+        if product_length > u16::MAX as u32 {
+            return Err(WordValidationError::TooLong(product_length));
         }
+
+        // At this point we can be sure that the product exists.
+        // We will try to cancel as much as possible.
+        let radius =
+            match self
+                .iter()
+                .rev()
+                .zip(rhs.iter())
+                .try_fold(0usize, |radius, (left, &right)| {
+                    if left.inverse() == right {
+                        Ok(radius + 1)
+                    } else {
+                        Err(radius)
+                    }
+                }) {
+                Ok(radius) => radius,
+                Err(radius) => radius,
+            };
+        Ok(Self(
+            [&self[..self.len() - radius], &rhs[radius..]].concat(),
+        ))
     }
 }
 

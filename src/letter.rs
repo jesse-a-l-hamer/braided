@@ -704,7 +704,7 @@ mod tests {
     fn invalid_multiplication_fails() {
         let l1 = Letter::new(1, None::<u16>, Sign::Positive).unwrap();
         let l2 = Letter::new(1, Some(2u16.pow(15) + 1), Sign::Negative).unwrap();
-        let error = WordValidationError::TooLong(u16::MAX as usize + 1);
+        let error = WordValidationError::TooLong(u16::MAX as u32 + 1);
 
         expect_that!(l1 * l2, err(eq(&error)));
         expect_that!(l2 * l1, err(eq(&error)));
