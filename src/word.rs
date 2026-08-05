@@ -112,6 +112,12 @@ impl Word {
     }
 }
 
+impl Default for Word {
+    fn default() -> Self {
+        Word::trivial()
+    }
+}
+
 impl<L> TryFrom<Vec<L>> for Word
 where
     L: Into<Letter>,
