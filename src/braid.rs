@@ -196,10 +196,9 @@ impl std::ops::Mul<Letter> for Braid {
                 minimal_required_index: required_index,
             })
         } else {
-            let word = (self.word * rhs)?;
             Ok(Self {
                 index: self.index,
-                word,
+                word: (self.word * rhs)?,
             })
         }
     }
@@ -216,10 +215,9 @@ impl std::ops::Mul<Braid> for Letter {
                 minimal_required_index: required_index,
             })
         } else {
-            let word = (self * rhs.word)?;
             Ok(Braid {
                 index: rhs.index,
-                word,
+                word: (self * rhs.word)?,
             })
         }
     }
@@ -235,10 +233,9 @@ impl std::ops::Mul<Word> for Braid {
                 minimal_required_index: required_index,
             })
         } else {
-            let word = (self.word * rhs)?;
             Ok(Self {
                 index: self.index,
-                word,
+                word: (self.word * rhs)?,
             })
         }
     }
@@ -255,10 +252,9 @@ impl std::ops::Mul<Braid> for Word {
                 minimal_required_index: required_index,
             })
         } else {
-            let word = (self * rhs.word)?;
             Ok(Braid {
                 index: rhs.index,
-                word,
+                word: (self * rhs.word)?,
             })
         }
     }
@@ -272,10 +268,9 @@ impl std::ops::Mul for Braid {
                 right: rhs.index,
             })
         } else {
-            let word = (self.word * rhs.word)?;
             Ok(Self {
                 index: self.index,
-                word,
+                word: (self.word * rhs.word)?,
             })
         }
     }
