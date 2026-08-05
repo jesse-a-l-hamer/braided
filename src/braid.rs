@@ -737,8 +737,8 @@ mod tests {
                 "negative index",
             ),
             (
-                Braid::trivial(u16::max as u32 + 1),
-                BraidValidationError::from(BraidIndex::new(u16::max as u32 + 1).err().unwrap()),
+                Braid::trivial(u16::MAX as u32 + 1),
+                BraidValidationError::from(BraidIndex::new(u16::MAX as u32 + 1).err().unwrap()),
                 "big index",
             ),
         ];
