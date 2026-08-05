@@ -178,10 +178,21 @@ impl AsRef<[Letter]> for Word {
 
 impl std::ops::Mul<Letter> for Word {
     type Output = Result<Word, WordValidationError>;
-
     fn mul(self, rhs: Letter) -> Self::Output {
-        if let Some((last, rem)) = self.split_last() {
-            Self::try_from([rem, &(*last * rhs)?].concat())
+        if let Some((lhs_last, lhs_initial)) = self.split_last() {
+            match *lhs_last * rhs {
+                Ok(tail) => Self::try_from([lhs_initial, &tail].concat()),
+                Err(WordValidationError::TooLong(tail_length)) => {
+                    Err(WordValidationError::TooLong(
+                        lhs_initial
+                            .iter()
+                            .map(|l| l.artin_length() as usize)
+                            .sum::<usize>()
+                            + tail_length,
+                    ))
+                }
+                Err(e) => Err(e),
+            }
         } else {
             Self::try_from(vec![rhs])
         }
@@ -189,10 +200,21 @@ impl std::ops::Mul<Letter> for Word {
 }
 impl std::ops::Mul<Word> for Letter {
     type Output = Result<Word, WordValidationError>;
-
     fn mul(self, rhs: Word) -> Self::Output {
-        if let Some((first, rem)) = rhs.split_first() {
-            Word::try_from([&(self * *first)?, rem].concat())
+        if let Some((rhs_first, rhs_tail)) = rhs.split_first() {
+            match self * *rhs_first {
+                Ok(initial) => Word::try_from([&initial, rhs_tail].concat()),
+                Err(WordValidationError::TooLong(initial_length)) => {
+                    Err(WordValidationError::TooLong(
+                        initial_length
+                            + rhs_tail
+                                .iter()
+                                .map(|l| l.artin_length() as usize)
+                                .sum::<usize>(),
+                    ))
+                }
+                Err(e) => Err(e),
+            }
         } else {
             Word::try_from(vec![self])
         }
@@ -200,15 +222,190 @@ impl std::ops::Mul<Word> for Letter {
 }
 impl std::ops::Mul for Word {
     type Output = Result<Word, WordValidationError>;
-
     fn mul(self, rhs: Self) -> Self::Output {
         if self.is_trivial() {
             Ok(rhs)
         } else if rhs.is_trivial() {
             Ok(self)
         } else {
-            let (first, rem) = rhs.split_first().unwrap();
-            (self * *first)? * Word::try_from(rem)?
+            let (rhs_first, rhs_tail) = rhs.split_first().unwrap();
+            match self * *rhs_first {
+                Ok(initial) => initial * Word(rhs_tail.to_vec()),
+                Err(WordValidationError::TooLong(initial_length)) => {
+                    Err(WordValidationError::TooLong(
+                        initial_length
+                            + rhs_tail
+                                .iter()
+                                .map(|l| l.artin_length() as usize)
+                                .sum::<usize>(),
+                    ))
+                }
+                Err(e) => Err(e),
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{Letter, Sign, Word, WordValidationError};
+    use googletest::matchers::{anything, each, eq, err, is_false, is_true, ok, result_of_ref};
+    use googletest::{assert_that, expect_that, gtest};
+
+    #[gtest]
+    fn construction_with_try_from_succeeds() {
+        let letters = vec![
+            Letter::new(1, None::<u16>, Sign::Positive).unwrap(),
+            Letter::new(2, Some(5), Sign::Negative).unwrap(),
+        ];
+        let valid_words = [
+            Word::try_from(letters.clone()),
+            Word::try_from(&letters[..]),
+        ];
+
+        expect_that!(valid_words, each(ok(anything())));
+        expect_that!(valid_words[0], eq(&valid_words[1]));
+    }
+
+    #[test]
+    fn valid_construction_with_new_succeeds_and_is_as_expected() {
+        let letter_data = [
+            (1, None::<u16>, Sign::Positive),
+            (2, Some(5), Sign::Negative),
+        ];
+        let valid_word = Word::new(letter_data);
+        assert_that!(valid_word, ok(anything()));
+
+        let letters: Vec<Letter> = letter_data
+            .iter()
+            .map(|(foot, head, sign)| Letter::new(*foot, *head, *sign).unwrap())
+            .collect();
+        assert_that!(valid_word, eq(&Word::try_from(letters)));
+    }
+
+    #[test]
+    fn trivial_works_as_expected() {
+        let trivial = Word::trivial();
+
+        assert_that!(
+            trivial,
+            eq(&Word::new(Vec::<(u16, Option<u16>, _)>::new()).unwrap())
+        );
+    }
+
+    #[test]
+    fn default_word_is_trivial() {
+        assert_that!(Word::default(), eq(&Word::trivial()));
+    }
+
+    #[test]
+    fn decompose_computes_as_expected() {
+        let word = Word::new([
+            (1, Some(3), Sign::Positive),
+            (2, None, Sign::Negative),
+            (1, Some(2), Sign::Positive),
+        ])
+        .unwrap();
+        let expected_decomposition = Word::new([
+            (1, None::<u16>, Sign::Negative),
+            (2, None, Sign::Positive),
+            (1, None, Sign::Positive),
+            (2, None, Sign::Negative),
+            (1, None, Sign::Positive),
+        ])
+        .unwrap();
+
+        assert_that!(word.decompose(), eq(&expected_decomposition));
+    }
+
+    #[test]
+    fn coalesce_computes_as_expected() {
+        let word = Word::new([
+            (2, None::<u16>, Sign::Positive),
+            (1, None, Sign::Positive),
+            (2, None, Sign::Negative),
+            (2, None, Sign::Negative),
+            (1, None, Sign::Positive),
+        ])
+        .unwrap();
+        let expected_coalescence = Word::new([
+            (1, Some(3), Sign::Positive),
+            (2, None, Sign::Negative),
+            (1, Some(2), Sign::Positive),
+        ])
+        .unwrap();
+
+        assert_that!(word.coalesce(), eq(&expected_coalescence));
+    }
+
+    #[gtest]
+    fn properties_compute_as_expected() {
+        let letters = vec![
+            Letter::new(1, Some(3), Sign::Positive).unwrap(),
+            Letter::new(2, None::<u16>, Sign::Negative).unwrap(),
+            Letter::new(1, Some(2), Sign::Positive).unwrap(),
+        ];
+        let word = Word::try_from(&letters[..]).unwrap();
+
+        expect_that!(word.letters(), eq(&letters));
+        expect_that!(
+            word.inverse(),
+            eq(&Word::try_from(
+                letters
+                    .iter()
+                    .rev()
+                    .map(|&l| l.inverse())
+                    .collect::<Vec<Letter>>()
+            )
+            .unwrap())
+        );
+        expect_that!(word.is_trivial(), is_false());
+        expect_that!(Word::trivial().is_trivial(), is_true());
+        expect_that!(word.length(), eq(letters.len().try_into().unwrap()));
+        expect_that!(
+            word.artin_length(),
+            eq(letters.iter().map(|&l| l.artin_length()).sum())
+        );
+        expect_that!(
+            word.minimal_required_braid_index(),
+            eq(letters
+                .iter()
+                .map(|&l| l.minimal_required_braid_index())
+                .max()
+                .unwrap()),
+        );
+    }
+
+    #[gtest]
+    fn into_iterator_works_as_expected() {
+        let letter_data = [
+            (1, Some(3), Sign::Positive),
+            (2, None, Sign::Negative),
+            (1, Some(2), Sign::Positive),
+        ];
+        let word = Word::new(letter_data).unwrap();
+
+        for (actual, expected) in word.into_iter().zip(letter_data) {
+            expect_that!(actual, eq(expected));
+        }
+    }
+
+    #[test]
+    fn deref_yields_slice_of_letters() {
+        let letters = [
+            Letter::new(1, Some(3), Sign::Positive).unwrap(),
+            Letter::new(2, None::<u16>, Sign::Negative).unwrap(),
+            Letter::new(1, Some(2), Sign::Positive).unwrap(),
+        ];
+        let word = Word::try_from(&letters[..]).unwrap();
+
+        assert_that!(*word, eq(&letters));
+    }
+
+    #[test]
+    fn word_can_be_passed_as_ref_to_slice_of_letters() {
+        fn as_ref_tester<W: AsRef<[Letter]>>(w: W, v: &[Letter]) -> bool {
+            w.as_ref() == v
         }
     }
 }
