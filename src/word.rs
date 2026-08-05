@@ -191,7 +191,7 @@ impl std::ops::Mul<Letter> for Word {
                             + tail_length,
                     ))
                 }
-                Err(e) => Err(e),
+                Err(_) => panic!("Unexpected error while computing {self:?} * {rhs:?}"),
             }
         } else {
             Self::try_from(vec![rhs])
@@ -213,7 +213,7 @@ impl std::ops::Mul<Word> for Letter {
                                 .sum::<u32>(),
                     ))
                 }
-                Err(e) => Err(e),
+                Err(_) => panic!("Unexpected error while computing {self:?} * {rhs:?}"),
             }
         } else {
             Word::try_from(vec![self])
