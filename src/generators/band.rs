@@ -1,5 +1,7 @@
 use crate::{ArtinGenerator, BraidIndex, Letter, Sign, Strand, StrandValidationError};
 
+const MAX_BAND_HEIGHT: u16 = 2u16.pow(15);
+
 /// Represents failed attempt to construct a [`BandGenerator`].
 ///
 /// [Bands](BandGenerator) can be fallibly constructed in two ways: by providing band data directly
@@ -34,7 +36,22 @@ use crate::{ArtinGenerator, BraidIndex, Letter, Sign, Strand, StrandValidationEr
 /// );
 /// ```
 ///
-/// 3. A valid strand cannot be constructed from one of the given foot or head indices
+/// 3. The distance between the foot and head strands exceeds the maximum band height, `2e15`.
+///    This is an error since then the Artin length of the resulting band would exceed maximum
+///    allowed word length, [`u16::MAX`].
+///
+///
+/// ```
+/// use braided::{BandGenerator, BandValidationError, Sign};
+/// use std::assert_matches;
+///
+/// assert_matches!(
+///     BandGenerator::new(1, 2u16.pow(15) + 2, Sign::Positive),
+///     Err(BandValidationError::TooTall(_)),
+/// );
+/// ```
+///
+/// 4. A valid strand cannot be constructed from one of the given foot or head indices
 ///    ([`BandValidationError::StrandValidation`]):
 ///
 ///
@@ -82,7 +99,21 @@ use crate::{ArtinGenerator, BraidIndex, Letter, Sign, Strand, StrandValidationEr
 /// assert_matches!(even_length_input, Err(BandValidationError::FromArtin(_)))
 /// ```
 ///
-/// 3. The coalescing algorithm failed because some [Artin generator](ArtinGenerator) is not
+/// 3. The input slice is longer than [`u16::MAX`].
+///
+///
+/// ```
+/// use braided::{ArtinGenerator, BandGenerator, BandValidationError, Sign};
+/// use std::assert_matches;
+///
+/// let too_long_input = BandGenerator::coalesce(&vec![
+///     ArtinGenerator::new(1, Sign::Positive).unwrap(); u16::MAX as usize + 1
+/// ]);
+///
+/// assert_matches!(too_long_input, Err(BandValidationError::FromArtin(_)))
+/// ```
+///
+/// 4. The coalescing algorithm failed because some [Artin generator](ArtinGenerator) is not
 ///    contiguous with the partially constructed band:
 ///
 ///
@@ -102,7 +133,7 @@ use crate::{ArtinGenerator, BraidIndex, Letter, Sign, Strand, StrandValidationEr
 /// assert_matches!(non_contiguous_generator, Err(BandValidationError::FromArtin(_)))
 /// ```
 ///
-/// 4. The coalescing algorithm failed because set of [Artin generators](ArtinGenerator) left of the
+/// 5. The coalescing algorithm failed because set of [Artin generators](ArtinGenerator) left of the
 ///    crossing generator fails to mirror those to its right:
 ///
 ///
@@ -138,6 +169,15 @@ pub enum BandValidationError {
         /// The offending head [strand](Strand).
         head: Strand,
     },
+    /// Indicates that the distance between the foot and head strand exceeds the maximal allowed
+    /// band height of `2e15`.
+    ///
+    /// Wraps the offending height
+    #[error(
+        "Attempting to construct band of height {0} exceeding {max}.",
+        max = MAX_BAND_HEIGHT,
+    )]
+    TooTall(u16),
     /// Indicates failure to construct at least one of the foot or head [strand](Strand).
     ///
     /// Transparent wrapper around [`StrandValidationError`].
@@ -157,6 +197,8 @@ pub enum FromArtinError {
     NoGenerators,
     #[error("Even number of Artin generators provided.")]
     EvenGenerators,
+    #[error("Attempt to construct a band from {0} > {max} Artin generators", max = u16::MAX)]
+    TooManyGenerators(usize),
     #[error("Could not append {next_step:?} to {previous_step:?} in {quadrant:?} staircase.")]
     IncontiguousSteps {
         quadrant: StaircaseQuadrant,
@@ -242,8 +284,9 @@ pub enum StaircaseQuadrant {
 ///     Ok(_),
 /// );
 ///
+/// // 2e15 is the maximal band height
 /// assert_matches!(
-///     BandGenerator::new(1, u16::MAX, Sign::Negative),
+///     BandGenerator::new(1, 2u16.pow(15) + 1, Sign::Negative),
 ///     Ok(_),
 /// );
 ///
@@ -253,7 +296,7 @@ pub enum StaircaseQuadrant {
 /// );
 ///
 /// assert_matches!(
-///     BandGenerator::new(Strand::new(9).unwrap(),40_u32, Sign::Negative),
+///     BandGenerator::new(Strand::new(9).unwrap(), 40_u32, Sign::Negative),
 ///     Ok(_),
 /// );
 ///
@@ -472,8 +515,9 @@ impl BandGenerator {
     ///     Ok(_),
     /// );
     ///
+    /// // 2e15 is the maximal band height
     /// assert_matches!(
-    ///     BandGenerator::new(1, u16::MAX, Sign::Negative),
+    ///     BandGenerator::new(1, 2u16.pow(15) + 1, Sign::Negative),
     ///     Ok(_),
     /// );
     ///
@@ -508,7 +552,14 @@ impl BandGenerator {
         let foot = Strand::new(foot)?;
         let head = Strand::new(head)?;
         match foot.cmp(&head) {
-            std::cmp::Ordering::Less => Ok(Self { foot, head, sign }),
+            std::cmp::Ordering::Less => {
+                let height: u16 = (head - foot).unwrap().into();
+                if height > MAX_BAND_HEIGHT {
+                    Err(BandValidationError::TooTall(height))
+                } else {
+                    Ok(Self { foot, head, sign })
+                }
+            }
             std::cmp::Ordering::Equal => Err(BandValidationError::FootOnHead(foot)),
             std::cmp::Ordering::Greater => Err(BandValidationError::FootOverHead { foot, head }),
         }
@@ -595,6 +646,10 @@ impl BandGenerator {
             });
         } else if num_parts.is_multiple_of(2) {
             return Err(BandValidationError::from(FromArtinError::EvenGenerators));
+        } else if num_parts > u16::MAX as usize {
+            return Err(BandValidationError::from(
+                FromArtinError::TooManyGenerators(num_parts),
+            ));
         }
 
         let mut upper_left_staircase = Vec::new();
@@ -817,7 +872,11 @@ impl BandGenerator {
     /// );
     /// ```
     pub fn artin_length(&self) -> u16 {
-        2 * self.height() - 1
+        if self.height() == MAX_BAND_HEIGHT {
+            u16::MAX
+        } else {
+            2 * self.height() - 1
+        }
     }
 
     /// Decomposes the band generator into a sequence of [Artin generators](`ArtinGenerator`).
@@ -919,7 +978,7 @@ impl From<Letter> for BandGenerator {
 
 #[cfg(test)]
 mod tests {
-    use super::{FromArtinError, StaircaseQuadrant};
+    use super::{FromArtinError, MAX_BAND_HEIGHT, StaircaseQuadrant};
     use crate::{
         ArtinGenerator, BandGenerator, BandValidationError, BraidIndex, Letter, Sign, Strand,
     };
@@ -930,7 +989,7 @@ mod tests {
     fn valid_inputs_to_new_yield_successful_construction() {
         let valid_bands = [
             BandGenerator::new(3, 4, Sign::Positive),
-            BandGenerator::new(1, u16::MAX, Sign::Negative),
+            BandGenerator::new(1, MAX_BAND_HEIGHT + 1, Sign::Negative),
             BandGenerator::new(2_usize, 5_isize, Sign::Positive),
             BandGenerator::new(Strand::new(9).unwrap(), 40_u32, Sign::Negative),
             BandGenerator::new(-(-3), Strand::new(10).unwrap(), Sign::Positive),
@@ -1088,6 +1147,10 @@ mod tests {
                 },
             ),
             (
+                BandGenerator::new(1, MAX_BAND_HEIGHT + 2, Sign::Positive),
+                BandValidationError::TooTall(MAX_BAND_HEIGHT + 1),
+            ),
+            (
                 BandGenerator::new(0, 4, Sign::Negative),
                 BandValidationError::from(Strand::new(0).err().unwrap()),
             ),
@@ -1108,7 +1171,7 @@ mod tests {
 
     #[gtest]
     fn invalid_inputs_to_coalesce_yield_failure() {
-        let invalid_artin_lists: [(Vec<ArtinGenerator>, BandValidationError); 7] = [
+        let invalid_artin_lists: [(Vec<ArtinGenerator>, BandValidationError); 8] = [
             (vec![], FromArtinError::NoGenerators.into()),
             (
                 vec![
@@ -1116,6 +1179,10 @@ mod tests {
                     ArtinGenerator::new(2, Sign::Negative).unwrap(),
                 ],
                 FromArtinError::EvenGenerators.into(),
+            ),
+            (
+                vec![ArtinGenerator::new(1, Sign::Positive).unwrap(); u16::MAX as usize + 2],
+                FromArtinError::TooManyGenerators(u16::MAX as usize + 2).into(),
             ),
             (
                 vec![
