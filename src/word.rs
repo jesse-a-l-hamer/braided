@@ -37,27 +37,6 @@ impl Word {
     pub fn trivial() -> Self {
         Self(Vec::new())
     }
-    pub fn letters(&self) -> Vec<Letter> {
-        self.0.clone()
-    }
-
-    pub fn length(&self) -> u16 {
-        // length checks taken care of at construction, so unwrapping here is safe
-        self.len().try_into().unwrap()
-    }
-    pub fn artin_length(&self) -> u16 {
-        self.iter().map(|l| l.artin_length()).sum()
-    }
-    pub fn minimal_required_braid_index(&self) -> BraidIndex {
-        self.iter()
-            .map(|l| l.minimal_required_braid_index())
-            .max()
-            .unwrap_or(BraidIndex::new(1).unwrap())
-    }
-
-    pub fn inverse(&self) -> Self {
-        Self(self.iter().rev().map(|l| l.inverse()).collect())
-    }
 
     pub fn decompose(&self) -> Self {
         let mut artin_generators: Vec<ArtinGenerator> = Vec::new();
@@ -107,8 +86,27 @@ impl Word {
         }
     }
 
+    pub fn letters(&self) -> Vec<Letter> {
+        self.0.clone()
+    }
     pub fn is_trivial(&self) -> bool {
         self.0.is_empty()
+    }
+    pub fn length(&self) -> u16 {
+        // length checks taken care of at construction, so unwrapping here is safe
+        self.len().try_into().unwrap()
+    }
+    pub fn artin_length(&self) -> u16 {
+        self.iter().map(|l| l.artin_length()).sum()
+    }
+    pub fn minimal_required_braid_index(&self) -> BraidIndex {
+        self.iter()
+            .map(|l| l.minimal_required_braid_index())
+            .max()
+            .unwrap_or(BraidIndex::new(1).unwrap())
+    }
+    pub fn inverse(&self) -> Self {
+        Self(self.iter().rev().map(|l| l.inverse()).collect())
     }
 }
 
@@ -120,13 +118,14 @@ impl Default for Word {
 
 impl<L> TryFrom<Vec<L>> for Word
 where
-    L: Into<Letter>,
+    L: TryInto<Letter>,
+    WordValidationError: From<<L as TryInto<Letter>>::Error>,
 {
     type Error = WordValidationError;
     fn try_from(value: Vec<L>) -> Result<Self, Self::Error> {
         let mut letters: Vec<Letter> = Vec::new();
         for l in value.into_iter() {
-            letters.push(l.into())
+            letters.push(l.try_into()?)
         }
         if let total_len = letters.iter().map(|l| l.artin_length() as usize).sum()
             && total_len > u16::MAX as usize
@@ -139,7 +138,8 @@ where
 }
 impl<L> TryFrom<&[L]> for Word
 where
-    L: Into<Letter> + std::clone::Clone,
+    L: TryInto<Letter> + std::clone::Clone,
+    WordValidationError: From<<L as TryInto<Letter>>::Error>,
 {
     type Error = WordValidationError;
     fn try_from(value: &[L]) -> Result<Self, Self::Error> {
@@ -169,9 +169,9 @@ impl std::ops::Deref for Word {
         &self.0[..]
     }
 }
-impl std::ops::DerefMut for Word {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0[..]
+impl AsRef<[Letter]> for Word {
+    fn as_ref(&self) -> &[Letter] {
+        self
     }
 }
 
