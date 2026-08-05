@@ -6,10 +6,11 @@ mod braid;
 mod generators;
 mod index;
 mod letter;
-mod macros;
 mod sign;
 mod strand;
 mod word;
+
+mod macros;
 
 pub use braid::{Braid, BraidValidationError};
 pub use generators::{ArtinGenerator, ArtinValidationError, BandGenerator, BandValidationError};
