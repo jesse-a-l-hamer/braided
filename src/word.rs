@@ -122,13 +122,16 @@ where
 {
     type Error = WordValidationError;
     fn try_from(value: Vec<L>) -> Result<Self, Self::Error> {
-        let mut letters: Vec<Letter> = Vec::new();
-        for l in value.into_iter() {
-            letters.push(l.into())
-        }
-        if let total_len = letters.iter().map(|l| l.artin_length() as usize).sum()
-            && total_len > u16::MAX as usize
-        {
+        let (total_len, letters) = value
+            .into_iter()
+            .map(|l| l.into())
+            .map(|l| (l.artin_length() as usize, l))
+            .fold((0usize, Vec::<Letter>::new()), |mut acc, (al, l)| {
+                acc.0 += al;
+                acc.1.push(l);
+                acc
+            });
+        if total_len > u16::MAX as usize {
             Err(WordValidationError::TooLong(total_len))
         } else {
             Ok(Self(letters))
