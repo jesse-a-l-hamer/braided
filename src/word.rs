@@ -3,22 +3,156 @@ use crate::{
     StrandValidationError,
 };
 
+/// Represents possible failures when attempting to construct a new [`Word`].
+///
+/// # Examples
+///
+/// 1. Attempting to multiply two words whose combined [Artin length](Word::artin_length) exceeds
+///    [`u16::MAX`] ([`WordValidationError::TooLong`]):
+///
+/// ```
+/// ```
+///
+/// 2. Attempting to construct a word with a malformed [letter](Letter)
+///    ([`WordValidationError::LetterValidation`]):
+///
+/// ```
+/// ```
+///
+/// 3. Attempting to construct a word with an integer that does not coerce to a [`u16`]
+///    ([`WordValidationError::FromInt`]):
+///
+/// ```
+/// ```
 #[derive(Debug, thiserror::Error, PartialEq, Eq, Clone, Copy)]
 pub enum WordValidationError {
+    /// Occurs when attempting to multiply two [words](Word) whose combined
+    /// [Artin length](Word::artin_length) exceeds [`u16::MAX`].
+    ///
+    /// Wraps the total Artin length.
     #[error("Attempting to create word of length {0} > {max}", max = u16::MAX)]
     TooLong(u32),
+    /// Indicates failure to validate one of the [letters](Letter) of the word.
+    ///
+    /// Transparent wrapper around [`LetterValidationError`].
     #[error(transparent)]
     LetterValidation(#[from] LetterValidationError),
+    /// Indicates failure to coerce an integer into [`u16`].
+    ///
+    /// Transparent wrapper around [`std::num::TryFromIntError`].
     #[error(transparent)]
     FromInt(#[from] std::num::TryFromIntError),
+    /// This variant exists purely to make the type system happy; it cannot occur in practice.
+    ///
+    /// Transparent wrapper around [`std::convert::Infallible`].
     #[error(transparent)]
     Infallible(#[from] std::convert::Infallible),
 }
 
+/// A formal _word_ in the [letters](Letter) of a braid group.
+///
+/// # Construction
+///
+/// <div class="warning">
+///
+/// Also see the documentation for the [`word!`] macro for a more ergonomic way to construct a
+/// [`Word`].
+///
+/// </div>
+///
+/// 1. From raw letter data, using [Word::new]:
+///
+/// ```
+/// ```
+///
+/// 2. From a [`Vec<L>`] or `&[L]`, where `L` is a generic bounded by [`Into<Letter>`]. This
+///    approach uses the associated function [`Word::try_from`]:
+///
+/// ```
+/// ```
+///
+/// 3. Constructing a trivial (empty) word using [`Word::trivial`] (note that [`Default`] is also
+///    implemented for [`Word`]: it returns the trivial word):
+///
+/// ```
+/// ```
+///
+/// # Decomposition and Coalescence
+///
+/// Because [`Letter`] abstracts over the underlying generating set, a priori an instance of
+/// [`Word`] may consist of a mixture of different [`Letter`] variants. For situations where one
+/// needs to ensure that every letter belongs to one generating set or the other, we expose two methods.
+///
+/// First, [`Word::decompose`] transforms a given [`Word`] by replacing each of its [`Letter::Band`]
+/// variants with an equivalent product of [`Letter::Artin`] variants. For more details on how this
+/// is accomplished, see the documentation for [`BandGenerator`].
+///
+/// ```
+/// ```
+///
+/// Conversely, [`Word::coalesce`] transforms a given [`Word`] by replacing maximal spans of
+/// [`Letter::Artin`] variants with equivalent [`Letter::Band`] generators. If the window about a
+/// particular [`Letter::Artin`] variant has radius zero, then the coalesced [`Letter::Band`]
+/// variant is simply the Artin variant cast as a band variant (e.g., an underlying
+/// `ArtinGenerator { foot: Strand(1), sign: Sign::Positive }` is replaced by
+/// `BandGenerator { foot: Strand(1), head: Strand(2), sign: Sign::Positive }`).
+///
+/// ```
+/// ```
+///
+/// # Convenience Traits - [`IntoIterator`], [`Deref`](std::ops::Deref), and [AsRef]:
+///
+/// ```
+/// ```
+///
+/// # Multiplication
+///
+/// 1. Multiplying a [letter](Letter) and a [word](Word):
+///
+/// ```
+/// ```
+///
+/// 2. Multiplying two [words](Word):
+///
+/// ```
+/// ```
+///
+/// # Accessors and Basic Properties
+///
+/// The data of a [`Word`] is accessed using the following methods:
+///
+/// ```
+/// ```
+///
+/// Moreover, one may compute various simple properties of a [`Word`]:
+///
+/// ```
+/// ```
+///
+/// # Errors
+///
+/// All [`Word`] constructors described above are fallible, _including multiplication_. Please see
+/// the associated error type [`WordValidationError`] for more details on possible causes of failure.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Word(Vec<Letter>);
 
 impl Word {
+    /// Constructs a new word from an iterable of low-level [`Letter`] data.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// This function returns an error in any of the following circumstances (see the documentation
+    /// for the associated error type [`WordValidationError`] for more details and examples):
+    ///
+    /// 1. The data given for a [letter](Letter) does not pass validation
+    ///    ([`WordValidationError::LetterValidation`]).
+    /// 2. The total [Artin length](Letter::artin_length) across all constructed [letters](Letter)
+    ///    exceeds [`u16::MAX`].
     pub fn new<D, F, H>(letter_data: D) -> Result<Self, WordValidationError>
     where
         D: IntoIterator<Item = (F, Option<H>, Sign)>,
@@ -34,10 +168,31 @@ impl Word {
         }
         Word::try_from(letters)
     }
+    /// Returns a trivial (i.e., empty) [`Word`].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// ```
     pub fn trivial() -> Self {
         Self(Vec::new())
     }
 
+    /// Decomposes each [`Letter::Band`] variant in a [`Word`] into an equivalent sequence of
+    /// [`Letter::Artin`] variants.
+    ///
+    /// See the documentation for [`BandGenerator`] for an explanation of this conversion. This
+    /// method is _almost_ an inverse of the [`Word::coalesce`] method; the obstruction comes from
+    /// the fact that a decomposition into [Artin generators](ArtinGenerator) needn't be unique. To
+    /// address this issue, we adopt the convention of decomposing every [band](BandGenerator) into
+    /// the product of [Artin generators](ArtinGenerator) which situates the "crossing" generator at
+    /// its maximal index (i.e., the [Artin generator](ArtinGenerator) with
+    /// [foot strand](ArtinGenerator::foot) at [`band.head() - 1`](BandGenerator::head)).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// ```
     pub fn decompose(&self) -> Self {
         let mut artin_generators: Vec<ArtinGenerator> = Vec::new();
         for letter in self.iter() {
@@ -48,6 +203,20 @@ impl Word {
         }
         Self::try_from(artin_generators).unwrap()
     }
+    /// Coalesces every maximal span of [`Letter::Artin`] variants within a [`Word`] into an
+    /// equivalent [`Letter::Band`].
+    ///
+    /// See the documentation for [`BandGenerator`] for an explanation of this conversion. Note that
+    /// while every band can [decompose](Word::decompose) into several equivalent words of
+    /// [Artin generators](ArtinGenerator) (although, as discussed in the documentation to
+    /// [Word::decompose], we adopt a convention to deterministically choose a decomposition), any
+    /// two equivalent words of [Artin generators](ArtinGenerator) will coalesce into the same
+    /// [band](`BandGenerator`).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// ```
     pub fn coalesce(&self) -> Self {
         // The coalescing algorithm requires that we start from a word which has been completely
         // decomposed as Artin generators.
@@ -86,25 +255,78 @@ impl Word {
         }
     }
 
+    /// Accessor method that returns a copy of the [word's](Word) [letters](Letter).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// ```
     pub fn letters(&self) -> Vec<Letter> {
         self.0.clone()
     }
+    /// Returns a bool indicating whether the word is [trivial](Word::trivial) (i.e., empty).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// ```
     pub fn is_trivial(&self) -> bool {
         self.0.is_empty()
     }
+    /// Returns the number of [_letters_](Letter) in the [`Word`].
+    ///
+    /// Note that we assert an upper bound of [`u16::MAX`] on the
+    /// [_Artin length_](Word::artin_length). The letter length returned by this method is typically
+    /// less than [Artin length](Word::artin_length), since [band letters](Letter::Band)
+    /// represent several contiguous [Artin letters](Letter::Artin) in general.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// ```
     pub fn length(&self) -> u16 {
         // length checks taken care of at construction, so unwrapping here is safe
         self.len().try_into().unwrap()
     }
+    /// Returns the _equivalent_ number of [Artin letters](Letter::Artin) within the [`Word`].
+    ///
+    /// One should be careful not to confuse this method with [Word::length], which returns the
+    /// number of [letters](Letter) (whether [Artin](Letter::Artin) or [band](Letter::Band)) in the
+    /// [`Word`]. Nor should one confuse the return value of this method with the raw count of
+    /// [Artin letters](Letter::Artin) in the word (a value for which we expose no method): instead,
+    /// this method returns the raw count of [Artin letters](Letter::Artin), _plus_ the equivalent
+    /// number of [Artin letters](Letter::Artin) contained within each [Band letter](Letter::Band).
+    /// See the examples below for illustration.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// ```
     pub fn artin_length(&self) -> u16 {
         self.iter().map(|l| l.artin_length()).sum()
     }
+    /// Returns the minimal [`BraidIndex`] required for a [braid](crate::Braid) to make use of this
+    /// [`Word`].
+    ///
+    /// This amounts to the index of the largest [head strand](Letter::head) across all letters of
+    /// the [`Word`], or 1 if the word is [trivial](Word::trivial).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// ```
     pub fn minimal_required_braid_index(&self) -> BraidIndex {
         self.iter()
             .map(|l| l.minimal_required_braid_index())
             .max()
             .unwrap_or(BraidIndex::new(1).unwrap())
     }
+    /// Returns the multiplicative inverse of the [`Word`].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// ```
     pub fn inverse(&self) -> Self {
         Self(self.iter().rev().map(|l| l.inverse()).collect())
     }
