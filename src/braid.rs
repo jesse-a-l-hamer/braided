@@ -3,7 +3,7 @@ use crate::{
     WordValidationError,
 };
 
-#[derive(Debug, thiserror::Error, PartialEq, Eq)]
+#[derive(Debug, thiserror::Error, PartialEq, Eq, Clone, Copy)]
 pub enum BraidValidationError {
     #[error("Given index {index:?} less than minimal required index {minimal_required_index:?}.")]
     IndexTooSmall {

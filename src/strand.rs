@@ -29,7 +29,7 @@
 ///     Err(StrandValidationError::Addition { .. }),
 /// );
 /// ```
-#[derive(Debug, thiserror::Error, PartialEq, Eq)]
+#[derive(Debug, thiserror::Error, PartialEq, Eq, Clone, Copy)]
 pub enum StrandValidationError {
     /// Indicates failure to construct a [`Strand`] from zero.
     #[error("Strand index cannot be zero.")]
@@ -355,10 +355,10 @@ mod tests {
     #[test]
     fn derefs_to_u16() {
         let test_strands = [
-            Strand::try_from(1),
-            Strand::new(1),
-            Strand::new(Strand::try_from(1).unwrap()),
-            Strand::new(BraidIndex::try_from(1).unwrap()),
+            &Strand::try_from(1),
+            &Strand::new(1),
+            &Strand::new(Strand::try_from(1).unwrap()),
+            &Strand::new(BraidIndex::try_from(1).unwrap()),
         ];
 
         assert_that!(test_strands, each(ok(derefs_to(eq(&1)))));
@@ -400,11 +400,11 @@ mod tests {
     #[test]
     fn valid_addition_succeeds() {
         let addition_examples = [
-            Strand::new(2).unwrap() + Strand::new(3).unwrap(),
-            Strand::new(2).unwrap() + 3,
-            2 + Strand::new(3).unwrap(),
-            Strand::new(5).unwrap() + 0,
-            0 + Strand::new(5).unwrap(),
+            &(Strand::new(2).unwrap() + Strand::new(3).unwrap()),
+            &(Strand::new(2).unwrap() + 3),
+            &(2 + Strand::new(3).unwrap()),
+            &(Strand::new(5).unwrap() + 0),
+            &(0 + Strand::new(5).unwrap()),
         ];
 
         assert_that!(addition_examples, each(ok(derefs_to(eq(&5)))));
@@ -413,9 +413,9 @@ mod tests {
     #[test]
     fn valid_subtraction_succeeds() {
         let addition_examples = [
-            Strand::new(3).unwrap() - Strand::new(2).unwrap(),
-            Strand::new(3).unwrap() - 2,
-            3 - Strand::new(2).unwrap(),
+            &(Strand::new(3).unwrap() - Strand::new(2).unwrap()),
+            &(Strand::new(3).unwrap() - 2),
+            &(3 - Strand::new(2).unwrap()),
         ];
 
         assert_that!(addition_examples, each(ok(derefs_to(eq(&1)))));
@@ -437,7 +437,7 @@ mod tests {
         ];
 
         for (invalid_strand, error) in invalid_strands {
-            expect_that!(invalid_strand, err(eq(&error)));
+            expect_that!(invalid_strand, err(eq(error)));
         }
     }
 
@@ -489,7 +489,7 @@ mod tests {
         ];
 
         for (invalid_addition, error) in invalid_addition_examples {
-            expect_that!(invalid_addition, err(eq(&error)));
+            expect_that!(invalid_addition, err(eq(error)));
         }
     }
 
@@ -523,7 +523,7 @@ mod tests {
         ];
 
         for (invalid_subtraction, error) in invalid_subtraction_examples {
-            expect_that!(invalid_subtraction, err(eq(&error)));
+            expect_that!(invalid_subtraction, err(eq(error)));
         }
     }
 }

@@ -25,7 +25,7 @@ use crate::Strand;
 ///     Err(IndexValidationError::FromInt(_))
 /// );
 /// ```
-#[derive(Debug, thiserror::Error, PartialEq, Eq)]
+#[derive(Debug, thiserror::Error, PartialEq, Eq, Clone, Copy)]
 pub enum IndexValidationError {
     /// Indicates failure to construct a [`BraidIndex`] from zero.
     #[error("Braid index cannot be zero")]
@@ -231,11 +231,11 @@ mod tests {
     #[test]
     fn derefs_to_u16() {
         let test_indices = [
-            BraidIndex::try_from(1),
-            Ok(BraidIndex::from(Strand::new(1).unwrap())),
-            BraidIndex::new(1),
-            BraidIndex::new(Strand::new(1).unwrap()),
-            BraidIndex::new(BraidIndex::try_from(1).unwrap()),
+            &BraidIndex::try_from(1),
+            &Ok(BraidIndex::from(Strand::new(1).unwrap())),
+            &BraidIndex::new(1),
+            &BraidIndex::new(Strand::new(1).unwrap()),
+            &BraidIndex::new(BraidIndex::try_from(1).unwrap()),
         ];
 
         assert_that!(test_indices, each(ok(derefs_to(eq(&1)))));
@@ -292,7 +292,7 @@ mod tests {
         ];
 
         for (invalid_index, error) in invalid_indices {
-            expect_that!(invalid_index, err(eq(&error)));
+            expect_that!(invalid_index, err(eq(error)));
         }
     }
 }

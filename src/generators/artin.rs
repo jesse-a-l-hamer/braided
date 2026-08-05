@@ -68,7 +68,7 @@ use crate::{BandGenerator, BraidIndex, Letter, Sign, Strand, StrandValidationErr
 ///     Err(ArtinValidationError::FromBand(BandGenerator::new(2, 7, Sign::Negative).unwrap())),
 /// )
 /// ```
-#[derive(Debug, thiserror::Error, PartialEq, Eq)]
+#[derive(Debug, thiserror::Error, PartialEq, Eq, Clone, Copy)]
 pub enum ArtinValidationError {
     /// Indicates attempt to construct [`ArtinGenerator`] with foot index [`u16::MAX`].
     #[error("The head strand index for such an Artin generator exceeds {max:?}", max = u16::MAX)]
@@ -392,7 +392,7 @@ mod tests {
         ];
 
         for (invalid_artin_generator, error) in invalid_artin_generators {
-            expect_that!(invalid_artin_generator, err(eq(&error)));
+            expect_that!(invalid_artin_generator, err(eq(error)));
         }
     }
 }

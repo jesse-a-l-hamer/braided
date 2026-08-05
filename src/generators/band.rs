@@ -121,17 +121,17 @@ use crate::{ArtinGenerator, BraidIndex, Letter, Sign, Strand, StrandValidationEr
 ///
 /// assert_matches!(imbalanced, Err(BandValidationError::FromArtin(_)))
 /// ```
-#[derive(thiserror::Error, Debug, PartialEq, Eq)]
+#[derive(thiserror::Error, Debug, PartialEq, Eq, Clone, Copy)]
 pub enum BandValidationError {
     /// Indicates that the given foot and head strands are the same.
     ///
     /// Wraps the offending [strand](Strand).
-    #[error("foot strand and head strand are the same ({0:?})")]
+    #[error("Foot strand and head strand are the same ({0:?}).")]
     FootOnHead(Strand),
     /// Indicates that the given foot strand lies above the given head strand.
     ///
     /// Wraps both offending [strands](Strand).
-    #[error("foot strand ({foot:?}) is over head strand ({head:?})")]
+    #[error("Foot strand ({foot:?}) is over head strand ({head:?}).")]
     FootOverHead {
         /// The offending foot [strand](Strand).
         foot: Strand,
@@ -151,7 +151,7 @@ pub enum BandValidationError {
     FromArtin(#[from] FromArtinError),
 }
 
-#[derive(thiserror::Error, Debug, PartialEq, Eq)]
+#[derive(thiserror::Error, Debug, PartialEq, Eq, Clone, Copy)]
 pub enum FromArtinError {
     #[error("No Artin generators provided.")]
     NoGenerators,
@@ -167,7 +167,7 @@ pub enum FromArtinError {
     ImbalancedStaircases(usize),
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum StaircaseQuadrant {
     UpperLeft,
     LowerLeft,
@@ -955,7 +955,7 @@ mod tests {
     fn valid_inputs_to_coalesce_yield_successful_construction() {
         expect_that!(
             BandGenerator::coalesce(&[ArtinGenerator::new(1, Sign::Negative).unwrap()]),
-            eq(&BandGenerator::new(1, 2, Sign::Negative))
+            eq(BandGenerator::new(1, 2, Sign::Negative))
         );
 
         let test_band = BandGenerator::new(1, 4, Sign::Positive);
@@ -990,7 +990,7 @@ mod tests {
             ]),
         ];
 
-        expect_that!(valid_bands, each(eq(&test_band)));
+        expect_that!(valid_bands, each(eq(test_band)));
     }
 
     #[gtest]
@@ -1102,7 +1102,7 @@ mod tests {
         ];
 
         for (invalid_band, error) in invalid_bands {
-            expect_that!(invalid_band, err(eq(&error)));
+            expect_that!(invalid_band, err(eq(error)));
         }
     }
 
@@ -1190,10 +1190,7 @@ mod tests {
         ];
 
         for (invalid_artin_list, error) in invalid_artin_lists {
-            expect_that!(
-                BandGenerator::coalesce(&invalid_artin_list),
-                err(eq(&error))
-            );
+            expect_that!(BandGenerator::coalesce(&invalid_artin_list), err(eq(error)));
         }
     }
 }

@@ -373,31 +373,15 @@ mod tests {
 
     // letter!
     #[gtest]
-    fn macro_letter_constructs_artin_letters() {
-        let artins: [(Result<Letter, LetterValidationError>, u16, Sign); 2] = [
-            (letter![1; +], 1, Sign::Positive),
-            (letter![2; -], 2, Sign::Negative),
+    fn macro_letter_constructs_expected_letters() {
+        let letters = [
+            (letter![1 => 3; +], 1, Some(3), Sign::Positive),
+            (letter![2 => 5; -], 2, Some(5), Sign::Negative),
+            (letter![1; +], 1, None, Sign::Positive),
+            (letter![2; -], 2, None, Sign::Negative),
         ];
-        for (artin, foot, sign) in artins {
-            expect_that!(
-                artin,
-                ok(eq(&Letter::Artin(ArtinGenerator::new(foot, sign).unwrap()))),
-            )
-        }
-    }
-    #[gtest]
-    fn macro_letter_constructs_band_letters() {
-        let artins: [(Result<Letter, LetterValidationError>, u16, u16, Sign); 2] = [
-            (letter![1 => 3; +], 1, 3, Sign::Positive),
-            (letter![2 => 5; -], 2, 5, Sign::Negative),
-        ];
-        for (artin, foot, head, sign) in artins {
-            expect_that!(
-                artin,
-                ok(eq(&Letter::Band(
-                    BandGenerator::new(foot, head, sign).unwrap()
-                ))),
-            )
+        for (letter, foot, head, sign) in letters {
+            expect_that!(letter, eq(Letter::new(foot, head, sign)))
         }
     }
     #[gtest]
@@ -430,7 +414,7 @@ mod tests {
         ];
 
         for (invalid_letter, error) in invalid_letters {
-            expect_that!(invalid_letter, err(eq(&error)))
+            expect_that!(invalid_letter, err(eq(error)))
         }
     }
 

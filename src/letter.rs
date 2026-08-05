@@ -3,7 +3,7 @@ use crate::{
     Strand, StrandValidationError, Word, WordValidationError,
 };
 
-#[derive(Debug, thiserror::Error, PartialEq, Eq)]
+#[derive(Debug, thiserror::Error, PartialEq, Eq, Clone, Copy)]
 pub enum LetterValidationError {
     #[error(transparent)]
     ArtinValidation(#[from] ArtinValidationError),

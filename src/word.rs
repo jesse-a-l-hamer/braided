@@ -3,7 +3,7 @@ use crate::{
     StrandValidationError,
 };
 
-#[derive(Debug, thiserror::Error, PartialEq, Eq)]
+#[derive(Debug, thiserror::Error, PartialEq, Eq, Clone, Copy)]
 pub enum WordValidationError {
     #[error("Attempting to create word of length {0} > {max}", max = u16::MAX)]
     TooLong(usize),
