@@ -275,7 +275,7 @@ macro_rules! word {
 ///     ]
 ///     .concat()
 /// ));
-/// assert_eq!(*braid_with_inferred_index.unwrap().index(), 4);
+/// assert_eq!(*braid_with_inferred_index.unwrap().braid_index(), 4);
 ///
 /// let braid_with_explicit_index = braid![(10); [1 => 3; -2], [3; 3], [1; 4]];
 /// assert_eq!(braid_with_explicit_index, Braid::from_data(
@@ -287,7 +287,7 @@ macro_rules! word {
 ///     ]
 ///     .concat()
 /// ));
-/// assert_eq!(*braid_with_explicit_index.unwrap().index(), 10);
+/// assert_eq!(*braid_with_explicit_index.unwrap().braid_index(), 10);
 /// # }
 /// ```
 ///

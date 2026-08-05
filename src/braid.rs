@@ -111,7 +111,7 @@ impl Braid {
             word: self.word.inverse(),
         }
     }
-    pub fn index(&self) -> BraidIndex {
+    pub fn braid_index(&self) -> BraidIndex {
         self.index
     }
     pub fn word(&self) -> Word {
@@ -208,10 +208,10 @@ impl std::ops::Mul<Braid> for Letter {
 
     fn mul(self, rhs: Braid) -> Self::Output {
         if let required_index = self.minimal_required_braid_index()
-            && rhs.index() < required_index
+            && rhs.braid_index() < required_index
         {
             Err(BraidValidationError::IndexTooSmall {
-                index: rhs.index(),
+                index: rhs.braid_index(),
                 minimal_required_index: required_index,
             })
         } else {
@@ -245,10 +245,10 @@ impl std::ops::Mul<Braid> for Word {
 
     fn mul(self, rhs: Braid) -> Self::Output {
         if let required_index = self.minimal_required_braid_index()
-            && rhs.index() < required_index
+            && rhs.braid_index() < required_index
         {
             Err(BraidValidationError::IndexTooSmall {
-                index: rhs.index(),
+                index: rhs.braid_index(),
                 minimal_required_index: required_index,
             })
         } else {
