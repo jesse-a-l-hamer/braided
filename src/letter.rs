@@ -49,6 +49,13 @@ pub enum LetterValidationError {
 ///
 /// # Construction
 ///
+/// <div class="warning">
+///
+/// Also see the macro [`letter!`](crate::letter) for a more ergonomic way of constructing
+/// [`Letter`].
+///
+/// </div>
+///
 /// The associated function [`Letter::new`] exposes a flexible interface for constructing either
 /// variant of [`Letter`]. In particular, the argument for the head strand is an [`Option<H>`] type,
 /// where `H` is any type implementing [`TryFrom<u16>`]; when [`None`] is passed for this argument,
