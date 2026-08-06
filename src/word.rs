@@ -442,16 +442,10 @@ impl std::ops::Mul<Word> for Letter {
         }
     }
 }
+#[allow(clippy::suspicious_arithmetic_impl)]
 impl std::ops::Mul for Word {
     type Output = Result<Word, WordValidationError>;
     fn mul(self, rhs: Self) -> Self::Output {
-        let product_length = self.artin_length() as u32 + rhs.artin_length() as u32;
-        if product_length > u16::MAX as u32 {
-            return Err(WordValidationError::TooLong(product_length));
-        }
-
-        // At this point we can be sure that the product exists.
-        // We will try to cancel as much as possible.
         let radius =
             match self
                 .iter()
@@ -467,9 +461,7 @@ impl std::ops::Mul for Word {
                 Ok(radius) => radius,
                 Err(radius) => radius,
             };
-        Ok(Self(
-            [&self[..self.len() - radius], &rhs[radius..]].concat(),
-        ))
+        Self::try_from([&self[..self.len() - radius], &rhs[radius..]].concat())
     }
 }
 
