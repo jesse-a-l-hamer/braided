@@ -509,7 +509,7 @@ impl std::cmp::PartialEq for Letter {
                 rhs.is_artin() && *lhs == ArtinGenerator::new(rhs.foot(), rhs.sign()).unwrap()
             }
             (Self::Band(lhs), Self::Artin(rhs)) => {
-                lhs.is_artin() && ArtinGenerator::new(lhs.foot(), rhs.sign()).unwrap() == *rhs
+                lhs.is_artin() && ArtinGenerator::new(lhs.foot(), lhs.sign()).unwrap() == *rhs
             }
             (Self::Band(lhs), Self::Band(rhs)) => lhs == rhs,
         }
