@@ -110,14 +110,14 @@
 //! # #[macro_use] extern crate braided;
 //! # fn main() {
 //! # use braided::braid;
-//!
+//! #
 //! # let cool_braid = braid![
 //! #     (3);
 //! #     [1; 4],
 //! #     [1 => 3; -3],
 //! #     [2; -1],
 //! # ];
-//!
+//! #
 //! use braided::BraidIndex;
 //!
 //! assert_eq!(cool_braid.unwrap().braid_index(), BraidIndex::new(3).unwrap());
@@ -200,14 +200,14 @@
 //! # #[macro_use] extern crate braided;
 //! # fn main() {
 //! # use braided::{braid, letter};
-//!
+//! #
 //! # let cool_braid = braid![
 //! #     (3);
 //! #     [1; 4],
 //! #     [1 => 3; -3],
 //! #     [2; -1],
 //! # ];
-//!
+//! #
 //! assert_eq!(cool_braid.unwrap().letters(), vec![
 //!     letter![1; +].unwrap(), // Letter construction is fallible too, so we must unwrap
 //!     letter![1; +].unwrap(),
@@ -228,14 +228,14 @@
 //! # #[macro_use] extern crate braided;
 //! # fn main() {
 //! # use braided::{braid, letter};
-//!
+//! #
 //! # let cool_braid = braid![
 //! #     (3);
 //! #     [1; 4],
 //! #     [1 => 3; -3],
 //! #     [2; -1],
 //! # ];
-//!
+//! #
 //! let implicit_index_cool_braid = braid![
 //!     (); // You still have to write the parentheses!
 //!     [1; 4],

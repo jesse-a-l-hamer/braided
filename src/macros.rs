@@ -133,9 +133,9 @@ macro_rules! letter {
 ///
 /// # Errors
 ///
-/// [`word!`] will return a [`WordValidationError`](crate::WordValidationError) in any context
-/// where the associated [`Word::new`](crate::Word::new) function does. In particular, all of the
-/// following are errors:
+/// [`word!`](crate::word) will return a [`WordValidationError`](crate::WordValidationError) in any
+/// context where the associated [`Word::new`](crate::Word::new) function does. In particular, all
+/// of the following are errors:
 ///
 /// 1. Having an Artin length which exceeds [`u16::MAX`]
 ///    ([`WordValidationError::TooLong`](crate::WordValidationError::TooLong)).
@@ -250,8 +250,8 @@ macro_rules! word {
 /// The macro input must always begin with a (possibly empty) expression surrounded by parentheses,
 /// which is parsed as the braid index if given. After the parentheses is a semicolon (";"),
 /// followed by an arbitrary sequence of bracketed expressions, each of which denotes a power of
-/// a single letter in the resulting word. The word syntax is identical to that of the [`word!`]
-/// macro.
+/// a single letter in the resulting word. The word syntax is identical to that of the
+/// [`word!`](crate::word) macro.
 ///
 /// If the braid index is not explicitly given, then it will be inferred as the minial required
 /// index for the given word.

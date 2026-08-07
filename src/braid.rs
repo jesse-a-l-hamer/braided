@@ -202,7 +202,7 @@ use crate::{
 /// assert_matches!(word * braid, Err(BraidValidationError::WordValidation(_)));
 /// ```
 ///
-/// 3. Attempting to multiply two [braids](Braids) whose [braid indices](BraidIndex) are not equal
+/// 3. Attempting to multiply two [braids](Braid) whose [braid indices](BraidIndex) are not equal
 ///    ([`BraidValidationError::UnequalIndices`]):
 ///
 /// ```
