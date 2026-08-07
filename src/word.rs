@@ -848,6 +848,8 @@ impl std::ops::Mul for Word {
     }
 }
 
+// TODO: impl Mul for result types
+
 #[cfg(test)]
 mod tests {
     use crate::{Letter, Sign, Word, WordValidationError};

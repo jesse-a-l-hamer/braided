@@ -560,6 +560,8 @@ impl std::ops::Mul for Letter {
     }
 }
 
+// TODO: impl Mul for result types
+
 #[cfg(test)]
 mod tests {
     use crate::{

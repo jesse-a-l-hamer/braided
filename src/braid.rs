@@ -1207,6 +1207,8 @@ impl std::ops::Mul for Braid {
     }
 }
 
+// TODO: impl Mul for result types
+
 #[cfg(test)]
 mod tests {
     use crate::{Braid, BraidIndex, BraidValidationError, Letter, Sign, Word};
