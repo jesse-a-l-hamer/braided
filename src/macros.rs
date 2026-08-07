@@ -109,7 +109,7 @@ macro_rules! letter {
 /// # fn main() {
 /// // Passing nothing constructs the trivial word:
 /// let trivial = word![];
-/// assert_eq!(trivial, Word::trivial());
+/// assert_eq!(trivial, Ok(Word::trivial()));
 ///
 /// // Create a word from a single letter repeated several times:
 /// let positive_artin_cubed = word![[2; 3]];
@@ -185,7 +185,12 @@ macro_rules! letter {
 #[macro_export]
 macro_rules! word {
     () => {
-        $crate::Word::trivial()
+        {
+            let trivial: Result<$crate::Word, $crate::WordValidationError> = Ok(
+                $crate::Word::trivial()
+            );
+            trivial
+        }
     };
     ([$foot:expr; $exponent:expr]) => {{
         match TryInto::<i32>::try_into($exponent) {
@@ -223,15 +228,15 @@ macro_rules! word {
             Err(e) => Err($crate::WordValidationError::from(e)),
         }
     }};
-    ([$foot:expr; $exponent:expr], $($tail:tt)+) => {{
-        match (word![[$foot; $exponent]], word![$($tail)+]) {
+    ([$foot:expr; $exponent:expr], $($tail:tt)*) => {{
+        match (word![[$foot; $exponent]], word![$($tail)*]) {
             (Ok(w1), Ok(w2)) => w1 * w2,
             (Err(e), _) => Err(e),
             (_, Err(e)) => Err(e),
         }
     }};
-    ([$foot:expr => $head:expr; $exponent:expr], $($tail:tt)+) => {{
-        match (word![[$foot => $head; $exponent]], word![$($tail)+]) {
+    ([$foot:expr => $head:expr; $exponent:expr], $($tail:tt)*) => {{
+        match (word![[$foot => $head; $exponent]], word![$($tail)*]) {
             (Ok(w1), Ok(w2)) => w1 * w2,
             (Err(e), _) => Err(e),
             (_, Err(e)) => Err(e),
@@ -348,14 +353,14 @@ macro_rules! word {
 #[macro_export]
 macro_rules! braid {
     (($index:expr) $(;)?) => {$crate::Braid::trivial($index)};
-    (($index:expr); $($tail:tt)+) => {
-        match $crate::word![$($tail)+] {
+    (($index:expr); $($tail:tt)*) => {
+        match $crate::word![$($tail)*] {
             Ok(word) => $crate::Braid::new(Some($index), word),
             Err(e) => Err($crate::BraidValidationError::from(e)),
         }
     };
-    ((); $($tail:tt)+) => {
-        match $crate::word![$($tail)+] {
+    ((); $($tail:tt)*) => {
+        match $crate::word![$($tail)*] {
             Ok(w) => Ok($crate::Braid::from(w)),
             Err(e) => Err($crate::BraidValidationError::from(e)),
         }
@@ -422,7 +427,7 @@ mod tests {
     #[test]
     fn macro_word_empty_produces_trivial_word() {
         let trivial = word![];
-        assert_that!(trivial, eq(&Word::trivial()))
+        assert_that!(trivial, ok(eq(&Word::trivial())))
     }
     #[gtest]
     fn macro_word_constructs_exponent_of_single_artin() {
