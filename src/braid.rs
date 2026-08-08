@@ -586,7 +586,7 @@ pub enum BraidValidationError {
 ///
 /// // One may multiply a braid and a letter:
 /// let other_letter = Letter::new(3, Some(7), Sign::Negative).unwrap();
-/// assert_eq!(braid.clone() * other_letter, Braid::try_from([letters, vec![other_letter]].concat()));
+/// assert_eq!(&braid * other_letter, Braid::try_from([letters, vec![other_letter]].concat()));
 ///
 /// // Or a braid and a word:
 /// let some_word = Word::try_from(vec![
@@ -595,8 +595,8 @@ pub enum BraidValidationError {
 /// ])
 /// .unwrap();
 /// assert_eq!(
-///     some_word.clone() * braid.clone(),
-///     Braid::new(None::<u16>, (some_word.clone() * braid.word()).unwrap()),
+///     &some_word * &braid,
+///     Braid::new(None::<u16>, (&some_word * braid.word()).unwrap()),
 /// );
 ///
 /// // Or two braids, as long as their braid indexes are equal:

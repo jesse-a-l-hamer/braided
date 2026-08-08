@@ -21,13 +21,13 @@ use crate::{
 /// let long_word = Word::try_from(vec![letter; u16::MAX as usize]).unwrap();
 ///
 /// assert_eq!(
-///     long_word.clone() * long_word.clone(),
+///     &long_word * &long_word,
 ///     Err(WordValidationError::TooLong(2 * (u16::MAX as u32))),
 /// );
 ///
 /// // Note: you can still multiply two long words than cancel into a short one
 /// assert_eq!(
-///     long_word.clone() * long_word.inverse(),
+///     &long_word * long_word.inverse(),
 ///     Ok(Word::trivial())
 /// );
 ///
@@ -37,11 +37,11 @@ use crate::{
 ///     vec![(2, None::<u16>, Sign::Positive), (1, Some(5), Sign::Negative)]
 /// ).unwrap();
 /// assert_eq!(
-///     short_word.clone() * tall_letter,
+///     &short_word * tall_letter,
 ///     Err(WordValidationError::TooLong(u16::MAX as u32 + 8)),
 /// );
 /// assert_eq!(
-///     tall_letter * short_word.clone(),
+///     tall_letter * &short_word,
 ///     Err(WordValidationError::TooLong(u16::MAX as u32 + 8)),
 /// );
 /// ```
@@ -310,7 +310,7 @@ pub enum WordValidationError {
 /// let left_letter_inverse = Letter::new(1, None::<u16>, Sign::Negative).unwrap();
 /// let right_letter_inverse = Letter::new(2, Some(5), Sign::Positive).unwrap();
 ///
-/// assert_eq!(left_letter_inverse * word.clone(), Word::new(vec![(2, Some(5), Sign::Negative)]));
+/// assert_eq!(left_letter_inverse * &word, Word::new(vec![(2, Some(5), Sign::Negative)]));
 /// assert_eq!(word * right_letter_inverse, Word::new(vec![(1, None::<u16>, Sign::Positive)]));
 /// ```
 ///
@@ -330,7 +330,7 @@ pub enum WordValidationError {
 /// let left_word = Word::new(left_word_data.to_vec()).unwrap();
 /// let right_word = Word::new(right_word_data.to_vec()).unwrap();
 ///
-/// assert_eq!(left_word.clone() * right_word.clone(), Word::new(data));
+/// assert_eq!(&left_word * &right_word, Word::new(data));
 ///
 /// // Cancellation is automatically performed:
 ///

@@ -67,11 +67,42 @@ impl std::ops::Mul for Word {
     }
 }
 
+impl std::ops::Mul<Letter> for &Word {
+    type Output = Result<Word, WordValidationError>;
+    fn mul(self, rhs: Letter) -> Self::Output {
+        self.clone() * rhs
+    }
+}
+impl std::ops::Mul<&Word> for Letter {
+    type Output = Result<Word, WordValidationError>;
+    fn mul(self, rhs: &Word) -> Self::Output {
+        self * rhs.clone()
+    }
+}
+impl std::ops::Mul<Word> for &Word {
+    type Output = Result<Word, WordValidationError>;
+    fn mul(self, rhs: Word) -> Self::Output {
+        self.clone() * rhs
+    }
+}
+impl std::ops::Mul<&Word> for Word {
+    type Output = Result<Word, WordValidationError>;
+    fn mul(self, rhs: &Word) -> Self::Output {
+        self * rhs.clone()
+    }
+}
+impl std::ops::Mul for &Word {
+    type Output = Result<Word, WordValidationError>;
+    fn mul(self, rhs: Self) -> Self::Output {
+        self.clone() * rhs.clone()
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::{Letter, Sign, Word, WordValidationError};
+    use crate::{Letter, Sign, Word, WordValidationError, letter, word};
     use googletest::matchers::{eq, err, ok};
-    use googletest::{expect_that, gtest};
+    use googletest::{assert_that, expect_that, gtest};
 
     #[gtest]
     fn valid_multiplication_with_letter_succeeds_and_computes_as_expected() {
@@ -255,5 +286,41 @@ mod tests {
                 "{label}",
             );
         }
+    }
+
+    #[gtest]
+    fn can_multiply_letter_with_borrowed_word() {
+        let letter = letter![1; +].unwrap();
+        let word = word![[2; -1], [1 => 3; 2]].unwrap();
+
+        expect_that!(letter * &word, eq(&word![[1; 1], [2; -1], [1 => 3; 2]]));
+        expect_that!(&word * letter, eq(&word![[2; -1], [1 => 3; 2], [1; 1]]));
+    }
+
+    #[gtest]
+    fn can_multiply_borrowed_word_and_word() {
+        let word1 = word![[2; -1], [1 => 3; 2]].unwrap();
+        let word2 = word![[1; 7], [2; -3]].unwrap();
+        let word3 = word![[1 => 3; 4]].unwrap();
+
+        expect_that!(
+            &word1 * word2,
+            eq(&word![[2; -1], [1 => 3; 2], [1; 7], [2; -3]])
+        );
+        expect_that!(
+            word3 * &word1,
+            eq(&word![[1 => 3; 4], [2; -1], [1 => 3; 2]])
+        );
+    }
+
+    #[test]
+    fn can_multiply_borrowed_word_and_borrowed_word() {
+        let word1 = word![[2; -1], [1 => 3; 2]].unwrap();
+        let word2 = word![[1; 7], [2; -3]].unwrap();
+
+        assert_that!(
+            &word1 * &word2,
+            eq(&word![[2; -1], [1 => 3; 2], [1; 7], [2; -3]])
+        );
     }
 }

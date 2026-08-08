@@ -62,7 +62,7 @@
 //!
 //! // Two braids can be multiplied...
 //! assert_eq!(
-//!     my_9_braid.clone() * my_other_9_braid,
+//!     &my_9_braid * my_other_9_braid,
 //!     braid![(); [1; 2], [2 => 5; -7], [3; 3], [1 => 4; 2], [1 => 8; 3], [2 => 9; -4]]
 //! );
 //!
@@ -283,7 +283,7 @@
 //! let braid2 = braid![(9); [1; 3], [1 => 3; -4], [2 => 3; 1]].unwrap();
 //!
 //! assert_eq!(
-//!     braid1.clone() * braid2.clone(), // multiplication consumes the operands, so we must clone
+//!     &braid1 * &braid2, // Multiplication consumes operands unless you explicitly borrow
 //!     braid![(9); [2 => 5; 3], [1; -2], [4; 3], [2 => 4; -7], [1; 3], [1 => 3; -4], [2 => 3; 1]],
 //! );
 //!
@@ -307,7 +307,7 @@
 //! let some_3_braid = braid![(); [1; 1], [2 => 3; -2]].unwrap();
 //!
 //! assert_eq!(
-//!     braid![(3); [1; -1]].unwrap() * some_3_braid.clone(),
+//!     braid![(3); [1; -1]].unwrap() * &some_3_braid,
 //!     braid![(); [2 => 3; -2]],
 //! );
 //!
@@ -335,8 +335,8 @@
 //!
 //! let some_9_braid = braid![(9); [1 => 8; 1], [2 => 9; -1]].unwrap();
 //!
-//! assert_eq!(trivial_9_braid.clone() * some_9_braid.clone(), Ok(some_9_braid.clone()));
-//! assert_eq!(some_9_braid.clone() * trivial_9_braid.clone(), Ok(some_9_braid));
+//! assert_eq!(&trivial_9_braid * &some_9_braid, Ok(some_9_braid.clone()));
+//! assert_eq!(&some_9_braid * &trivial_9_braid, Ok(some_9_braid));
 //! # }
 //! ```
 //!
@@ -353,7 +353,7 @@
 //!
 //! assert_eq!(braid.inverse(), braid![(); [3; -1], [4; 7], [2 => 5; 3], [1 => 3; -4]].unwrap());
 //!
-//! assert_eq!(braid.clone() * braid.inverse(), braid![(5)]);
+//! assert_eq!(&braid * braid.inverse(), braid![(5)]);
 //! assert_eq!(braid.inverse() * braid, braid![(5)]);
 //! # }
 //! ```
