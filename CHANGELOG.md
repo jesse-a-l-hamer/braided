@@ -31,12 +31,14 @@ This is the first release of the project! I consider this an MVP for a library a
 - Helper functions for constructing trivial objects (`Word` or `Braid` of given index).
 - Helper functions for computing multiplicative inverses (e.g., `Braid::inverse()`).
 - Can compute several basic properties of braids, like `Braid::writhe`, `Braid::artin_length`, etc.
+- All public items documented.
+- Crate root documented.
 
 
 ### Added
 
 - *(word)* panic on seemingly unreachable code path in Mul impls for Word & Letter
-- *(braid)* impl TryFrom<Vec<L>> and TryFrom<&[L]> on Braid where L: TryInto<Letter>
+- *(braid)* impl `TryFrom<Vec<L>>` and `TryFrom<&[L]>` on `Braid` where `L: TryInto<Letter>`
 - *(word)* impl `Default` for `Word` as `Word::trivial`
 - *(generators::artin)* remove needless `ArtinValidationError::Infallible` variant
 - *(letter)* implement `Letter::is_artin`
@@ -59,13 +61,13 @@ This is the first release of the project! I consider this an MVP for a library a
 
 - *(macros)* fix macro `word!` so that all branches (including trivial) return a result
 - *(word)* multiplying two long words which cancel to a short one now returns Ok instead of Err
-- *(letter)* bug in equality comparison Letter::Band == Letter::Artin
-- *(braid)* fix use of u16::max instead of u16::MAX
+- *(letter)* bug in equality comparison `Letter::Band == Letter::Artin`
+- *(braid)* fix use of `u16::max` instead of `u16::MAX`
 - *(word)* replaced broken recursive word multiplication algorithm with much simpler and faster one
 - *(word)* fix bug in Word multiplication impls where error message was reporting incorrect length
-- *(generators::band)* imposed maximum band height to prevent construction of bands with Artin length exceeding u16::MAX
-- *(macros)* change needlessly large `i64` to `i32` for TryInto of $exponent in word!
-- *(strand)* properly implemented AsRef<u16> for Strand
+- *(generators::band)* imposed maximum band height to prevent construction of bands with Artin length exceeding `u16::MAX`
+- *(macros)* change needlessly large `i64` to `i32` for `TryInto` of `$exponent` in `word!`
+- *(strand)* properly implemented `AsRef<u16>` for Strand
 - *(macros)* [**breaking**] fix various type checking issues; macros now functional
 - *(lib)* fixed bad paths in `artin!` and `band!` macros, allowing us to remove pub modifier on generators module
 - *(lib)* make generators module public and re-export error types
@@ -93,9 +95,9 @@ This is the first release of the project! I consider this an MVP for a library a
 - *(coverage)* update report
 - *(word)* implement unit test suite
 - *(braid)* remove useless bindings in Mul impls for Braid
-- *(word)* removed redundant pass through iterator in impl TryFrom<Vec<L>> for Word
-- *(braid,word)* revert TryFrom impls back to using Into<Letter>
-- *(word)* change bound on L in TryFrom impls to TryInto<Letter> from Into<Letter>
+- *(word)* removed redundant pass through iterator in `impl TryFrom<Vec<L>> for Word`
+- *(braid,word)* revert `TryFrom` impls back to using `Into<Letter>`
+- *(word)* change bound on L in `TryFrom` impls to `TryInto<Letter>` from `Into<Letter>`
 - *(letter)* docmuent `LetterValidationError` and `Letter`
 - *(coverage)* update report
 - *(letter)* implement unit test suite
@@ -155,7 +157,7 @@ This is the first release of the project! I consider this an MVP for a library a
 - *(README)* Add disclaimer and shields
 - *(braid)* rename `Braid::word` to `Braid::band_word` and `Braid::length` to `Braid::band_length`
 - *(braid)* [**breaking**] rename `Braid::new` to `Braid::from_bands`
-- *(generators::band)* [**breaking**] refactor band macro to match on [$foot => $head; $power]
+- *(generators::band)* [**breaking**] refactor band macro to match on `[$foot => $head; $power]`
 - *(generators::band)* [**breaking**] remove sign-only match variants from band macro
 - *(generators::artin)* [**breaking**] remove sign-only match variants from artin macro
 - *(braid)* wrote unit test stubs
