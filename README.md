@@ -9,7 +9,7 @@ A library for working with [mathematical braids](https://en.wikipedia.org/wiki/B
 ## Quick Start
 
 > [!NOTE]
-> If you are new to the theory of braids, it may help to instead see the _Less Quick Start_ given in the [docs](https://docs.rs/braided).
+> If you are new to the theory of braids, it may help to instead see the [_Less Quick Start_](https://docs.rs/braided/latest/braided/#less-quick-start) given in the [docs](https://docs.rs/braided).
 
 ```rust
 use braided::{braid, letter, word};
