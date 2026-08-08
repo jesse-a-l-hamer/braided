@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [0.1.1](https://github.com/jesse-a-l-hamer/braided/compare/v0.1.0...v0.1.1) - 2026-08-08
+
+### Other
+
+- add release-plz.yml workflow
+
 ## [0.1.0](https://github.com/jesse-a-l-hamer/braided/releases/tag/v0.1.0) - 2026-08-08
 
 This is the first release of the project! I consider this an MVP for a library about braids. See the following sections for auto-generated updates from commit messages. Here are some of the highlights:
