@@ -75,12 +75,78 @@ impl std::ops::Mul for Braid {
         }
     }
 }
+impl std::ops::Mul<Letter> for &Braid {
+    type Output = Result<Braid, BraidValidationError>;
+    fn mul(self, rhs: Letter) -> Self::Output {
+        self.clone() * rhs
+    }
+}
+impl std::ops::Mul<&Braid> for Letter {
+    type Output = Result<Braid, BraidValidationError>;
+    fn mul(self, rhs: &Braid) -> Self::Output {
+        self * rhs.clone()
+    }
+}
+impl std::ops::Mul<Word> for &Braid {
+    type Output = Result<Braid, BraidValidationError>;
+    fn mul(self, rhs: Word) -> Self::Output {
+        self.clone() * rhs
+    }
+}
+impl std::ops::Mul<&Braid> for Word {
+    type Output = Result<Braid, BraidValidationError>;
+    fn mul(self, rhs: &Braid) -> Self::Output {
+        self * rhs.clone()
+    }
+}
+impl std::ops::Mul<&Word> for Braid {
+    type Output = Result<Braid, BraidValidationError>;
+    fn mul(self, rhs: &Word) -> Self::Output {
+        self * rhs.clone()
+    }
+}
+impl std::ops::Mul<Braid> for &Word {
+    type Output = Result<Braid, BraidValidationError>;
+    fn mul(self, rhs: Braid) -> Self::Output {
+        self.clone() * rhs
+    }
+}
+impl std::ops::Mul<&Word> for &Braid {
+    type Output = Result<Braid, BraidValidationError>;
+    fn mul(self, rhs: &Word) -> Self::Output {
+        self.clone() * rhs.clone()
+    }
+}
+impl std::ops::Mul<&Braid> for &Word {
+    type Output = Result<Braid, BraidValidationError>;
+    fn mul(self, rhs: &Braid) -> Self::Output {
+        self.clone() * rhs.clone()
+    }
+}
+impl std::ops::Mul<Braid> for &Braid {
+    type Output = Result<Braid, BraidValidationError>;
+    fn mul(self, rhs: Braid) -> Self::Output {
+        self.clone() * rhs
+    }
+}
+impl std::ops::Mul<&Braid> for Braid {
+    type Output = Result<Braid, BraidValidationError>;
+    fn mul(self, rhs: &Braid) -> Self::Output {
+        self * rhs.clone()
+    }
+}
+impl std::ops::Mul<&Braid> for &Braid {
+    type Output = Result<Braid, BraidValidationError>;
+    fn mul(self, rhs: &Braid) -> Self::Output {
+        self.clone() * rhs.clone()
+    }
+}
 
 #[cfg(test)]
 mod tests {
-    use crate::{Braid, BraidIndex, BraidValidationError, Letter, Sign, Word};
+    use crate::{Braid, BraidIndex, BraidValidationError, Letter, Sign, Word, braid, letter, word};
     use googletest::matchers::{eq, err};
-    use googletest::{expect_that, gtest};
+    use googletest::{assert_that, expect_that, gtest};
 
     #[gtest]
     fn valid_multiplication_with_letter_succeeds_and_computes_as_expected() {
@@ -366,5 +432,94 @@ mod tests {
         for (invalid_braid, error, label) in invalid_braids {
             expect_that!(invalid_braid, err(eq(&error)), "{label}")
         }
+    }
+
+    #[gtest]
+    fn can_multiply_borrowed_braid_with_letter() {
+        let letter = letter![1; +].unwrap();
+        let braid = braid![(); [2; -1], [1 => 3; 3]].unwrap();
+
+        expect_that!(
+            &braid * letter,
+            eq(&braid![(); [2; -1], [1 => 3; 3], [1; 1]])
+        );
+        expect_that!(
+            letter * &braid,
+            eq(&braid![(); [1; 1], [2; -1], [1 => 3; 3]])
+        );
+    }
+
+    #[gtest]
+    fn can_multiply_borrowed_braid_with_word() {
+        let word1 = word![[1; 1], [2; -3]].unwrap();
+        let word2 = word![[1 => 3; 2]].unwrap();
+        let braid = braid![(); [2; -1], [1 => 3; 3]].unwrap();
+
+        expect_that!(
+            &braid * word1,
+            eq(&braid![(); [2; -1], [1 => 3; 3], [1; 1], [2; -3]])
+        );
+        expect_that!(
+            word2 * &braid,
+            eq(&braid![(); [1 => 3; 2], [2; -1], [1 => 3; 3]])
+        );
+    }
+
+    #[gtest]
+    fn can_multiply_braid_with_borrowed_word() {
+        let braid1 = braid![(); [1; 1], [2; -3]].unwrap();
+        let braid2 = braid![(); [1 => 3; 2]].unwrap();
+        let word = word![[2; -1], [1 => 3; 3]].unwrap();
+
+        expect_that!(
+            &word * braid1,
+            eq(&braid![(); [2; -1], [1 => 3; 3], [1; 1], [2; -3]])
+        );
+        expect_that!(
+            braid2 * &word,
+            eq(&braid![(); [1 => 3; 2], [2; -1], [1 => 3; 3]])
+        );
+    }
+
+    #[gtest]
+    fn can_multiply_borrowed_braid_with_borrowed_word() {
+        let braid = braid![(); [1; 1], [2; -3]].unwrap();
+        let word = word![[2; -1], [1 => 3; 3]].unwrap();
+
+        expect_that!(
+            &word * &braid,
+            eq(&braid![(); [2; -1], [1 => 3; 3], [1; 1], [2; -3]])
+        );
+        expect_that!(
+            &braid * &word,
+            eq(&braid![(); [1; 1], [2; -3], [2; -1], [1 => 3; 3]])
+        );
+    }
+
+    #[gtest]
+    fn can_multiply_braid_with_borrowed_braid() {
+        let braid1 = braid![(); [1; 1], [2; -3]].unwrap();
+        let braid2 = braid![(); [1 => 3; 2]].unwrap();
+        let braid = braid![(); [2; -1], [1 => 3; 3]].unwrap();
+
+        expect_that!(
+            &braid * braid1,
+            eq(&braid![(); [2; -1], [1 => 3; 3], [1; 1], [2; -3]])
+        );
+        expect_that!(
+            braid2 * &braid,
+            eq(&braid![(); [1 => 3; 2], [2; -1], [1 => 3; 3]])
+        );
+    }
+
+    #[test]
+    fn can_multiply_borrowed_braid_with_borrowed_braid() {
+        let braid1 = braid![(); [1; 1], [2; -3]].unwrap();
+        let braid2 = braid![(); [1 => 3; 2]].unwrap();
+
+        assert_that!(
+            &braid1 * &braid2,
+            eq(&braid![(); [1; 1], [2; -3], [1 => 3; 2]])
+        );
     }
 }
