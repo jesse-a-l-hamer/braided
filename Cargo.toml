@@ -11,6 +11,9 @@ repository = "https://github.com/jesse-a-l-hamer/braided"
 license = "MIT"
 keywords = ["braids", "knots", "topology"]
 categories = ["mathematics"]
+exclude = [
+  ".github/",
+]
 
 [dependencies]
 thiserror = "2.0.19"
