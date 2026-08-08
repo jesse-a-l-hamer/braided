@@ -6,6 +6,7 @@ Brief description of changes.
 
 - [ ] Bug fix
 - [ ] New feature
+- [ ] Refactor
 - [ ] Documentation update
 - [ ] Project management
 
