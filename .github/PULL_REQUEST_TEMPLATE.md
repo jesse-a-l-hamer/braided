@@ -7,6 +7,7 @@ Brief description of changes.
 - [ ] Bug fix
 - [ ] New feature
 - [ ] Documentation update
+- [ ] Project management
 
 ## Checklist
 
