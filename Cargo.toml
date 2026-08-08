@@ -9,7 +9,7 @@ readme = "README.md"
 homepage = "https://github.com/jesse-a-l-hamer/braided"
 repository = "https://github.com/jesse-a-l-hamer/braided"
 license = "MIT"
-keywords = ["braid theory", "braids", "knot theory", "knots", "topology"]
+keywords = ["braids", "knots", "topology"]
 categories = ["mathematics"]
 
 [dependencies]
