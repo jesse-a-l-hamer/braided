@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [0.1.2](https://github.com/jesse-a-l-hamer/braided/compare/v0.1.1...v0.1.2) - 2026-08-08
+
+### Other
+
+- *(Cargo.toml)* exclude .github/ from packaged files
+- *(gitignore)* delete lcov.info file and add its name to .gitignore
+- *(gitignore)* remove existing coverage/ directory and add coverage/ to gitignore
+- *(PULL_REQUEST_TEMPLATE)* add "Other" option to "Type of Change" checklist
+
 ## [0.1.1](https://github.com/jesse-a-l-hamer/braided/compare/v0.1.0...v0.1.1) - 2026-08-08
 
 ### Other
