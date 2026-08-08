@@ -417,6 +417,7 @@ mod braid;
 mod generators;
 mod index;
 mod letter;
+mod multiplication;
 mod sign;
 mod strand;
 mod word;
