@@ -79,13 +79,21 @@ pub enum StaircaseQuadrant {
 /// # Construction
 ///
 /// A [`BandGenerator`] may be constructed in multiple ways. The direct approach passes low-level
-/// band data directly to [`BandGenerator::new`]. A band can also be _infallibly_ converted from
+/// band data directly to [`BandGenerator::try_new`]. A band can also be _infallibly_ converted from
 /// either an [`ArtinGenerator`] or a [`Letter`] using the [`BandGenerator::from`] function.
 /// Finally, one may use [`BandGenerator::coalesce`] in order to convert a collection of Artin
 /// generators into a band (see the previous section for more details on the relationship between
 /// Artin generators and band generators).
 ///
-/// 1. Direct construction using [`BandGenerator::new`].
+/// 1. Direct construction using [`BandGenerator::try_new`].
+///
+/// <div class="warning">
+///
+/// The return type is [`BandResult`](crate::BandResult), which is a new-type wrapper around
+/// [`Result<BandGenerator, BandValidationError>`]. Use the dereference operator "*" for easy access to
+/// the inner value.
+///
+/// </div>
 ///
 /// ```
 /// use braided::{BandGenerator, Sign, Strand};
@@ -94,28 +102,28 @@ pub enum StaircaseQuadrant {
 /// // Anything which coerces to a `u16` can be used for the foot or head data:
 ///
 /// assert_matches!(
-///     BandGenerator::new(3, 4, Sign::Positive),
+///     *BandGenerator::try_new(3, 4, Sign::Positive),
 ///     Ok(_),
 /// );
 ///
 /// // 2e15 is the maximal band height
 /// assert_matches!(
-///     BandGenerator::new(1, 2u16.pow(15) + 1, Sign::Negative),
+///     *BandGenerator::try_new(1, 2u16.pow(15) + 1, Sign::Negative),
 ///     Ok(_),
 /// );
 ///
 /// assert_matches!(
-///     BandGenerator::new(2_usize, 5_isize, Sign::Positive),
+///     *BandGenerator::try_new(2_usize, 5_isize, Sign::Positive),
 ///     Ok(_),
 /// );
 ///
 /// assert_matches!(
-///     BandGenerator::new(Strand::new(9).unwrap(), 40_u32, Sign::Negative),
+///     *BandGenerator::try_new(Strand::try_new(9).unwrap(), 40_u32, Sign::Negative),
 ///     Ok(_),
 /// );
 ///
 /// assert_matches!(
-///     BandGenerator::new(-(-3), Strand::new(10).unwrap(), Sign::Positive),
+///     *BandGenerator::try_new(-(-3), Strand::try_new(10).unwrap(), Sign::Positive),
 ///     Ok(_),
 /// );
 /// ```
@@ -126,20 +134,20 @@ pub enum StaircaseQuadrant {
 /// use braided::{ArtinGenerator, BandGenerator, Letter, Sign};
 ///
 /// // We unwrap the target since conversions from ArtinGenerator and Letter are infallible
-/// let expected_band = BandGenerator::new(1, 2, Sign::Positive).unwrap();
+/// let expected_band = BandGenerator::try_new(1, 2, Sign::Positive).unwrap();
 ///
 /// assert_eq!(
-///     BandGenerator::from(ArtinGenerator::new(1, Sign::Positive).unwrap()),
+///     BandGenerator::from(ArtinGenerator::try_new(1, Sign::Positive).unwrap()),
 ///     expected_band,
 /// );
 ///
 /// assert_eq!(
-///     BandGenerator::from(Letter::new(1, None::<u16>, Sign::Positive).unwrap()),
+///     BandGenerator::from(Letter::try_new(1, None::<u16>, Sign::Positive).unwrap()),
 ///     expected_band,
 /// );
 ///
 /// assert_eq!(
-///     BandGenerator::from(Letter::new(1, Some(2), Sign::Positive).unwrap()),
+///     BandGenerator::from(Letter::try_new(1, Some(2), Sign::Positive).unwrap()),
 ///     expected_band,
 /// );
 /// ```
@@ -149,37 +157,37 @@ pub enum StaircaseQuadrant {
 /// ```
 /// use braided::{ArtinGenerator, BandGenerator, Sign};
 ///
-/// let test_band = BandGenerator::new(1, 4, Sign::Positive);
+/// let test_band = BandGenerator::try_new(1, 4, Sign::Positive);
 ///
 /// // All of the following are valid means of constructing `test_band` via "coalescing":
 /// let coalesced_bands = [
 ///     BandGenerator::coalesce(&[
-///         ArtinGenerator::new(1, Sign::Negative).unwrap(),
-///         ArtinGenerator::new(2, Sign::Negative).unwrap(),
-///         ArtinGenerator::new(3, Sign::Positive).unwrap(),
-///         ArtinGenerator::new(2, Sign::Positive).unwrap(),
-///         ArtinGenerator::new(1, Sign::Positive).unwrap(),
+///         ArtinGenerator::try_new(1, Sign::Negative).unwrap(),
+///         ArtinGenerator::try_new(2, Sign::Negative).unwrap(),
+///         ArtinGenerator::try_new(3, Sign::Positive).unwrap(),
+///         ArtinGenerator::try_new(2, Sign::Positive).unwrap(),
+///         ArtinGenerator::try_new(1, Sign::Positive).unwrap(),
 ///     ]),
 ///     BandGenerator::coalesce(&[
-///         ArtinGenerator::new(3, Sign::Positive).unwrap(),
-///         ArtinGenerator::new(2, Sign::Positive).unwrap(),
-///         ArtinGenerator::new(1, Sign::Positive).unwrap(),
-///         ArtinGenerator::new(2, Sign::Negative).unwrap(),
-///         ArtinGenerator::new(3, Sign::Negative).unwrap(),
+///         ArtinGenerator::try_new(3, Sign::Positive).unwrap(),
+///         ArtinGenerator::try_new(2, Sign::Positive).unwrap(),
+///         ArtinGenerator::try_new(1, Sign::Positive).unwrap(),
+///         ArtinGenerator::try_new(2, Sign::Negative).unwrap(),
+///         ArtinGenerator::try_new(3, Sign::Negative).unwrap(),
 ///     ]),
 ///     BandGenerator::coalesce(&[
-///         ArtinGenerator::new(3, Sign::Positive).unwrap(),
-///         ArtinGenerator::new(1, Sign::Negative).unwrap(),
-///         ArtinGenerator::new(2, Sign::Positive).unwrap(),
-///         ArtinGenerator::new(1, Sign::Positive).unwrap(),
-///         ArtinGenerator::new(3, Sign::Negative).unwrap(),
+///         ArtinGenerator::try_new(3, Sign::Positive).unwrap(),
+///         ArtinGenerator::try_new(1, Sign::Negative).unwrap(),
+///         ArtinGenerator::try_new(2, Sign::Positive).unwrap(),
+///         ArtinGenerator::try_new(1, Sign::Positive).unwrap(),
+///         ArtinGenerator::try_new(3, Sign::Negative).unwrap(),
 ///     ]),
 ///     BandGenerator::coalesce(&[
-///         ArtinGenerator::new(1, Sign::Negative).unwrap(),
-///         ArtinGenerator::new(3, Sign::Positive).unwrap(),
-///         ArtinGenerator::new(2, Sign::Positive).unwrap(),
-///         ArtinGenerator::new(1, Sign::Positive).unwrap(),
-///         ArtinGenerator::new(3, Sign::Negative).unwrap(),
+///         ArtinGenerator::try_new(1, Sign::Negative).unwrap(),
+///         ArtinGenerator::try_new(3, Sign::Positive).unwrap(),
+///         ArtinGenerator::try_new(2, Sign::Positive).unwrap(),
+///         ArtinGenerator::try_new(1, Sign::Positive).unwrap(),
+///         ArtinGenerator::try_new(3, Sign::Negative).unwrap(),
 ///     ]),
 /// ];
 ///
@@ -191,7 +199,7 @@ pub enum StaircaseQuadrant {
 /// ## Errors
 ///
 /// Methods 1. and 3. above are _fallible_, and the associated error type for both
-/// [`BandGenerator::new`] and [`BandGenerator::coalesce`] is [`BandValidationError`]. Further
+/// [`BandGenerator::try_new`] and [`BandGenerator::coalesce`] is [`BandValidationError`]. Further
 /// details and examples can be found in the associated documentation.
 ///
 /// # Decomposition
@@ -207,49 +215,49 @@ pub enum StaircaseQuadrant {
 ///
 /// let tests = [
 ///     (
-///         BandGenerator::new(1, 2, Sign::Positive),
-///         vec![ArtinGenerator::new(1, Sign::Positive).unwrap()],
+///         BandGenerator::try_new(1, 2, Sign::Positive),
+///         vec![ArtinGenerator::try_new(1, Sign::Positive).unwrap()],
 ///     ),
 ///     (
-///         BandGenerator::new(1, 4, Sign::Positive),
+///         BandGenerator::try_new(1, 4, Sign::Positive),
 ///         vec![
-///             ArtinGenerator::new(1, Sign::Negative).unwrap(),
-///             ArtinGenerator::new(2, Sign::Negative).unwrap(),
-///             ArtinGenerator::new(3, Sign::Positive).unwrap(),
-///             ArtinGenerator::new(2, Sign::Positive).unwrap(),
-///             ArtinGenerator::new(1, Sign::Positive).unwrap(),
+///             ArtinGenerator::try_new(1, Sign::Negative).unwrap(),
+///             ArtinGenerator::try_new(2, Sign::Negative).unwrap(),
+///             ArtinGenerator::try_new(3, Sign::Positive).unwrap(),
+///             ArtinGenerator::try_new(2, Sign::Positive).unwrap(),
+///             ArtinGenerator::try_new(1, Sign::Positive).unwrap(),
 ///         ],
 ///     ),
 ///     (
 ///         BandGenerator::coalesce(&[
-///             ArtinGenerator::new(1, Sign::Negative).unwrap(),
-///             ArtinGenerator::new(2, Sign::Negative).unwrap(),
-///             ArtinGenerator::new(3, Sign::Positive).unwrap(),
-///             ArtinGenerator::new(2, Sign::Positive).unwrap(),
-///             ArtinGenerator::new(1, Sign::Positive).unwrap(),
+///             ArtinGenerator::try_new(1, Sign::Negative).unwrap(),
+///             ArtinGenerator::try_new(2, Sign::Negative).unwrap(),
+///             ArtinGenerator::try_new(3, Sign::Positive).unwrap(),
+///             ArtinGenerator::try_new(2, Sign::Positive).unwrap(),
+///             ArtinGenerator::try_new(1, Sign::Positive).unwrap(),
 ///         ]),
 ///         vec![
-///             ArtinGenerator::new(1, Sign::Negative).unwrap(),
-///             ArtinGenerator::new(2, Sign::Negative).unwrap(),
-///             ArtinGenerator::new(3, Sign::Positive).unwrap(),
-///             ArtinGenerator::new(2, Sign::Positive).unwrap(),
-///             ArtinGenerator::new(1, Sign::Positive).unwrap(),
+///             ArtinGenerator::try_new(1, Sign::Negative).unwrap(),
+///             ArtinGenerator::try_new(2, Sign::Negative).unwrap(),
+///             ArtinGenerator::try_new(3, Sign::Positive).unwrap(),
+///             ArtinGenerator::try_new(2, Sign::Positive).unwrap(),
+///             ArtinGenerator::try_new(1, Sign::Positive).unwrap(),
 ///         ],
 ///     ),
 ///     (
 ///         BandGenerator::coalesce(&[
-///             ArtinGenerator::new(1, Sign::Negative).unwrap(),
-///             ArtinGenerator::new(3, Sign::Positive).unwrap(),
-///             ArtinGenerator::new(2, Sign::Positive).unwrap(),
-///             ArtinGenerator::new(1, Sign::Positive).unwrap(),
-///             ArtinGenerator::new(3, Sign::Negative).unwrap(),
+///             ArtinGenerator::try_new(1, Sign::Negative).unwrap(),
+///             ArtinGenerator::try_new(3, Sign::Positive).unwrap(),
+///             ArtinGenerator::try_new(2, Sign::Positive).unwrap(),
+///             ArtinGenerator::try_new(1, Sign::Positive).unwrap(),
+///             ArtinGenerator::try_new(3, Sign::Negative).unwrap(),
 ///         ]),
 ///         vec![
-///             ArtinGenerator::new(1, Sign::Negative).unwrap(),
-///             ArtinGenerator::new(2, Sign::Negative).unwrap(),
-///             ArtinGenerator::new(3, Sign::Positive).unwrap(),
-///             ArtinGenerator::new(2, Sign::Positive).unwrap(),
-///             ArtinGenerator::new(1, Sign::Positive).unwrap(),
+///             ArtinGenerator::try_new(1, Sign::Negative).unwrap(),
+///             ArtinGenerator::try_new(2, Sign::Negative).unwrap(),
+///             ArtinGenerator::try_new(3, Sign::Positive).unwrap(),
+///             ArtinGenerator::try_new(2, Sign::Positive).unwrap(),
+///             ArtinGenerator::try_new(1, Sign::Positive).unwrap(),
 ///         ],
 ///     ),
 /// ];
@@ -266,10 +274,10 @@ pub enum StaircaseQuadrant {
 /// ```
 /// use braided::{BandGenerator, Sign, Strand};
 ///
-/// let band = BandGenerator::new(2, 5, Sign::Negative).unwrap();
+/// let band = BandGenerator::try_new(2, 5, Sign::Negative).unwrap();
 ///
-/// assert_eq!(band.foot(), Strand::new(2).unwrap());
-/// assert_eq!(band.head(), Strand::new(5).unwrap());
+/// assert_eq!(band.foot(), Strand::try_new(2).unwrap());
+/// assert_eq!(band.head(), Strand::try_new(5).unwrap());
 /// assert_eq!(band.sign(), Sign::Negative);
 /// ```
 ///
@@ -278,11 +286,11 @@ pub enum StaircaseQuadrant {
 /// ```
 /// use braided::{BandGenerator, BraidIndex, Sign, Strand};
 ///
-/// let band = BandGenerator::new(2, 5, Sign::Negative).unwrap();
+/// let band = BandGenerator::try_new(2, 5, Sign::Negative).unwrap();
 ///
 /// assert_eq!(
 ///     band.inverse(),
-///     BandGenerator::new(2, 5, Sign::Positive).unwrap(),
+///     BandGenerator::try_new(2, 5, Sign::Positive).unwrap(),
 /// );
 ///
 /// assert_eq!(
@@ -297,7 +305,7 @@ pub enum StaircaseQuadrant {
 ///
 /// assert_eq!(
 ///     band.minimal_required_braid_index(),
-///     BraidIndex::new(5).unwrap(),
+///     BraidIndex::try_new(5).unwrap(),
 /// );
 ///
 /// assert_eq!(
@@ -316,6 +324,14 @@ impl BandGenerator {
     /// Attempts to construct a new [`BandGenerator`] given [`u16`]-coercible data for the foot and
     /// head [strands](Strand), together with a [sign](Sign).
     ///
+    /// <div class="warning">
+    ///
+    /// The return type is [`BandResult`](crate::BandResult), which is a new-type wrapper around
+    /// [`Result<BandGenerator, BandValidationError>`]. Use the dereference operator "*" for easy access to
+    /// the inner value.
+    ///
+    /// </div>
+    ///
     /// # Examples
     ///
     /// ```
@@ -325,28 +341,28 @@ impl BandGenerator {
     /// // Anything which coerces to a `u16` can be used for the foot or head data:
     ///
     /// assert_matches!(
-    ///     BandGenerator::new(3, 4, Sign::Positive),
+    ///     *BandGenerator::try_new(3, 4, Sign::Positive),
     ///     Ok(_),
     /// );
     ///
     /// // 2e15 is the maximal band height
     /// assert_matches!(
-    ///     BandGenerator::new(1, 2u16.pow(15) + 1, Sign::Negative),
+    ///     *BandGenerator::try_new(1, 2u16.pow(15) + 1, Sign::Negative),
     ///     Ok(_),
     /// );
     ///
     /// assert_matches!(
-    ///     BandGenerator::new(2_usize, 5_isize, Sign::Positive),
+    ///     *BandGenerator::try_new(2_usize, 5_isize, Sign::Positive),
     ///     Ok(_),
     /// );
     ///
     /// assert_matches!(
-    ///     BandGenerator::new(Strand::new(9).unwrap(),40_u32, Sign::Negative),
+    ///     *BandGenerator::try_new(Strand::try_new(9).unwrap(),40_u32, Sign::Negative),
     ///     Ok(_),
     /// );
     ///
     /// assert_matches!(
-    ///     BandGenerator::new(-(-3), Strand::new(10).unwrap(), Sign::Positive),
+    ///     *BandGenerator::try_new(-(-3), Strand::try_new(10).unwrap(), Sign::Positive),
     ///     Ok(_),
     /// );
     /// ```
@@ -386,8 +402,8 @@ impl BandGenerator {
             }
         }
     }
-    /// Attempts to construct a new [`BandGenerator`] by coalescing a collection of [Artin
-    /// generators](ArtinGenerator).
+    /// Attempts to construct a new [`BandGenerator`] by coalescing a collection of
+    /// [Artin generators](ArtinGenerator).
     ///
     /// # Examples
     ///
@@ -398,49 +414,49 @@ impl BandGenerator {
     ///
     /// let tests = [
     ///     (
-    ///         BandGenerator::new(1, 2, Sign::Positive),
-    ///         vec![ArtinGenerator::new(1, Sign::Positive).unwrap()],
+    ///         BandGenerator::try_new(1, 2, Sign::Positive),
+    ///         vec![ArtinGenerator::try_new(1, Sign::Positive).unwrap()],
     ///     ),
     ///     (
-    ///         BandGenerator::new(1, 4, Sign::Positive),
+    ///         BandGenerator::try_new(1, 4, Sign::Positive),
     ///         vec![
-    ///             ArtinGenerator::new(1, Sign::Negative).unwrap(),
-    ///             ArtinGenerator::new(2, Sign::Negative).unwrap(),
-    ///             ArtinGenerator::new(3, Sign::Positive).unwrap(),
-    ///             ArtinGenerator::new(2, Sign::Positive).unwrap(),
-    ///             ArtinGenerator::new(1, Sign::Positive).unwrap(),
+    ///             ArtinGenerator::try_new(1, Sign::Negative).unwrap(),
+    ///             ArtinGenerator::try_new(2, Sign::Negative).unwrap(),
+    ///             ArtinGenerator::try_new(3, Sign::Positive).unwrap(),
+    ///             ArtinGenerator::try_new(2, Sign::Positive).unwrap(),
+    ///             ArtinGenerator::try_new(1, Sign::Positive).unwrap(),
     ///         ],
     ///     ),
     ///     (
     ///         BandGenerator::coalesce(&[
-    ///             ArtinGenerator::new(1, Sign::Negative).unwrap(),
-    ///             ArtinGenerator::new(2, Sign::Negative).unwrap(),
-    ///             ArtinGenerator::new(3, Sign::Positive).unwrap(),
-    ///             ArtinGenerator::new(2, Sign::Positive).unwrap(),
-    ///             ArtinGenerator::new(1, Sign::Positive).unwrap(),
+    ///             ArtinGenerator::try_new(1, Sign::Negative).unwrap(),
+    ///             ArtinGenerator::try_new(2, Sign::Negative).unwrap(),
+    ///             ArtinGenerator::try_new(3, Sign::Positive).unwrap(),
+    ///             ArtinGenerator::try_new(2, Sign::Positive).unwrap(),
+    ///             ArtinGenerator::try_new(1, Sign::Positive).unwrap(),
     ///         ]),
     ///         vec![
-    ///             ArtinGenerator::new(1, Sign::Negative).unwrap(),
-    ///             ArtinGenerator::new(2, Sign::Negative).unwrap(),
-    ///             ArtinGenerator::new(3, Sign::Positive).unwrap(),
-    ///             ArtinGenerator::new(2, Sign::Positive).unwrap(),
-    ///             ArtinGenerator::new(1, Sign::Positive).unwrap(),
+    ///             ArtinGenerator::try_new(1, Sign::Negative).unwrap(),
+    ///             ArtinGenerator::try_new(2, Sign::Negative).unwrap(),
+    ///             ArtinGenerator::try_new(3, Sign::Positive).unwrap(),
+    ///             ArtinGenerator::try_new(2, Sign::Positive).unwrap(),
+    ///             ArtinGenerator::try_new(1, Sign::Positive).unwrap(),
     ///         ],
     ///     ),
     ///     (
     ///         BandGenerator::coalesce(&[
-    ///             ArtinGenerator::new(1, Sign::Negative).unwrap(),
-    ///             ArtinGenerator::new(3, Sign::Positive).unwrap(),
-    ///             ArtinGenerator::new(2, Sign::Positive).unwrap(),
-    ///             ArtinGenerator::new(1, Sign::Positive).unwrap(),
-    ///             ArtinGenerator::new(3, Sign::Negative).unwrap(),
+    ///             ArtinGenerator::try_new(1, Sign::Negative).unwrap(),
+    ///             ArtinGenerator::try_new(3, Sign::Positive).unwrap(),
+    ///             ArtinGenerator::try_new(2, Sign::Positive).unwrap(),
+    ///             ArtinGenerator::try_new(1, Sign::Positive).unwrap(),
+    ///             ArtinGenerator::try_new(3, Sign::Negative).unwrap(),
     ///         ]),
     ///         vec![
-    ///             ArtinGenerator::new(1, Sign::Negative).unwrap(),
-    ///             ArtinGenerator::new(2, Sign::Negative).unwrap(),
-    ///             ArtinGenerator::new(3, Sign::Positive).unwrap(),
-    ///             ArtinGenerator::new(2, Sign::Positive).unwrap(),
-    ///             ArtinGenerator::new(1, Sign::Positive).unwrap(),
+    ///             ArtinGenerator::try_new(1, Sign::Negative).unwrap(),
+    ///             ArtinGenerator::try_new(2, Sign::Negative).unwrap(),
+    ///             ArtinGenerator::try_new(3, Sign::Positive).unwrap(),
+    ///             ArtinGenerator::try_new(2, Sign::Positive).unwrap(),
+    ///             ArtinGenerator::try_new(1, Sign::Positive).unwrap(),
     ///         ],
     ///     ),
     /// ];
@@ -572,9 +588,9 @@ impl BandGenerator {
     /// ```
     /// use braided::{BandGenerator, Sign, Strand};
     ///
-    /// let band = BandGenerator::new(2, 5, Sign::Negative).unwrap();
+    /// let band = BandGenerator::try_new(2, 5, Sign::Negative).unwrap();
     ///
-    /// assert_eq!(band.foot(), Strand::new(2).unwrap());
+    /// assert_eq!(band.foot(), Strand::try_new(2).unwrap());
     /// ```
     pub fn foot(&self) -> Strand {
         self.foot
@@ -586,9 +602,9 @@ impl BandGenerator {
     /// ```
     /// use braided::{BandGenerator, Sign, Strand};
     ///
-    /// let band = BandGenerator::new(2, 5, Sign::Negative).unwrap();
+    /// let band = BandGenerator::try_new(2, 5, Sign::Negative).unwrap();
     ///
-    /// assert_eq!(band.head(), Strand::new(5).unwrap());
+    /// assert_eq!(band.head(), Strand::try_new(5).unwrap());
     /// ```
     pub fn head(&self) -> Strand {
         self.head
@@ -600,7 +616,7 @@ impl BandGenerator {
     /// ```
     /// use braided::{BandGenerator, Sign};
     ///
-    /// let band = BandGenerator::new(2, 5, Sign::Negative).unwrap();
+    /// let band = BandGenerator::try_new(2, 5, Sign::Negative).unwrap();
     ///
     /// assert_eq!(band.sign(), Sign::Negative);
     /// ```
@@ -615,11 +631,11 @@ impl BandGenerator {
     /// ```
     /// use braided::{BandGenerator, Sign};
     ///
-    /// let band = BandGenerator::new(2, 5, Sign::Negative).unwrap();
+    /// let band = BandGenerator::try_new(2, 5, Sign::Negative).unwrap();
     ///
     /// assert_eq!(
     ///     band.inverse(),
-    ///     BandGenerator::new(2, 5, Sign::Positive).unwrap(),
+    ///     BandGenerator::try_new(2, 5, Sign::Positive).unwrap(),
     /// );
     /// ```
     pub fn inverse(&self) -> Self {
@@ -636,7 +652,7 @@ impl BandGenerator {
     /// ```
     /// use braided::{BandGenerator, Sign};
     ///
-    /// let band = BandGenerator::new(2, 5, Sign::Negative).unwrap();
+    /// let band = BandGenerator::try_new(2, 5, Sign::Negative).unwrap();
     ///
     /// assert_eq!(
     ///     band.height(),
@@ -653,8 +669,8 @@ impl BandGenerator {
     /// ```
     /// use braided::{BandGenerator, Sign};
     ///
-    /// let artin_band = BandGenerator::new(1, 2, Sign::Positive).unwrap();
-    /// let non_artin_band = BandGenerator::new(2, 5, Sign::Negative).unwrap();
+    /// let artin_band = BandGenerator::try_new(1, 2, Sign::Positive).unwrap();
+    /// let non_artin_band = BandGenerator::try_new(2, 5, Sign::Negative).unwrap();
     ///
     /// assert!(artin_band.is_artin());
     /// assert!(!non_artin_band.is_artin());
@@ -669,11 +685,11 @@ impl BandGenerator {
     /// ```
     /// use braided::{BandGenerator, BraidIndex, Sign};
     ///
-    /// let band = BandGenerator::new(2, 5, Sign::Negative).unwrap();
+    /// let band = BandGenerator::try_new(2, 5, Sign::Negative).unwrap();
     ///
     /// assert_eq!(
     ///     band.minimal_required_braid_index(),
-    ///     BraidIndex::new(5).unwrap(),
+    ///     BraidIndex::try_new(5).unwrap(),
     /// );
     /// ```
     pub fn minimal_required_braid_index(&self) -> BraidIndex {
@@ -686,7 +702,7 @@ impl BandGenerator {
     /// ```
     /// use braided::{BandGenerator, Sign};
     ///
-    /// let band = BandGenerator::new(2, 5, Sign::Negative).unwrap();
+    /// let band = BandGenerator::try_new(2, 5, Sign::Negative).unwrap();
     ///
     /// assert_eq!(
     ///     band.artin_length(),
@@ -715,49 +731,49 @@ impl BandGenerator {
     ///
     /// let tests = [
     ///     (
-    ///         BandGenerator::new(1, 2, Sign::Positive),
-    ///         vec![ArtinGenerator::new(1, Sign::Positive).unwrap()],
+    ///         BandGenerator::try_new(1, 2, Sign::Positive),
+    ///         vec![ArtinGenerator::try_new(1, Sign::Positive).unwrap()],
     ///     ),
     ///     (
-    ///         BandGenerator::new(1, 4, Sign::Positive),
+    ///         BandGenerator::try_new(1, 4, Sign::Positive),
     ///         vec![
-    ///             ArtinGenerator::new(1, Sign::Negative).unwrap(),
-    ///             ArtinGenerator::new(2, Sign::Negative).unwrap(),
-    ///             ArtinGenerator::new(3, Sign::Positive).unwrap(),
-    ///             ArtinGenerator::new(2, Sign::Positive).unwrap(),
-    ///             ArtinGenerator::new(1, Sign::Positive).unwrap(),
+    ///             ArtinGenerator::try_new(1, Sign::Negative).unwrap(),
+    ///             ArtinGenerator::try_new(2, Sign::Negative).unwrap(),
+    ///             ArtinGenerator::try_new(3, Sign::Positive).unwrap(),
+    ///             ArtinGenerator::try_new(2, Sign::Positive).unwrap(),
+    ///             ArtinGenerator::try_new(1, Sign::Positive).unwrap(),
     ///         ],
     ///     ),
     ///     (
     ///         BandGenerator::coalesce(&[
-    ///             ArtinGenerator::new(1, Sign::Negative).unwrap(),
-    ///             ArtinGenerator::new(2, Sign::Negative).unwrap(),
-    ///             ArtinGenerator::new(3, Sign::Positive).unwrap(),
-    ///             ArtinGenerator::new(2, Sign::Positive).unwrap(),
-    ///             ArtinGenerator::new(1, Sign::Positive).unwrap(),
+    ///             ArtinGenerator::try_new(1, Sign::Negative).unwrap(),
+    ///             ArtinGenerator::try_new(2, Sign::Negative).unwrap(),
+    ///             ArtinGenerator::try_new(3, Sign::Positive).unwrap(),
+    ///             ArtinGenerator::try_new(2, Sign::Positive).unwrap(),
+    ///             ArtinGenerator::try_new(1, Sign::Positive).unwrap(),
     ///         ]),
     ///         vec![
-    ///             ArtinGenerator::new(1, Sign::Negative).unwrap(),
-    ///             ArtinGenerator::new(2, Sign::Negative).unwrap(),
-    ///             ArtinGenerator::new(3, Sign::Positive).unwrap(),
-    ///             ArtinGenerator::new(2, Sign::Positive).unwrap(),
-    ///             ArtinGenerator::new(1, Sign::Positive).unwrap(),
+    ///             ArtinGenerator::try_new(1, Sign::Negative).unwrap(),
+    ///             ArtinGenerator::try_new(2, Sign::Negative).unwrap(),
+    ///             ArtinGenerator::try_new(3, Sign::Positive).unwrap(),
+    ///             ArtinGenerator::try_new(2, Sign::Positive).unwrap(),
+    ///             ArtinGenerator::try_new(1, Sign::Positive).unwrap(),
     ///         ],
     ///     ),
     ///     (
     ///         BandGenerator::coalesce(&[
-    ///             ArtinGenerator::new(1, Sign::Negative).unwrap(),
-    ///             ArtinGenerator::new(3, Sign::Positive).unwrap(),
-    ///             ArtinGenerator::new(2, Sign::Positive).unwrap(),
-    ///             ArtinGenerator::new(1, Sign::Positive).unwrap(),
-    ///             ArtinGenerator::new(3, Sign::Negative).unwrap(),
+    ///             ArtinGenerator::try_new(1, Sign::Negative).unwrap(),
+    ///             ArtinGenerator::try_new(3, Sign::Positive).unwrap(),
+    ///             ArtinGenerator::try_new(2, Sign::Positive).unwrap(),
+    ///             ArtinGenerator::try_new(1, Sign::Positive).unwrap(),
+    ///             ArtinGenerator::try_new(3, Sign::Negative).unwrap(),
     ///         ]),
     ///         vec![
-    ///             ArtinGenerator::new(1, Sign::Negative).unwrap(),
-    ///             ArtinGenerator::new(2, Sign::Negative).unwrap(),
-    ///             ArtinGenerator::new(3, Sign::Positive).unwrap(),
-    ///             ArtinGenerator::new(2, Sign::Positive).unwrap(),
-    ///             ArtinGenerator::new(1, Sign::Positive).unwrap(),
+    ///             ArtinGenerator::try_new(1, Sign::Negative).unwrap(),
+    ///             ArtinGenerator::try_new(2, Sign::Negative).unwrap(),
+    ///             ArtinGenerator::try_new(3, Sign::Positive).unwrap(),
+    ///             ArtinGenerator::try_new(2, Sign::Positive).unwrap(),
+    ///             ArtinGenerator::try_new(1, Sign::Positive).unwrap(),
     ///         ],
     ///     ),
     /// ];
