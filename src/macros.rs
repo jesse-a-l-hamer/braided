@@ -440,9 +440,7 @@ mod tests {
                     exp.unsigned_abs()
                         as usize
                 ])
-                .as_ref()
-                .unwrap()
-                .clone()))
+                .clone_unwrap()))
             )
         }
     }
@@ -465,9 +463,7 @@ mod tests {
                     exp.unsigned_abs()
                         as usize
                 ])
-                .as_ref()
-                .unwrap()
-                .clone()))
+                .clone_unwrap()))
             )
         }
     }
@@ -485,9 +481,7 @@ mod tests {
                 ]
                 .concat()
             )
-            .as_ref()
-            .unwrap()
-            .clone()))
+            .clone_unwrap()))
         );
         let word_with_negative_leading_artin = word![[1; -2], [2 => 4; -1], [3 => 4; -3], [2; 3]];
         expect_that!(
@@ -501,9 +495,7 @@ mod tests {
                 ]
                 .concat()
             )
-            .as_ref()
-            .unwrap()
-            .clone()))
+            .clone_unwrap()))
         );
     }
     #[gtest]
@@ -520,9 +512,7 @@ mod tests {
                 ]
                 .concat()
             )
-            .as_ref()
-            .unwrap()
-            .clone()))
+            .clone_unwrap()))
         );
         let word_with_negative_leading_band = word![[2 => 4; -1], [1; 2], [3 => 4; -3], [2; 3]];
         expect_that!(
@@ -536,9 +526,7 @@ mod tests {
                 ]
                 .concat()
             )
-            .as_ref()
-            .unwrap()
-            .clone()))
+            .clone_unwrap()))
         )
     }
     #[gtest]
@@ -546,7 +534,7 @@ mod tests {
         let invalid_words: [(WordResult, WordValidationError); 6] = [
             (
                 word![[-1; 1], [1; 2], [2 => 5; -3]],
-                *Word::try_new(
+                Word::try_new(
                     [
                         vec![(-1, None, Sign::Positive); 1],
                         vec![(1, None, Sign::Positive); 2],
@@ -554,13 +542,11 @@ mod tests {
                     ]
                     .concat(),
                 )
-                .as_ref()
-                .err()
-                .unwrap(),
+                .clone_unwrap_err(),
             ),
             (
                 word![[1; 2], [0 => 4; -2], [2 => 5; -3]],
-                *Word::try_new(
+                Word::try_new(
                     [
                         vec![(1, None, Sign::Positive); 2],
                         vec![(0, Some(4), Sign::Negative); 2],
@@ -568,13 +554,11 @@ mod tests {
                     ]
                     .concat(),
                 )
-                .as_ref()
-                .err()
-                .unwrap(),
+                .clone_unwrap_err(),
             ),
             (
                 word![[1; 2], [2 => 5; -3], [u16::MAX as u32 + 1; 2]],
-                *Word::try_new(
+                Word::try_new(
                     [
                         vec![(1, None, Sign::Positive); 2],
                         vec![(2, Some(5), Sign::Negative); 3],
@@ -582,13 +566,11 @@ mod tests {
                     ]
                     .concat(),
                 )
-                .as_ref()
-                .err()
-                .unwrap(),
+                .clone_unwrap_err(),
             ),
             (
                 word![[4 => 1; 3], [1; 2], [2 => 5; -3]],
-                *Word::try_new(
+                Word::try_new(
                     [
                         vec![(4, Some(1), Sign::Positive); 3],
                         vec![(1, None, Sign::Positive); 2],
@@ -596,29 +578,23 @@ mod tests {
                     ]
                     .concat(),
                 )
-                .as_ref()
-                .err()
-                .unwrap(),
+                .clone_unwrap_err(),
             ),
             (
                 word![[1; u16::MAX as u32 + 1]],
-                *Word::try_from_letters(&vec![letter![1; +].unwrap(); u16::MAX as usize + 1])
-                    .as_ref()
-                    .err()
-                    .unwrap(),
+                Word::try_from_letters(&vec![letter![1; +].unwrap(); u16::MAX as usize + 1])
+                    .clone_unwrap_err(),
             ),
             (
                 word![[1 => 3; (u16::MAX as u32).div_euclid(3)], [3; -1]],
-                *Word::try_from_letters(
+                Word::try_from_letters(
                     &[
                         vec![letter![1 => 3; +].unwrap(); (u16::MAX as usize).div_euclid(3)],
                         vec![letter![3; -].unwrap(); 1],
                     ]
                     .concat(),
                 )
-                .as_ref()
-                .err()
-                .unwrap(),
+                .clone_unwrap_err(),
             ),
         ];
         for (invalid_word, error) in invalid_words {
@@ -630,10 +606,7 @@ mod tests {
     #[test]
     fn macro_braid_constructs_trivial_braid_of_given_index() {
         let braid = braid![(10)];
-        assert_that!(
-            *braid,
-            ok(eq(&Braid::trivial(10).as_ref().unwrap().clone()))
-        )
+        assert_that!(*braid, ok(eq(&Braid::trivial(10).clone_unwrap())))
     }
     #[test]
     fn macro_braid_constructs_nontrivial_braid_of_given_index() {
@@ -642,14 +615,9 @@ mod tests {
             *braid,
             ok(eq(&Braid::try_from_data(
                 Some(10),
-                word![[2 => 4; -1], [1; 2], [3 => 4; -3], [2; 3]]
-                    .as_ref()
-                    .unwrap()
-                    .clone()
+                word![[2 => 4; -1], [1; 2], [3 => 4; -3], [2; 3]].clone_unwrap()
             )
-            .as_ref()
-            .unwrap()
-            .clone()))
+            .clone_unwrap()))
         )
     }
     #[test]
@@ -658,10 +626,7 @@ mod tests {
         assert_that!(
             *braid,
             ok(eq(&Braid::from(
-                word![[2 => 4; -1], [1; 2], [3 => 4; -3], [2; 3]]
-                    .as_ref()
-                    .unwrap()
-                    .clone()
+                word![[2 => 4; -1], [1; 2], [3 => 4; -3], [2; 3]].clone_unwrap()
             )))
         )
     }
@@ -670,53 +635,35 @@ mod tests {
         let invalid_braids: [(BraidResult, BraidValidationError); 10] = [
             (
                 braid![(1); [1; 1]],
-                *Braid::try_from_data(Some(1), word![[1; 1]].as_ref().unwrap().clone())
-                    .as_ref()
-                    .err()
-                    .unwrap(),
+                Braid::try_from_data(Some(1), word![[1; 1]].clone_unwrap()).clone_unwrap_err(),
             ),
             (
                 braid![(-1); [1 => 3; 2], [2; -4], [3 => 4; 3]],
-                *Braid::try_from_data(
+                Braid::try_from_data(
                     Some(-1),
-                    word![[1 => 3; 2], [2; -4], [3 => 4; 3]]
-                        .as_ref()
-                        .unwrap()
-                        .clone(),
+                    word![[1 => 3; 2], [2; -4], [3 => 4; 3]].clone_unwrap(),
                 )
-                .as_ref()
-                .err()
-                .unwrap(),
+                .clone_unwrap_err(),
             ),
             (
                 braid![(0);[1 => 3; 2], [2; -4], [3 => 4; 3]],
-                *Braid::try_from_data(
+                Braid::try_from_data(
                     Some(0),
-                    word![[1 => 3; 2], [2; -4], [3 => 4; 3]]
-                        .as_ref()
-                        .unwrap()
-                        .clone(),
+                    word![[1 => 3; 2], [2; -4], [3 => 4; 3]].clone_unwrap(),
                 )
-                .as_ref()
-                .err()
-                .unwrap(),
+                .clone_unwrap_err(),
             ),
             (
                 braid![(u16::MAX as u32 + 1);[1 => 3; 2], [2; -4], [3 => 4; 3]],
-                *Braid::try_from_data(
+                Braid::try_from_data(
                     Some(u16::MAX as u32 + 1),
-                    word![[1 => 3; 2], [2; -4], [3 => 4; 3]]
-                        .as_ref()
-                        .unwrap()
-                        .clone(),
+                    word![[1 => 3; 2], [2; -4], [3 => 4; 3]].clone_unwrap(),
                 )
-                .as_ref()
-                .err()
-                .unwrap(),
+                .clone_unwrap_err(),
             ),
             (
                 braid![();[-1; 1], [1; 2], [2 => 5; -3]],
-                *Braid::try_from_data(
+                Braid::try_from_data(
                     None::<u16>,
                     [
                         vec![(-1, None, Sign::Positive); 1],
@@ -725,13 +672,11 @@ mod tests {
                     ]
                     .concat(),
                 )
-                .as_ref()
-                .err()
-                .unwrap(),
+                .clone_unwrap_err(),
             ),
             (
                 braid![();[1; 2], [0 => 4; -2], [2 => 5; -3]],
-                *Braid::try_from_data(
+                Braid::try_from_data(
                     None::<u16>,
                     [
                         vec![(1, None, Sign::Positive); 2],
@@ -740,13 +685,11 @@ mod tests {
                     ]
                     .concat(),
                 )
-                .as_ref()
-                .err()
-                .unwrap(),
+                .clone_unwrap_err(),
             ),
             (
                 braid![();[1; 2], [2 => 5; -3], [u16::MAX as u32 + 1; 2]],
-                *Braid::try_from_data(
+                Braid::try_from_data(
                     None::<u16>,
                     [
                         vec![(1, None, Sign::Positive); 2],
@@ -755,13 +698,11 @@ mod tests {
                     ]
                     .concat(),
                 )
-                .as_ref()
-                .err()
-                .unwrap(),
+                .clone_unwrap_err(),
             ),
             (
                 braid![();[4 => 1; 3], [1; 2], [2 => 5; -3]],
-                *Braid::try_from_data(
+                Braid::try_from_data(
                     None::<u16>,
                     [
                         vec![(4, Some(1), Sign::Positive); 3],
@@ -770,13 +711,11 @@ mod tests {
                     ]
                     .concat(),
                 )
-                .as_ref()
-                .err()
-                .unwrap(),
+                .clone_unwrap_err(),
             ),
             (
                 braid![();[1; u16::MAX as u32 + 1]],
-                *Braid::try_from_data(
+                Braid::try_from_data(
                     None::<u16>,
                     [vec![
                         (1, None::<u16>, Sign::Positive);
@@ -784,19 +723,15 @@ mod tests {
                     ]]
                     .concat(),
                 )
-                .as_ref()
-                .err()
-                .unwrap(),
+                .clone_unwrap_err(),
             ),
             (
                 braid![();[1 => 3; u16::MAX as u32 - 1], [3; -2]],
-                *Braid::try_from_data(
+                Braid::try_from_data(
                     None::<u16>,
                     [vec![(1, Some(3), Sign::Positive); u16::MAX as usize - 1]].concat(),
                 )
-                .as_ref()
-                .err()
-                .unwrap(),
+                .clone_unwrap_err(),
             ),
         ];
         for (invalid_braid, error) in invalid_braids {
