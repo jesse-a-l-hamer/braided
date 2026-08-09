@@ -323,4 +323,91 @@ mod tests {
             eq(&word![[2; -1], [1 => 3; 2], [1; 7], [2; -3]])
         );
     }
+
+    #[gtest]
+    fn can_multiply_word_and_letter_result() {
+        let letter_result = letter![1; +];
+        let word = word![[2; -1], [1 => 3; 2]].unwrap();
+
+        expect_that!(
+            word.clone() * letter_result,
+            eq(&word![[2; -1], [1 => 3; 2], [1; 1]])
+        );
+        expect_that!(
+            &word * letter_result,
+            eq(&word![[2; -1], [1 => 3; 2], [1; 1]])
+        );
+        expect_that!(
+            letter_result * word.clone(),
+            eq(&word![[1; 1], [2; -1], [1 => 3; 2]])
+        );
+        expect_that!(
+            letter_result * &word,
+            eq(&word![[1; 1], [2; -1], [1 => 3; 2]])
+        );
+    }
+
+    #[gtest]
+    fn can_multiply_letter_and_word_result() {
+        let letter = letter![1; +].unwrap();
+        let word_result = word![[2; -1], [1 => 3; 2]];
+
+        expect_that!(
+            word_result.clone() * letter,
+            eq(&word![[2; -1], [1 => 3; 2], [1; 1]])
+        );
+        expect_that!(
+            letter * word_result.clone(),
+            eq(&word![[1; 1], [2; -1], [1 => 3; 2]])
+        );
+    }
+
+    #[gtest]
+    fn can_multiply_word_and_word_result() {
+        let word = word![[1; 1]].unwrap();
+        let word_result = word![[2; -1], [1 => 3; 2]];
+
+        expect_that!(
+            word_result.clone() * word.clone(),
+            eq(&word![[2; -1], [1 => 3; 2], [1; 1]])
+        );
+        expect_that!(
+            word_result.clone() * &word,
+            eq(&word![[2; -1], [1 => 3; 2], [1; 1]])
+        );
+        expect_that!(
+            word.clone() * word_result.clone(),
+            eq(&word![[1; 1], [2; -1], [1 => 3; 2]])
+        );
+        expect_that!(
+            &word * word_result,
+            eq(&word![[1; 1], [2; -1], [1 => 3; 2]])
+        );
+    }
+
+    #[gtest]
+    fn can_multiply_letter_result_and_word_result() {
+        let letter_result = letter![1; +];
+        let word_result = word![[2; -1], [1 => 3; 2]];
+
+        expect_that!(
+            word_result.clone() * letter_result,
+            eq(&word![[2; -1], [1 => 3; 2], [1; 1]])
+        );
+        expect_that!(
+            letter_result * word_result,
+            eq(&word![[1; 1], [2; -1], [1 => 3; 2]])
+        );
+    }
+
+    #[test]
+    fn can_multiply_word_result_and_word_result() {
+        let word_result1 = word![[1; 1]];
+        let word_result2 = word![[2; -1], [1 => 3; 2]];
+
+        assert_that!(
+            word_result1 * word_result2,
+            eq(&word![[1; 1], [2; -1], [1 => 3; 2]])
+        );
+    }
 }
