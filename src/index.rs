@@ -39,7 +39,7 @@ use crate::{IndexResult, IndexValidationError, Strand};
 /// # Construction
 ///
 /// The recommended means of constructing a [`BraidIndex`] is via the associated function
-/// [`BraidIndex::new`]. Please see the documentation for that function for more details and
+/// [`BraidIndex::try_new`]. Please see the documentation for that function for more details and
 /// examples.
 ///
 /// # Interoperability with [`u16`]
@@ -52,7 +52,7 @@ use crate::{IndexResult, IndexValidationError, Strand};
 /// ```
 /// use braided::BraidIndex;
 ///
-/// assert_eq!(u16::from(BraidIndex::new(1).unwrap()), 1);
+/// assert_eq!(u16::from(BraidIndex::try_new(1).unwrap()), 1);
 /// ```
 ///
 /// 2. [`std::ops::Deref`] for [`BraidIndex`], with [`Target = u16`](u16).
@@ -60,7 +60,7 @@ use crate::{IndexResult, IndexValidationError, Strand};
 /// ```
 /// use braided::BraidIndex;
 ///
-/// assert_eq!(*BraidIndex::new(1).unwrap(), 1);
+/// assert_eq!(*BraidIndex::try_new(1).unwrap(), 1);
 /// ```
 ///
 /// 3. [`AsRef<u16>`] for [`BraidIndex`].
@@ -70,7 +70,7 @@ use crate::{IndexResult, IndexValidationError, Strand};
 ///
 /// fn double<S: AsRef<u16>>(s: S) -> u16 { s.as_ref() * 2 }
 ///
-/// assert_eq!(double(BraidIndex::new(2).unwrap()), 4);
+/// assert_eq!(double(BraidIndex::try_new(2).unwrap()), 4);
 /// ```
 ///
 /// Note that as [`Strand`] also implements [`AsRef<u16>`], this allows for defining generic
@@ -84,6 +84,14 @@ impl BraidIndex {
     ///
     /// This is the recommended way of constructing a [`BraidIndex`].
     ///
+    /// <div class="warning">
+    ///
+    /// The return type is [`IndexResult`](IndexResult), which is a new-type wrapper around
+    /// [`Result<BraidIndex, IndexValidationError>`]. Use the dereference operator "*" for easy access to
+    /// the inner value.
+    ///
+    /// </div>
+    ///
     /// # Examples
     ///
     /// One may construct a new [`BraidIndex`] directly from a [`u16`]:
@@ -92,7 +100,7 @@ impl BraidIndex {
     /// use braided::BraidIndex;
     /// use std::assert_matches;
     ///
-    /// assert_matches!(BraidIndex::new(1), Ok(_));
+    /// assert_matches!(*BraidIndex::try_new(1), Ok(_));
     /// ```
     ///
     /// or from anything that coerces into a [`u16`]:
@@ -101,10 +109,10 @@ impl BraidIndex {
     /// use braided::BraidIndex;
     /// use std::assert_matches;
     ///
-    /// assert_matches!(BraidIndex::new(i16::MAX), Ok(_));
-    /// assert_matches!(BraidIndex::new(-(i16::MIN + 1)), Ok(_));
-    /// assert_matches!(BraidIndex::new(1 as usize), Ok(_));
-    /// assert_matches!(BraidIndex::new(-(-1 as isize)), Ok(_));
+    /// assert_matches!(*BraidIndex::try_new(i16::MAX), Ok(_));
+    /// assert_matches!(*BraidIndex::try_new(-(i16::MIN + 1)), Ok(_));
+    /// assert_matches!(*BraidIndex::try_new(1 as usize), Ok(_));
+    /// assert_matches!(*BraidIndex::try_new(-(-1 as isize)), Ok(_));
     /// ```
     ///
     /// including other [`BraidIndex`]:
@@ -113,7 +121,7 @@ impl BraidIndex {
     /// use braided::BraidIndex;
     /// use std::assert_matches;
     ///
-    /// assert_matches!(BraidIndex::new(BraidIndex::new(1).unwrap()), Ok(_));
+    /// assert_matches!(*BraidIndex::try_new(BraidIndex::try_new(1).unwrap()), Ok(_));
     /// ```
     ///
     /// as well as [`Strand`]:
@@ -122,7 +130,7 @@ impl BraidIndex {
     /// use braided::{BraidIndex, Strand};
     /// use std::assert_matches;
     ///
-    /// assert_matches!(BraidIndex::new(Strand::new(1).unwrap()), Ok(_));
+    /// assert_matches!(*BraidIndex::try_new(Strand::try_new(1).unwrap()), Ok(_));
     /// ```
     pub fn try_new<N>(index: N) -> IndexResult
     where
