@@ -493,7 +493,7 @@ mod tests {
         .clone_unwrap();
         let invalid_braids: Vec<(BraidResult, BraidValidationError, &'static str)> = vec![
             (
-                Braid::from_data(
+                Braid::try_from_data(
                     None::<u16>,
                     vec![
                         (1, None::<u16>, Sign::Positive),
@@ -512,7 +512,7 @@ mod tests {
             ),
             (
                 letter
-                    * Braid::from_data(
+                    * Braid::try_from_data(
                         None::<u16>,
                         vec![
                             (1, None::<u16>, Sign::Positive),
@@ -529,7 +529,7 @@ mod tests {
                 "index too small, letter * braid",
             ),
             (
-                Braid::from_data(
+                Braid::try_from_data(
                     None::<u16>,
                     vec![
                         (1, None::<u16>, Sign::Positive),
@@ -548,7 +548,7 @@ mod tests {
             ),
             (
                 word.clone()
-                    * Braid::from_data(
+                    * Braid::try_from_data(
                         None::<u16>,
                         vec![
                             (1, None::<u16>, Sign::Positive),
@@ -565,8 +565,8 @@ mod tests {
                 "index too small, word * braid",
             ),
             (
-                Braid::from_data(Some(10), word.clone()).clone_unwrap()
-                    * Braid::from_data(Some(11), word.clone()).clone_unwrap(),
+                Braid::try_from_data(Some(10), word.clone()).clone_unwrap()
+                    * Braid::try_from_data(Some(11), word.clone()).clone_unwrap(),
                 BraidValidationError::UnequalIndices {
                     left: BraidIndex::try_new(10).unwrap(),
                     right: BraidIndex::try_new(11).unwrap(),
@@ -574,7 +574,7 @@ mod tests {
                 "unequal indices",
             ),
             (
-                Braid::from_data(
+                Braid::try_from_data(
                     Some(10),
                     vec![(1, None::<u16>, Sign::Positive); u16::MAX as usize],
                 )
@@ -591,7 +591,7 @@ mod tests {
             ),
             (
                 letter
-                    * Braid::from_data(
+                    * Braid::try_from_data(
                         Some(10),
                         vec![(1, None::<u16>, Sign::Positive); u16::MAX as usize],
                     )
@@ -606,7 +606,7 @@ mod tests {
                 "word failed validation, letter * braid",
             ),
             (
-                Braid::from_data(
+                Braid::try_from_data(
                     Some(10),
                     vec![(1, None::<u16>, Sign::Positive); u16::MAX as usize],
                 )
@@ -622,7 +622,7 @@ mod tests {
                 "word failed validation, braid * word",
             ),
             (
-                word * Braid::from_data(
+                word * Braid::try_from_data(
                     Some(10),
                     vec![(1, None::<u16>, Sign::Positive); u16::MAX as usize],
                 )
@@ -637,12 +637,12 @@ mod tests {
                 "word failed validation, word * braid",
             ),
             (
-                Braid::from_data(
+                Braid::try_from_data(
                     None::<u16>,
                     vec![(1, None::<u16>, Sign::Positive); u16::MAX as usize],
                 )
                 .clone_unwrap()
-                    * Braid::from_data(None::<u16>, vec![(1, None::<u16>, Sign::Positive)])
+                    * Braid::try_from_data(None::<u16>, vec![(1, None::<u16>, Sign::Positive)])
                         .clone_unwrap(),
                 BraidValidationError::from(
                     Word::try_new(vec![
@@ -654,9 +654,9 @@ mod tests {
                 "word failed validation, long_braid * short_braid",
             ),
             (
-                Braid::from_data(None::<u16>, vec![(1, None::<u16>, Sign::Positive)])
+                Braid::try_from_data(None::<u16>, vec![(1, None::<u16>, Sign::Positive)])
                     .clone_unwrap()
-                    * Braid::from_data(
+                    * Braid::try_from_data(
                         None::<u16>,
                         vec![(1, None::<u16>, Sign::Positive); u16::MAX as usize],
                     )

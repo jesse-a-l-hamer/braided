@@ -640,7 +640,7 @@ mod tests {
         let braid = braid![(10); [2 => 4; -1], [1; 2], [3 => 4; -3], [2; 3]];
         assert_that!(
             *braid,
-            ok(eq(&Braid::from_data(
+            ok(eq(&Braid::try_from_data(
                 Some(10),
                 word![[2 => 4; -1], [1; 2], [3 => 4; -3], [2; 3]]
                     .as_ref()
@@ -670,14 +670,14 @@ mod tests {
         let invalid_braids: [(BraidResult, BraidValidationError); 10] = [
             (
                 braid![(1); [1; 1]],
-                *Braid::from_data(Some(1), word![[1; 1]].as_ref().unwrap().clone())
+                *Braid::try_from_data(Some(1), word![[1; 1]].as_ref().unwrap().clone())
                     .as_ref()
                     .err()
                     .unwrap(),
             ),
             (
                 braid![(-1); [1 => 3; 2], [2; -4], [3 => 4; 3]],
-                *Braid::from_data(
+                *Braid::try_from_data(
                     Some(-1),
                     word![[1 => 3; 2], [2; -4], [3 => 4; 3]]
                         .as_ref()
@@ -690,7 +690,7 @@ mod tests {
             ),
             (
                 braid![(0);[1 => 3; 2], [2; -4], [3 => 4; 3]],
-                *Braid::from_data(
+                *Braid::try_from_data(
                     Some(0),
                     word![[1 => 3; 2], [2; -4], [3 => 4; 3]]
                         .as_ref()
@@ -703,7 +703,7 @@ mod tests {
             ),
             (
                 braid![(u16::MAX as u32 + 1);[1 => 3; 2], [2; -4], [3 => 4; 3]],
-                *Braid::from_data(
+                *Braid::try_from_data(
                     Some(u16::MAX as u32 + 1),
                     word![[1 => 3; 2], [2; -4], [3 => 4; 3]]
                         .as_ref()
@@ -716,7 +716,7 @@ mod tests {
             ),
             (
                 braid![();[-1; 1], [1; 2], [2 => 5; -3]],
-                *Braid::from_data(
+                *Braid::try_from_data(
                     None::<u16>,
                     [
                         vec![(-1, None, Sign::Positive); 1],
@@ -731,7 +731,7 @@ mod tests {
             ),
             (
                 braid![();[1; 2], [0 => 4; -2], [2 => 5; -3]],
-                *Braid::from_data(
+                *Braid::try_from_data(
                     None::<u16>,
                     [
                         vec![(1, None, Sign::Positive); 2],
@@ -746,7 +746,7 @@ mod tests {
             ),
             (
                 braid![();[1; 2], [2 => 5; -3], [u16::MAX as u32 + 1; 2]],
-                *Braid::from_data(
+                *Braid::try_from_data(
                     None::<u16>,
                     [
                         vec![(1, None, Sign::Positive); 2],
@@ -761,7 +761,7 @@ mod tests {
             ),
             (
                 braid![();[4 => 1; 3], [1; 2], [2 => 5; -3]],
-                *Braid::from_data(
+                *Braid::try_from_data(
                     None::<u16>,
                     [
                         vec![(4, Some(1), Sign::Positive); 3],
@@ -776,7 +776,7 @@ mod tests {
             ),
             (
                 braid![();[1; u16::MAX as u32 + 1]],
-                *Braid::from_data(
+                *Braid::try_from_data(
                     None::<u16>,
                     [vec![
                         (1, None::<u16>, Sign::Positive);
@@ -790,7 +790,7 @@ mod tests {
             ),
             (
                 braid![();[1 => 3; u16::MAX as u32 - 1], [3; -2]],
-                *Braid::from_data(
+                *Braid::try_from_data(
                     None::<u16>,
                     [vec![(1, Some(3), Sign::Positive); u16::MAX as usize - 1]].concat(),
                 )

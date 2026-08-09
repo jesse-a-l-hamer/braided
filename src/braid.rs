@@ -481,7 +481,7 @@ impl Braid {
     ///
     /// See the documentation for the associated error type [`BraidValidationError`] for more
     /// information.
-    pub fn from_data<N, D, F, H>(index: Option<N>, word_data: D) -> BraidResult
+    pub fn try_from_data<N, D, F, H>(index: Option<N>, word_data: D) -> BraidResult
     where
         N: TryInto<u16>,
         IndexValidationError: From<<N as TryInto<u16>>::Error>,
@@ -521,7 +521,7 @@ impl Braid {
         N: TryInto<u16>,
         IndexValidationError: From<<N as TryInto<u16>>::Error>,
     {
-        Self::from_data(Some(index), Vec::<(u16, Option<u16>, Sign)>::new())
+        Self::try_from_data(Some(index), Vec::<(u16, Option<u16>, Sign)>::new())
     }
 
     /// Decomposes all [band letters](Letter::Band) of the underlying [`Word`] into equivalent
@@ -917,8 +917,8 @@ mod tests {
         ];
 
         let valid_braids = [
-            Braid::from_data(None::<u16>, letters_data.clone()),
-            Braid::from_data(Some(10), letters_data),
+            Braid::try_from_data(None::<u16>, letters_data.clone()),
+            Braid::try_from_data(Some(10), letters_data),
         ];
 
         for valid_braid in valid_braids {
@@ -970,7 +970,7 @@ mod tests {
             (4, Some(5), Sign::Positive),
         ];
 
-        let braid = Braid::from_data(None::<u16>, letters_data.clone()).clone_unwrap();
+        let braid = Braid::try_from_data(None::<u16>, letters_data.clone()).clone_unwrap();
 
         for (actual, expected) in braid.into_iter().zip(letters_data) {
             expect_that!(actual, eq(expected));
@@ -979,7 +979,7 @@ mod tests {
 
     #[test]
     fn decompose_computes_as_expected() {
-        let braid = Braid::from_data(
+        let braid = Braid::try_from_data(
             None::<u16>,
             [
                 (1, Some(3), Sign::Positive),
@@ -988,7 +988,7 @@ mod tests {
             ],
         )
         .clone_unwrap();
-        let expected_decomposition = Braid::from_data(
+        let expected_decomposition = Braid::try_from_data(
             None::<u16>,
             [
                 (1, None::<u16>, Sign::Negative),
@@ -1005,7 +1005,7 @@ mod tests {
 
     #[test]
     fn coalesce_computes_as_expected() {
-        let braid = Braid::from_data(
+        let braid = Braid::try_from_data(
             None::<u16>,
             [
                 (2, None::<u16>, Sign::Positive),
@@ -1016,7 +1016,7 @@ mod tests {
             ],
         )
         .clone_unwrap();
-        let expected_coalescence = Braid::from_data(
+        let expected_coalescence = Braid::try_from_data(
             None::<u16>,
             [
                 (1, Some(3), Sign::Positive),
@@ -1129,7 +1129,7 @@ mod tests {
     fn invalid_construction_with_from_data_fails_as_expected() {
         let invalid_braids: Vec<(BraidResult, BraidValidationError, &'static str)> = vec![
             (
-                Braid::from_data(Some(3), vec![(1, Some(5), Sign::Positive)]),
+                Braid::try_from_data(Some(3), vec![(1, Some(5), Sign::Positive)]),
                 BraidValidationError::IndexTooSmall {
                     index: BraidIndex::try_new(3).unwrap(),
                     minimal_required_index: BraidIndex::try_new(5).unwrap(),
@@ -1137,12 +1137,12 @@ mod tests {
                 "index too small",
             ),
             (
-                Braid::from_data(Some(0), vec![(1, Some(5), Sign::Positive)]),
+                Braid::try_from_data(Some(0), vec![(1, Some(5), Sign::Positive)]),
                 BraidValidationError::from(BraidIndex::try_new(0).err().unwrap()),
                 "index validation failure",
             ),
             (
-                Braid::from_data(
+                Braid::try_from_data(
                     None::<u16>,
                     vec![(1, None::<u16>, Sign::Positive); u16::MAX as usize + 1],
                 ),
