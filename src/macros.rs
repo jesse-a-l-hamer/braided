@@ -291,7 +291,7 @@ macro_rules! word {
 /// # #[macro_use] extern crate braided;
 /// # fn main() {
 /// let trivial_3_braid = braid![(3)];
-/// assert_eq!(trivial_3_braid, Braid::trivial(3));
+/// assert_eq!(trivial_3_braid, Braid::try_trivial(3));
 ///
 /// let braid_with_inferred_index = braid![(); [1 => 3; -2], [3; 3], [1; 4]];
 /// assert_eq!(braid_with_inferred_index, Braid::try_from_data(
@@ -375,10 +375,10 @@ macro_rules! word {
 /// ```
 #[macro_export]
 macro_rules! braid {
-    (($index:expr) $(;)?) => {$crate::Braid::trivial($index)};
+    (($index:expr) $(;)?) => {$crate::Braid::try_trivial($index)};
     (($index:expr); $($tail:tt)*) => {
         match &*$crate::word![$($tail)*] {
-            Ok(word) => $crate::Braid::try_new(Some($index), word.clone()),
+            Ok(word) => $crate::Braid::try_new($index, word.clone()),
             Err(e) => $crate::BraidResult::from($crate::BraidValidationError::from(*e)),
         }
     };
@@ -636,7 +636,7 @@ mod tests {
     #[test]
     fn macro_braid_constructs_trivial_braid_of_given_index() {
         let braid = braid![(10)];
-        assert_that!(*braid, ok(eq(&Braid::trivial(10).clone_unwrap())))
+        assert_that!(*braid, ok(eq(&Braid::try_trivial(10).clone_unwrap())))
     }
     #[test]
     fn macro_braid_constructs_nontrivial_braid_of_given_index() {

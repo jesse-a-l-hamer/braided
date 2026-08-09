@@ -15,7 +15,7 @@ impl std::ops::Mul<Letter> for Braid {
             })
         } else {
             match &*(self.word() * rhs) {
-                Ok(word) => Self::try_new(Some(self.braid_index()), word.clone()),
+                Ok(word) => Self::try_new(self.braid_index(), word.clone()),
                 Err(e) => BraidResult::from(BraidValidationError::from(*e)),
             }
         }
@@ -34,7 +34,7 @@ impl std::ops::Mul<Braid> for Letter {
             })
         } else {
             match &*(self * rhs.word()) {
-                Ok(word) => Braid::try_new(Some(rhs.braid_index()), word.clone()),
+                Ok(word) => Braid::try_new(rhs.braid_index(), word.clone()),
                 Err(e) => BraidResult::from(BraidValidationError::from(*e)),
             }
         }
@@ -52,7 +52,7 @@ impl std::ops::Mul<Word> for Braid {
             })
         } else {
             match &*(self.word() * rhs) {
-                Ok(word) => Self::try_new(Some(self.braid_index()), word.clone()),
+                Ok(word) => Self::try_new(self.braid_index(), word.clone()),
                 Err(e) => BraidResult::from(BraidValidationError::from(*e)),
             }
         }
@@ -71,7 +71,7 @@ impl std::ops::Mul<Braid> for Word {
             })
         } else {
             match &*(self * rhs.word()) {
-                Ok(word) => Braid::try_new(Some(rhs.braid_index()), word.clone()),
+                Ok(word) => Braid::try_new(rhs.braid_index(), word.clone()),
                 Err(e) => BraidResult::from(BraidValidationError::from(*e)),
             }
         }
@@ -87,7 +87,7 @@ impl std::ops::Mul for Braid {
             })
         } else {
             match &*(self.word() * rhs.word()) {
-                Ok(word) => Self::try_new(Some(self.braid_index()), word.clone()),
+                Ok(word) => Self::try_new(self.braid_index(), word.clone()),
                 Err(e) => BraidResult::from(BraidValidationError::from(*e)),
             }
         }
@@ -402,18 +402,20 @@ mod tests {
             Letter::try_new(2, None::<u16>, Sign::Negative).unwrap(),
             Letter::try_new(2, Some(8), Sign::Positive).unwrap(),
         ];
-        let braid = Braid::try_from_letters(&letters).clone_unwrap();
+        let braid = Braid::try_from_letters(None::<u16>, &letters).clone_unwrap();
         let other_letter = Letter::try_new(3, Some(7), Sign::Negative).unwrap();
 
         expect_that!(
             braid.clone() * other_letter,
             eq(&Braid::try_from_letters(
+                None::<u16>,
                 &[letters.clone(), vec![other_letter]].concat()
             ))
         );
         expect_that!(
             other_letter * braid,
             eq(&Braid::try_from_letters(
+                None::<u16>,
                 &[vec![other_letter], letters].concat()
             ))
         );
@@ -421,11 +423,14 @@ mod tests {
 
     #[gtest]
     fn valid_multiplication_with_word_succeeds_and_computes_as_expected() {
-        let braid = Braid::try_from_letters(&[
-            Letter::try_new(1, Some(3), Sign::Positive).unwrap(),
-            Letter::try_new(2, None::<u16>, Sign::Negative).unwrap(),
-            Letter::try_new(2, Some(8), Sign::Positive).unwrap(),
-        ])
+        let braid = Braid::try_from_letters(
+            None::<u16>,
+            &[
+                Letter::try_new(1, Some(3), Sign::Positive).unwrap(),
+                Letter::try_new(2, None::<u16>, Sign::Negative).unwrap(),
+                Letter::try_new(2, Some(8), Sign::Positive).unwrap(),
+            ],
+        )
         .clone_unwrap();
         let word = Word::try_from_letters(&[
             Letter::try_new(3, None::<u16>, Sign::Negative).unwrap(),
@@ -436,29 +441,29 @@ mod tests {
         expect_that!(
             braid.clone() * word.clone(),
             eq(&Braid::try_new(
-                None::<u16>,
+                8,
                 (braid.word() * word.clone()).clone_unwrap()
             )),
         );
         expect_that!(
             word.clone() * braid.clone(),
-            eq(&Braid::try_new(
-                None::<u16>,
-                (word * braid.word()).clone_unwrap()
-            ))
+            eq(&Braid::try_new(8, (word * braid.word()).clone_unwrap()))
         );
     }
 
     #[gtest]
     fn valid_multiplication_with_braid_succeeds_and_computes_as_expected() {
-        let braid1 = Braid::try_from_letters(&[
-            Letter::try_new(1, Some(3), Sign::Positive).unwrap(),
-            Letter::try_new(2, None::<u16>, Sign::Negative).unwrap(),
-            Letter::try_new(2, Some(8), Sign::Positive).unwrap(),
-        ])
+        let braid1 = Braid::try_from_letters(
+            None::<u16>,
+            &[
+                Letter::try_new(1, Some(3), Sign::Positive).unwrap(),
+                Letter::try_new(2, None::<u16>, Sign::Negative).unwrap(),
+                Letter::try_new(2, Some(8), Sign::Positive).unwrap(),
+            ],
+        )
         .clone_unwrap();
         let braid2 = Braid::try_new(
-            Some(8),
+            8,
             Word::try_from_letters(&[
                 Letter::try_new(3, None::<u16>, Sign::Negative).unwrap(),
                 Letter::try_new(2, Some(7), Sign::Negative).unwrap(),
@@ -470,14 +475,14 @@ mod tests {
         expect_that!(
             braid1.clone() * braid2.clone(),
             eq(&Braid::try_new(
-                None::<u16>,
+                8,
                 (braid1.word() * braid2.word()).clone_unwrap()
             )),
         );
         expect_that!(
             braid2.clone() * braid1.clone(),
             eq(&Braid::try_new(
-                None::<u16>,
+                8,
                 (braid2.word() * braid1.word()).clone_unwrap()
             ))
         );
