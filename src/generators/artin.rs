@@ -21,11 +21,20 @@ use crate::{
 ///
 /// # Construction
 ///
-/// An [`ArtinGenerator`] may be constructed in one of two ways: _directly_, using the associated
-/// function [`ArtinGenerator::new`], or by converting a [`BandGenerator`] or [`Letter`] using the
-/// associated function [`ArtinGenerator::try_from`].
+/// An [`ArtinGenerator`] may be constructed in one of three ways: _directly_, using the associated
+/// function [`ArtinGenerator::try_new`], or by converting a [`BandGenerator`] or [`Letter`] using the
+/// associated functions [`ArtinGenerator::try_from_band`] and [`ArtinGenerator::try_from_letter`],
+/// respectively.
 ///
-/// 1. [`ArtinGenerator::new`] can construct an [`ArtinGenerator`] given a [`Sign`] and any value
+/// <div class="warning">
+///
+/// The return type in all cases is [`ArtinResult`](ArtinResult), which is a new-type wrapper around
+/// [`Result<ArtinGenerator, ArtinValidationError>`]. Use the dereference operator "*" for easy access to
+/// the inner value.
+///
+/// </div>
+///
+/// 1. [`ArtinGenerator::try_new`] can construct an [`ArtinGenerator`] given a [`Sign`] and any value
 ///    which can be coerced into a [`u16`]. Failure occurs if the underlying foot strand cannot be
 ///    constructed, or if one attempts to use a foot strand with index [`u16::MAX`] (as then the
 ///    corresponding headstrand would be invalid).
@@ -34,36 +43,47 @@ use crate::{
 /// use braided::{ArtinGenerator, Sign, Strand};
 /// use std::assert_matches;
 ///
-/// let artin_from_u16 = ArtinGenerator::new(1, Sign::Negative);
-/// let artin_from_isize = ArtinGenerator::new(-(1_isize - u16::MAX as isize), Sign::Positive);
-/// let artin_from_strand = ArtinGenerator::new(Strand::new(2).unwrap(), Sign::Negative);
+/// let artin_from_u16 = ArtinGenerator::try_new(1, Sign::Negative);
+/// let artin_from_isize = ArtinGenerator::try_new(-(1_isize - u16::MAX as isize), Sign::Positive);
+/// let artin_from_strand = ArtinGenerator::try_new(Strand::try_new(2).unwrap(), Sign::Negative);
 ///
-/// assert_matches!(artin_from_u16, Ok(_));
-/// assert_matches!(artin_from_isize, Ok(_));
-/// assert_matches!(artin_from_strand, Ok(_));
+/// assert_matches!(*artin_from_u16, Ok(_));
+/// assert_matches!(*artin_from_isize, Ok(_));
+/// assert_matches!(*artin_from_strand, Ok(_));
 /// ```
 ///
-/// 2. [`ArtinGenerator::try_from`] attempts to consruct an [`ArtinGenerator`] given an already
-///    existing [`BandGenerator`] or [`Letter`]. Failure occurs if the input is a [`BandGenerator`]
-///    or [`Letter::Band`] which is not a valid Artin generator (its foot and head strand are not adjacent.)
+/// 2. [`ArtinGenerator::try_from_band`] attempts to consruct an [`ArtinGenerator`] given an already
+///    existing [`BandGenerator`]. Failure occurs if the input is a [`BandGenerator`] which is not
+///    a valid Artin generator (its foot and head strand are not adjacent.)
+///
+/// ```
+/// use braided::{ArtinGenerator, BandGenerator, Sign};
+/// use std::assert_matches;
+///
+/// let artin_from_band = ArtinGenerator::try_from_band(
+///     BandGenerator::try_new(3, 4, Sign::Positive).unwrap()
+/// );
+///
+/// assert_matches!(*artin_from_band, Ok(_));
+/// ```
+///
+/// 3. [`ArtinGenerator::try_from_letter`] attempts to consruct an [`ArtinGenerator`] given an already
+///    existing [`Letter`]. Failure occurs if the input is a [`Letter::Band`] which is not a valid
+///    Artin generator (its foot and head strand are not adjacent.)
 ///
 /// ```
 /// use braided::{ArtinGenerator, BandGenerator, Letter, Sign};
 /// use std::assert_matches;
 ///
-/// let artin_from_band = ArtinGenerator::try_from(
-///     BandGenerator::new(3, 4, Sign::Positive).unwrap()
+/// let artin_from_artin_letter = ArtinGenerator::try_from_letter(
+///     Letter::try_new(4, None::<u16>, Sign::Negative).unwrap()
 /// );
-/// let artin_from_artin_letter = ArtinGenerator::try_from(
-///     Letter::new(4, None::<u16>, Sign::Negative).unwrap()
-/// );
-/// let artin_from_band_letter = ArtinGenerator::try_from(
-///     Letter::new(5, Some(6), Sign::Positive).unwrap()
+/// let artin_from_band_letter = ArtinGenerator::try_from_letter(
+///     Letter::try_new(5, Some(6), Sign::Positive).unwrap()
 /// );
 ///
-/// assert_matches!(artin_from_band, Ok(_));
-/// assert_matches!(artin_from_artin_letter, Ok(_));
-/// assert_matches!(artin_from_band_letter, Ok(_));
+/// assert_matches!(*artin_from_artin_letter, Ok(_));
+/// assert_matches!(*artin_from_band_letter, Ok(_));
 /// ```
 ///
 /// See the documentation for [`ArtinValidationError`] for more details on possible contsruction failure.
@@ -76,16 +96,16 @@ use crate::{
 /// ```
 /// use braided::{ArtinGenerator, BraidIndex, Sign, Strand};
 ///
-/// let artin_generator = ArtinGenerator::new(1, Sign::Positive).unwrap();
+/// let artin_generator = ArtinGenerator::try_new(1, Sign::Positive).unwrap();
 ///
 /// // Basic accessors
-/// assert_eq!(artin_generator.foot(), Strand::new(1).unwrap());
+/// assert_eq!(artin_generator.foot(), Strand::try_new(1).unwrap());
 /// assert_eq!(artin_generator.sign(), Sign::Positive);
 ///
 /// // Computed properties
-/// assert_eq!(artin_generator.head(), Strand::new(2).unwrap());
-/// assert_eq!(artin_generator.inverse(), ArtinGenerator::new(1, Sign::Negative).unwrap());
-/// assert_eq!(artin_generator.minimal_required_braid_index(), BraidIndex::new(2).unwrap());
+/// assert_eq!(artin_generator.head(), Strand::try_new(2).unwrap());
+/// assert_eq!(artin_generator.inverse(), ArtinGenerator::try_new(1, Sign::Negative).unwrap());
+/// assert_eq!(artin_generator.minimal_required_braid_index(), BraidIndex::try_new(2).unwrap());
 /// ```
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct ArtinGenerator {
@@ -94,7 +114,16 @@ pub struct ArtinGenerator {
 }
 
 impl ArtinGenerator {
-    /// Constructs a new [`ArtinGenerator`] given a [`u16`]-coercible foot index and [`Sign`].
+    /// Attempts to construct a new [`ArtinGenerator`] given a [foot index](Strand) and
+    /// [sign](Sign).
+    ///
+    /// <div class="warning">
+    ///
+    /// The return type is [`ArtinResult`](ArtinResult), which is a new-type wrapper around
+    /// [`Result<ArtinGenerator, ArtinValidationError>`]. Use the dereference operator "*" for easy access to
+    /// the inner value.
+    ///
+    /// </div>
     ///
     /// # Examples
     ///
@@ -102,13 +131,13 @@ impl ArtinGenerator {
     /// use braided::{ArtinGenerator, Sign, Strand};
     /// use std::assert_matches;
     ///
-    /// let artin_from_u16 = ArtinGenerator::new(1, Sign::Negative);
-    /// let artin_from_isize = ArtinGenerator::new(-(1_isize - u16::MAX as isize), Sign::Positive);
-    /// let artin_from_strand = ArtinGenerator::new(Strand::new(2).unwrap(), Sign::Negative);
+    /// let artin_from_u16 = ArtinGenerator::try_new(1, Sign::Negative);
+    /// let artin_from_isize = ArtinGenerator::try_new(-(1_isize - u16::MAX as isize), Sign::Positive);
+    /// let artin_from_strand = ArtinGenerator::try_new(Strand::try_new(2).unwrap(), Sign::Negative);
     ///
-    /// assert_matches!(artin_from_u16, Ok(_));
-    /// assert_matches!(artin_from_isize, Ok(_));
-    /// assert_matches!(artin_from_strand, Ok(_));
+    /// assert_matches!(*artin_from_u16, Ok(_));
+    /// assert_matches!(*artin_from_isize, Ok(_));
+    /// assert_matches!(*artin_from_strand, Ok(_));
     /// ```
     ///
     /// # Errors
@@ -131,6 +160,32 @@ impl ArtinGenerator {
         }
     }
 
+    /// Attempts to construct an [`ArtinGenerator`] from a [band](BandGenerator).
+    ///
+    /// <div class="warning">
+    ///
+    /// The return type is [`ArtinResult`](ArtinResult), which is a new-type wrapper around
+    /// [`Result<ArtinGenerator, ArtinValidationError>`]. Use the dereference operator "*" for easy access to
+    /// the inner value.
+    ///
+    /// </div>
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use braided::{ArtinGenerator, BandGenerator, Sign};
+    /// use std::assert_matches;
+    ///
+    /// let artin_from_band = ArtinGenerator::try_from_band(
+    ///     BandGenerator::try_new(3, 4, Sign::Positive).unwrap()
+    /// );
+    ///
+    /// assert_matches!(*artin_from_band, Ok(_));
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// Fails if the given [band](BandGenerator) does not satisfy [BandGenerator::is_artin].
     pub fn try_from_band(band: BandGenerator) -> ArtinResult {
         if band.is_artin() {
             ArtinResult::from(Self {
@@ -142,6 +197,36 @@ impl ArtinGenerator {
         }
     }
 
+    /// Attempts to construct an [`ArtinGenerator`] from a [band letter](Letter::Band).
+    ///
+    /// <div class="warning">
+    ///
+    /// The return type is [`ArtinResult`](ArtinResult), which is a new-type wrapper around
+    /// [`Result<ArtinGenerator, ArtinValidationError>`]. Use the dereference operator "*" for easy access to
+    /// the inner value.
+    ///
+    /// </div>
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use braided::{ArtinGenerator, BandGenerator, Letter, Sign};
+    /// use std::assert_matches;
+    ///
+    /// let artin_from_artin_letter = ArtinGenerator::try_from_letter(
+    ///     Letter::try_new(4, None::<u16>, Sign::Negative).unwrap()
+    /// );
+    /// let artin_from_band_letter = ArtinGenerator::try_from_letter(
+    ///     Letter::try_new(5, Some(6), Sign::Positive).unwrap()
+    /// );
+    ///
+    /// assert_matches!(*artin_from_artin_letter, Ok(_));
+    /// assert_matches!(*artin_from_band_letter, Ok(_));
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// Fails if the given [band letter](Letter::Band) does not satisfy [Letter::is_artin].
     pub fn try_from_letter(letter: Letter) -> ArtinResult {
         match letter {
             Letter::Artin(artin) => ArtinResult::from(artin),
@@ -156,9 +241,9 @@ impl ArtinGenerator {
     /// ```
     /// use braided::{ArtinGenerator, Sign, Strand};
     ///
-    /// let artin_generator = ArtinGenerator::new(1, Sign::Positive).unwrap();
+    /// let artin_generator = ArtinGenerator::try_new(1, Sign::Positive).unwrap();
     ///
-    /// assert_eq!(artin_generator.foot(), Strand::new(1).unwrap());
+    /// assert_eq!(artin_generator.foot(), Strand::try_new(1).unwrap());
     /// ```
     pub fn foot(&self) -> Strand {
         self.foot
@@ -170,7 +255,7 @@ impl ArtinGenerator {
     /// ```
     /// use braided::{ArtinGenerator, Sign, Strand};
     ///
-    /// let artin_generator = ArtinGenerator::new(1, Sign::Positive).unwrap();
+    /// let artin_generator = ArtinGenerator::try_new(1, Sign::Positive).unwrap();
     ///
     /// assert_eq!(artin_generator.sign(), Sign::Positive);
     /// ```
@@ -185,9 +270,9 @@ impl ArtinGenerator {
     /// ```
     /// use braided::{ArtinGenerator, Sign, Strand};
     ///
-    /// let artin_generator = ArtinGenerator::new(1, Sign::Positive).unwrap();
+    /// let artin_generator = ArtinGenerator::try_new(1, Sign::Positive).unwrap();
     ///
-    /// assert_eq!(artin_generator.head(), Strand::new(2).unwrap());
+    /// assert_eq!(artin_generator.head(), Strand::try_new(2).unwrap());
     /// ```
     pub fn head(&self) -> Strand {
         (self.foot + 1).unwrap()
@@ -199,9 +284,9 @@ impl ArtinGenerator {
     /// ```
     /// use braided::{ArtinGenerator, Sign, Strand};
     ///
-    /// let artin_generator = ArtinGenerator::new(1, Sign::Positive).unwrap();
+    /// let artin_generator = ArtinGenerator::try_new(1, Sign::Positive).unwrap();
     ///
-    /// assert_eq!(artin_generator.inverse(), ArtinGenerator::new(1, Sign::Negative).unwrap());
+    /// assert_eq!(artin_generator.inverse(), ArtinGenerator::try_new(1, Sign::Negative).unwrap());
     /// ```
     pub fn inverse(&self) -> Self {
         Self {
@@ -219,9 +304,9 @@ impl ArtinGenerator {
     /// ```
     /// use braided::{ArtinGenerator, BraidIndex, Sign, Strand};
     ///
-    /// let artin_generator = ArtinGenerator::new(1, Sign::Positive).unwrap();
+    /// let artin_generator = ArtinGenerator::try_new(1, Sign::Positive).unwrap();
     ///
-    /// assert_eq!(artin_generator.minimal_required_braid_index(), BraidIndex::new(2).unwrap());
+    /// assert_eq!(artin_generator.minimal_required_braid_index(), BraidIndex::try_new(2).unwrap());
     /// ```
     pub fn minimal_required_braid_index(&self) -> BraidIndex {
         BraidIndex::try_new(self.head()).unwrap()
