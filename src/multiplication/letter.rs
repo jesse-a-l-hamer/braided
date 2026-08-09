@@ -39,7 +39,7 @@ impl std::ops::Mul for Letter {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Letter, Sign, Word, WordValidationError};
+    use crate::{Letter, Sign, Word, WordValidationError, letter, word};
     use googletest::matchers::{eq, err, ok};
     use googletest::{expect_that, gtest};
 
@@ -83,5 +83,22 @@ mod tests {
 
         expect_that!(l1 * l2, err(eq(&error)));
         expect_that!(l2 * l1, err(eq(&error)));
+    }
+
+    #[gtest]
+    fn can_multiply_letter_and_letter_result() {
+        let letter = letter![1; +].unwrap();
+        let letter_result = letter![2; -];
+
+        expect_that!(letter * letter_result, eq(&word![[1; 1], [2; -1]]));
+        expect_that!(letter_result * letter, eq(&word![[2; -1], [1; 1]]));
+    }
+
+    #[test]
+    fn can_multiply_letter_result_and_letter_result() {
+        let letter_result1 = letter![1; +];
+        let letter_result2 = letter![2; -];
+
+        expect_that!(letter_result1 * letter_result2, eq(&word![[1; 1], [2; -1]]));
     }
 }
