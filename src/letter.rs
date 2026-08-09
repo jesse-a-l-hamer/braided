@@ -217,18 +217,18 @@ impl Letter {
     ///
     /// // The head type must be disambiguated when defining an Artin generator via `new`:
     /// assert_eq!(
-    ///     Letter::new(1, None::<u16>, Sign::Positive),
+    ///     Letter::try_new(1, None::<u16>, Sign::Positive),
     ///     Ok(Letter::Artin(artin_generator)),
     /// );
     ///
     /// assert_eq!(
-    ///     Letter::new(2, Some(4), Sign::Negative),
+    ///     Letter::try_new(2, Some(4), Sign::Negative),
     ///     Ok(Letter::Band(band_generator)),
     /// );
     ///
     /// // You can pass anything that coerces to a `u16` to `new`:
     /// assert_matches!(
-    ///     Letter::new(6isize, Some(Strand::new(7).unwrap()), Sign::Positive),
+    ///     Letter::try_new(6isize, Some(Strand::new(7).unwrap()), Sign::Positive),
     ///     Ok(Letter::Band(_))
     /// );
     /// ```
