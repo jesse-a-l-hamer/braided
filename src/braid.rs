@@ -18,9 +18,10 @@ use crate::{
 ///
 /// <div class="warning">
 ///
-/// The return type is [`BraidResult`](crate::BraidResult), which is a new-type wrapper around
-/// [`Result<Braid, BraidValidationError>`]. Use the dereference operator "*" for easy access to
-/// the inner value, and use the [`clone_unwrap`](crate::BraidResult::clone_unwrap) and
+/// The return type for all fallible constructors is [`BraidResult`](crate::BraidResult), which is
+/// a new-type wrapper around [`Result<Braid, BraidValidationError>`]. Use the dereference operator
+/// "*" for easy access to the inner value, and use the
+/// [`clone_unwrap`](crate::BraidResult::clone_unwrap) and
 /// [`clone_unwrap_err`](crate::BraidResult::clone_unwrap_err) instead of `unwrap` and `unwrap_err`,
 /// respectively.
 ///
