@@ -1,45 +1,7 @@
 use crate::{
-    ArtinGenerator, ArtinValidationError, BandGenerator, BandValidationError, BraidIndex, Sign,
-    Strand, StrandValidationError,
+    ArtinGenerator, BandGenerator, BraidIndex, LetterResult, LetterValidationError, Sign, Strand,
+    StrandValidationError,
 };
-
-/// Represents potential failures from attempted construction of [`Letter`] using [`Letter::new`].
-///
-/// As a [`Letter`] is a wrapper around either an [`ArtinGenerator`] or a [`BandGenerator`], so too
-/// does [`LetterValidationError`] transparently wrap a [`ArtinValidationError`] or a
-/// [`BandValidationError`].
-///
-/// # Examples
-///
-/// ```
-/// use braided::{ArtinValidationError, BandValidationError, Letter, LetterValidationError, Sign};
-/// use std::assert_matches;
-///
-/// let failed_artin_letter = Letter::new(0, None::<u16>, Sign::Positive);
-/// assert_matches!(
-///     failed_artin_letter,
-///     Err(LetterValidationError::ArtinValidation(ArtinValidationError::StrandValidation(_))),
-/// );
-///
-/// let failed_band_letter = Letter::new(4, Some(1), Sign::Positive);
-/// assert_matches!(
-///     failed_band_letter,
-///     Err(LetterValidationError::BandValidation(BandValidationError::FootOverHead { .. })),
-/// );
-/// ```
-#[derive(Debug, thiserror::Error, PartialEq, Eq, Clone, Copy)]
-pub enum LetterValidationError {
-    /// Indicates failed attempt to construct an [`ArtinGenerator`].
-    ///
-    /// Transparent wrapper around [`ArtinValidationError`].
-    #[error(transparent)]
-    ArtinValidation(#[from] ArtinValidationError),
-    /// Indicates failed attempt to construct a [`BandGenerator`].
-    ///
-    /// Transparent wrapper around [`BandValidationError`].
-    #[error(transparent)]
-    BandValidation(#[from] BandValidationError),
-}
 
 /// Represents a single letter of a braid word, from an opaque generating set.
 ///
@@ -270,7 +232,7 @@ impl Letter {
     ///     Ok(Letter::Band(_))
     /// );
     /// ```
-    pub fn new<F, H>(foot: F, head: Option<H>, sign: Sign) -> Result<Self, LetterValidationError>
+    pub fn try_new<F, H>(foot: F, head: Option<H>, sign: Sign) -> LetterResult
     where
         F: TryInto<u16>,
         H: TryInto<u16>,
@@ -279,8 +241,21 @@ impl Letter {
             + From<std::convert::Infallible>,
     {
         match head {
-            Some(head) => Ok(Self::Band(BandGenerator::new(foot, head, sign)?)),
-            None => Ok(Self::Artin(ArtinGenerator::new(foot, sign)?)),
+            Some(head) => match *BandGenerator::try_new(foot, head, sign) {
+                Ok(band) => LetterResult::from(Self::Band(band)),
+                Err(e) => LetterResult::from(LetterValidationError::from(e)),
+            },
+            None => match *ArtinGenerator::try_new(foot, sign) {
+                Ok(artin) => LetterResult::from(Self::Artin(artin)),
+                Err(e) => LetterResult::from(LetterValidationError::from(e)),
+            },
+        }
+    }
+
+    pub fn decompose(&self) -> Vec<Self> {
+        match self {
+            Letter::Artin(_) => vec![*self],
+            Letter::Band(band) => band.decompose().iter().map(|&a| Letter::Artin(a)).collect(),
         }
     }
 
@@ -513,10 +488,10 @@ impl std::cmp::PartialEq for Letter {
         match (self, other) {
             (Self::Artin(lhs), Self::Artin(rhs)) => lhs == rhs,
             (Self::Artin(lhs), Self::Band(rhs)) => {
-                rhs.is_artin() && *lhs == ArtinGenerator::new(rhs.foot(), rhs.sign()).unwrap()
+                rhs.is_artin() && *lhs == ArtinGenerator::try_new(rhs.foot(), rhs.sign()).unwrap()
             }
             (Self::Band(lhs), Self::Artin(rhs)) => {
-                lhs.is_artin() && ArtinGenerator::new(lhs.foot(), lhs.sign()).unwrap() == *rhs
+                lhs.is_artin() && ArtinGenerator::try_new(lhs.foot(), lhs.sign()).unwrap() == *rhs
             }
             (Self::Band(lhs), Self::Band(rhs)) => lhs == rhs,
         }
@@ -528,40 +503,40 @@ mod tests {
     use crate::{
         ArtinGenerator, BandGenerator, BraidIndex, Letter, LetterValidationError, Sign, Strand,
     };
-    use googletest::matchers::{anything, each, eq, err, is_false, is_true, ok};
+    use googletest::matchers::{anything, derefs_to, each, eq, err, is_false, is_true, ok};
     use googletest::{assert_that, expect_that, gtest};
 
     #[test]
     fn valid_inputs_yield_successful_construction() {
         let valid_letters = [
-            Letter::new(1, None::<u16>, Sign::Positive),
-            Letter::new(2, Some(4), Sign::Negative),
-            Letter::new(Strand::new(5).unwrap(), None::<u16>, Sign::Negative),
-            Letter::new(6isize, Some(Strand::new(7).unwrap()), Sign::Positive),
-            Letter::new(
-                Strand::new(8).unwrap(),
-                Some(Strand::new(30).unwrap()),
+            Letter::try_new(1, None::<u16>, Sign::Positive),
+            Letter::try_new(2, Some(4), Sign::Negative),
+            Letter::try_new(Strand::try_new(5).unwrap(), None::<u16>, Sign::Negative),
+            Letter::try_new(6isize, Some(Strand::try_new(7).unwrap()), Sign::Positive),
+            Letter::try_new(
+                Strand::try_new(8).unwrap(),
+                Some(Strand::try_new(30).unwrap()),
                 Sign::Negative,
             ),
-            Letter::new(u16::MAX as u32 - 1, None::<u16>, Sign::Positive),
-            Letter::new(1, Some(2u16.pow(15) + 1), Sign::Negative),
+            Letter::try_new(u16::MAX as u32 - 1, None::<u16>, Sign::Positive),
+            Letter::try_new(1, Some(2u16.pow(15) + 1), Sign::Negative),
         ];
 
-        assert_that!(valid_letters, each(ok(anything())));
+        assert_that!(&valid_letters, each(derefs_to(ok(anything()))));
     }
 
     #[gtest]
     fn conversion_from_generators_works_as_expected() {
-        let letter_from_artin = Letter::from(ArtinGenerator::new(1, Sign::Positive).unwrap());
-        let letter_from_band = Letter::from(BandGenerator::new(3, 5, Sign::Negative).unwrap());
+        let letter_from_artin = Letter::from(ArtinGenerator::try_new(1, Sign::Positive).unwrap());
+        let letter_from_band = Letter::from(BandGenerator::try_new(3, 5, Sign::Negative).unwrap());
 
         expect_that!(
             letter_from_artin,
-            eq(Letter::new(1, None::<u16>, Sign::Positive).unwrap())
+            eq(Letter::try_new(1, None::<u16>, Sign::Positive).unwrap())
         );
         expect_that!(
             letter_from_band,
-            eq(Letter::new(3, Some(5), Sign::Negative).unwrap())
+            eq(Letter::try_new(3, Some(5), Sign::Negative).unwrap())
         );
     }
 
@@ -574,17 +549,17 @@ mod tests {
         ];
 
         for (foot, head, sign) in input_data {
-            let letter = Letter::new(foot, head, sign).unwrap();
+            let letter = Letter::try_new(foot, head, sign).unwrap();
 
             expect_that!(letter.sign(), eq(sign));
-            expect_that!(letter.foot(), eq(Strand::new(foot).unwrap()));
+            expect_that!(letter.foot(), eq(Strand::try_new(foot).unwrap()));
             expect_that!(
                 letter.head(),
-                eq(Strand::new(head.unwrap_or(foot + 1)).unwrap())
+                eq(Strand::try_new(head.unwrap_or(foot + 1)).unwrap())
             );
             expect_that!(
                 letter.inverse(),
-                eq(Letter::new(foot, head, -sign).unwrap())
+                eq(Letter::try_new(foot, head, -sign).unwrap())
             );
             expect_that!(letter.is_artin(), eq(head.unwrap_or(foot + 1) - foot == 1));
             expect_that!(letter.height(), eq(head.unwrap_or(foot + 1) - foot));
@@ -594,17 +569,17 @@ mod tests {
             );
             expect_that!(
                 letter.minimal_required_braid_index(),
-                eq(BraidIndex::new(head.unwrap_or(foot + 1)).unwrap()),
+                eq(BraidIndex::try_new(head.unwrap_or(foot + 1)).unwrap()),
             );
         }
     }
 
     #[gtest]
     fn equality_comparison_behaves_as_expected() {
-        let artin_letter = Letter::new(1, None::<u16>, Sign::Positive).unwrap();
-        let other_artin_letter = Letter::new(2, None::<u16>, Sign::Positive).unwrap();
-        let band_letter = Letter::new(1, Some(2), Sign::Positive).unwrap();
-        let other_band_letter = Letter::new(1, Some(2), Sign::Negative).unwrap();
+        let artin_letter = Letter::try_new(1, None::<u16>, Sign::Positive).unwrap();
+        let other_artin_letter = Letter::try_new(2, None::<u16>, Sign::Positive).unwrap();
+        let band_letter = Letter::try_new(1, Some(2), Sign::Positive).unwrap();
+        let other_band_letter = Letter::try_new(1, Some(2), Sign::Negative).unwrap();
 
         expect_that!(artin_letter == artin_letter, is_true());
         expect_that!(band_letter == band_letter, is_true());
@@ -621,19 +596,21 @@ mod tests {
     fn invalid_inputs_yield_failed_construction() {
         let invalid_letters = [
             (
-                Letter::new(0, None::<u16>, Sign::Positive),
-                LetterValidationError::from(ArtinGenerator::new(0, Sign::Positive).err().unwrap()),
+                Letter::try_new(0, None::<u16>, Sign::Positive),
+                LetterValidationError::from(
+                    ArtinGenerator::try_new(0, Sign::Positive).err().unwrap(),
+                ),
             ),
             (
-                Letter::new(4, Some(1), Sign::Negative),
+                Letter::try_new(4, Some(1), Sign::Negative),
                 LetterValidationError::from(
-                    BandGenerator::new(4, 1, Sign::Negative).err().unwrap(),
+                    BandGenerator::try_new(4, 1, Sign::Negative).err().unwrap(),
                 ),
             ),
         ];
 
         for (invalid_letter, error) in invalid_letters {
-            expect_that!(invalid_letter, err(eq(error)));
+            expect_that!(*invalid_letter, err(eq(error)));
         }
     }
 }

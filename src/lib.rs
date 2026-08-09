@@ -414,20 +414,29 @@
 //!   _growing_, but I don't anticipate that much will be removed.
 
 mod braid;
+mod error;
 mod generators;
 mod index;
 mod letter;
 mod multiplication;
+mod result;
 mod sign;
 mod strand;
 mod word;
 
 mod macros;
 
-pub use braid::{Braid, BraidValidationError};
-pub use generators::{ArtinGenerator, ArtinValidationError, BandGenerator, BandValidationError};
-pub use index::{BraidIndex, IndexValidationError};
-pub use letter::{Letter, LetterValidationError};
+pub use braid::Braid;
+pub use error::{
+    ArtinValidationError, BandValidationError, BraidValidationError, IndexValidationError,
+    LetterValidationError, StrandValidationError, WordValidationError,
+};
+pub use generators::{ArtinGenerator, BandGenerator};
+pub use index::BraidIndex;
+pub use letter::Letter;
+pub use result::{
+    ArtinResult, BandResult, BraidResult, IndexResult, LetterResult, StrandResult, WordResult,
+};
 pub use sign::Sign;
-pub use strand::{Strand, StrandValidationError};
-pub use word::{Word, WordValidationError};
+pub use strand::Strand;
+pub use word::Word;

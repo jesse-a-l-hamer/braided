@@ -1,71 +1,4 @@
-/// Represents failure during construction of a [`Strand`].
-///
-/// A [`Strand`] wraps a [`u16`], so all variants of [`StrandValidationError`] concern the failure
-/// to convert an input into a [`u16`].
-///
-/// # Examples
-///
-/// ```
-/// use braided::{Strand, StrandValidationError};
-/// use std::assert_matches;
-///
-/// assert_matches!(
-///     Strand::new(0),
-///     Err(StrandValidationError::Zero),
-/// );
-///
-/// assert_matches!(
-///     Strand::new(u16::MAX as u32 + 1),
-///     Err(StrandValidationError::FromInt(_)),
-/// );
-///
-/// assert_matches!(
-///     Strand::new(1).unwrap() - 2,
-///     Err(StrandValidationError::Subtraction { .. }),
-///     );
-///
-/// assert_matches!(
-///     Strand::new(u16::MAX - 1).unwrap() + 2,
-///     Err(StrandValidationError::Addition { .. }),
-/// );
-/// ```
-#[derive(Debug, thiserror::Error, PartialEq, Eq, Clone, Copy)]
-pub enum StrandValidationError {
-    /// Indicates failure to construct a [`Strand`] from zero.
-    #[error("Strand index cannot be zero.")]
-    Zero,
-    /// Indicates a failed [`Strand`] subtraction result: the subtraction would yield a non-positive
-    /// strand index.
-    #[error("Attempt to subtract {right:?} from {left:?} results in non-positive-indexed strand.")]
-    Subtraction {
-        /// The index of the left operand in the failed subtraction.
-        left: u16,
-        /// The index of the right operand in the failed subtraction.
-        right: u16,
-    },
-    /// Indicates a failed [`Strand`] addition result: the addition would yield a result that
-    /// exceeds [`u16::MAX`].
-    #[error(
-        "Attempt to add {left:?} to {right:?} results in strand index larger than {max}",
-        max = u16::MAX,
-    )]
-    Addition {
-        /// The index of the left operand in the failed addition.
-        left: u16,
-        /// The index of the right operand in the failed addition.
-        right: u16,
-    },
-    /// Wrapper around a [`std::num::TryFromIntError`], indicating failure to convert an integer
-    /// value into a [`u16`] during [`Strand`] construction.
-    #[error(transparent)]
-    FromInt(#[from] std::num::TryFromIntError),
-    /// Wrapper around a [`std::convert::Infallible`].
-    ///
-    /// This variant exists purely to make the type system happy; in practice this variant cannot
-    /// occur.
-    #[error(transparent)]
-    Infallible(#[from] std::convert::Infallible),
-}
+use crate::{StrandResult, StrandValidationError};
 
 /// A wrapper around a [`u16`] representing the index of a braid strand.
 ///
@@ -216,25 +149,23 @@ impl Strand {
     ///
     /// assert_matches!(Strand::new(BraidIndex::new(1).unwrap()), Ok(_));
     /// ```
-    pub fn new<K>(index: K) -> Result<Self, StrandValidationError>
+    pub fn try_new<K>(index: K) -> StrandResult
     where
         K: TryInto<u16>,
         StrandValidationError: From<<K as TryInto<u16>>::Error> + From<std::convert::Infallible>,
     {
-        Self::try_from(index.try_into()?)
-    }
-}
-
-impl TryFrom<u16> for Strand {
-    type Error = StrandValidationError;
-    fn try_from(value: u16) -> Result<Self, Self::Error> {
-        if value == 0 {
-            Err(StrandValidationError::Zero)
+        let index = match index.try_into() {
+            Ok(index) => index,
+            Err(e) => return StrandResult::from(StrandValidationError::from(e)),
+        };
+        if index == 0 {
+            StrandResult::from(StrandValidationError::Zero)
         } else {
-            Ok(Self(value))
+            StrandResult::from(Self(index))
         }
     }
 }
+
 impl From<Strand> for u16 {
     fn from(value: Strand) -> Self {
         value.0
@@ -255,81 +186,81 @@ impl AsRef<u16> for Strand {
 }
 
 impl std::ops::Add for Strand {
-    type Output = Result<Self, StrandValidationError>;
+    type Output = StrandResult;
     fn add(self, rhs: Self) -> Self::Output {
         if u16::MAX - self.0 < rhs.0 {
-            Err(StrandValidationError::Addition {
+            StrandResult::from(StrandValidationError::Addition {
                 left: self.0,
                 right: rhs.0,
             })
         } else {
-            Ok(Self(self.0 + rhs.0))
+            Self::try_new(self.0 + rhs.0)
         }
     }
 }
 impl std::ops::Add<u16> for Strand {
-    type Output = Result<Self, StrandValidationError>;
+    type Output = StrandResult;
     fn add(self, rhs: u16) -> Self::Output {
         if u16::MAX - self.0 < rhs {
-            Err(StrandValidationError::Addition {
+            StrandResult::from(StrandValidationError::Addition {
                 left: self.0,
                 right: rhs,
             })
         } else {
-            Ok(Self(self.0 + rhs))
+            Self::try_new(self.0 + rhs)
         }
     }
 }
 impl std::ops::Add<Strand> for u16 {
-    type Output = Result<Strand, StrandValidationError>;
+    type Output = StrandResult;
     fn add(self, rhs: Strand) -> Self::Output {
         if u16::MAX - self < rhs.0 {
-            Err(StrandValidationError::Addition {
+            StrandResult::from(StrandValidationError::Addition {
                 left: self,
                 right: rhs.0,
             })
         } else {
-            Ok(Strand(self + rhs.0))
+            Strand::try_new(self + rhs.0)
         }
     }
 }
 
 impl std::ops::Sub for Strand {
-    type Output = Result<Self, StrandValidationError>;
+    type Output = StrandResult;
     fn sub(self, rhs: Self) -> Self::Output {
         if self.0 <= rhs.0 {
-            Err(StrandValidationError::Subtraction {
+            StrandResult::from(StrandValidationError::Subtraction {
                 left: self.0,
                 right: rhs.0,
             })
         } else {
-            Self::new(self.0 - rhs.0)
+            Self::try_new(self.0 - rhs.0)
         }
     }
 }
 impl std::ops::Sub<u16> for Strand {
-    type Output = Result<Self, StrandValidationError>;
+    type Output = StrandResult;
     fn sub(self, rhs: u16) -> Self::Output {
         if self.0 <= rhs {
-            Err(StrandValidationError::Subtraction {
+            StrandResult::from(StrandValidationError::Subtraction {
                 left: self.0,
                 right: rhs,
             })
         } else {
-            Self::new(self.0 - rhs)
+            Self::try_new(self.0 - rhs)
         }
     }
 }
 impl std::ops::Sub<Strand> for u16 {
-    type Output = Result<Strand, StrandValidationError>;
+    type Output = StrandResult;
     fn sub(self, rhs: Strand) -> Self::Output {
         if self <= rhs.0 {
-            Err(StrandValidationError::Subtraction {
+            StrandResult::from(StrandValidationError::Subtraction {
                 left: self,
                 right: rhs.0,
             })
         } else {
-            Strand::new(self - rhs.0)
+            Strand::try_new(self - rhs.0)
         }
     }
 }
@@ -343,34 +274,31 @@ mod tests {
     #[test]
     fn valid_input_yields_successful_construction() {
         let valid_strands = [
-            Strand::try_from(1),
-            Strand::new(1),
-            Strand::new(Strand::try_from(1).unwrap()),
-            Strand::new(BraidIndex::try_from(1).unwrap()),
+            Strand::try_new(1),
+            Strand::try_new(Strand::try_new(1).unwrap()),
+            Strand::try_new(BraidIndex::try_new(1).unwrap()),
         ];
 
-        assert_that!(valid_strands, each(ok(anything())));
+        assert_that!(&valid_strands, each(derefs_to(ok(anything()))));
     }
 
     #[test]
     fn derefs_to_u16() {
         let test_strands = [
-            &Strand::try_from(1),
-            &Strand::new(1),
-            &Strand::new(Strand::try_from(1).unwrap()),
-            &Strand::new(BraidIndex::try_from(1).unwrap()),
+            &Strand::try_new(1),
+            &Strand::try_new(Strand::try_new(1).unwrap()),
+            &Strand::try_new(BraidIndex::try_new(1).unwrap()),
         ];
 
-        assert_that!(test_strands, each(ok(derefs_to(eq(&1)))));
+        assert_that!(test_strands, each(derefs_to(ok(derefs_to(eq(&1))))));
     }
 
     #[test]
     fn can_coerce_strand_into_u16() {
-        let coerced_strands: [u16; 4] = [
-            Strand::try_from(1).unwrap().into(),
-            Strand::new(1).unwrap().into(),
-            Strand::new(Strand::try_from(1).unwrap()).unwrap().into(),
-            Strand::new(BraidIndex::try_from(1).unwrap())
+        let coerced_strands: [u16; 3] = [
+            Strand::try_new(1).unwrap().into(),
+            Strand::try_new(Strand::try_new(1).unwrap()).unwrap().into(),
+            Strand::try_new(BraidIndex::try_new(1).unwrap())
                 .unwrap()
                 .into(),
         ];
@@ -385,10 +313,9 @@ mod tests {
         }
 
         let test_strands = [
-            Strand::try_from(1).unwrap(),
-            Strand::new(1).unwrap(),
-            Strand::new(Strand::try_from(1).unwrap()).unwrap(),
-            Strand::new(BraidIndex::try_from(1).unwrap()).unwrap(),
+            Strand::try_new(1).unwrap(),
+            Strand::try_new(Strand::try_new(1).unwrap()).unwrap(),
+            Strand::try_new(BraidIndex::try_new(1).unwrap()).unwrap(),
         ];
 
         assert_that!(
@@ -400,34 +327,37 @@ mod tests {
     #[test]
     fn valid_addition_succeeds() {
         let addition_examples = [
-            &(Strand::new(2).unwrap() + Strand::new(3).unwrap()),
-            &(Strand::new(2).unwrap() + 3),
-            &(2 + Strand::new(3).unwrap()),
-            &(Strand::new(5).unwrap() + 0),
-            &(0 + Strand::new(5).unwrap()),
+            &(Strand::try_new(2).unwrap() + Strand::try_new(3).unwrap()),
+            &(Strand::try_new(2).unwrap() + 3),
+            &(2 + Strand::try_new(3).unwrap()),
+            &(Strand::try_new(5).unwrap() + 0),
+            &(0 + Strand::try_new(5).unwrap()),
         ];
 
-        assert_that!(addition_examples, each(ok(derefs_to(eq(&5)))));
+        assert_that!(addition_examples, each(derefs_to(ok(derefs_to(eq(&5))))));
     }
 
     #[test]
     fn valid_subtraction_succeeds() {
         let addition_examples = [
-            &(Strand::new(3).unwrap() - Strand::new(2).unwrap()),
-            &(Strand::new(3).unwrap() - 2),
-            &(3 - Strand::new(2).unwrap()),
+            &(Strand::try_new(3).unwrap() - Strand::try_new(2).unwrap()),
+            &(Strand::try_new(3).unwrap() - 2),
+            &(3 - Strand::try_new(2).unwrap()),
         ];
 
-        assert_that!(addition_examples, each(ok(derefs_to(eq(&1)))));
+        assert_that!(addition_examples, each(derefs_to(ok(derefs_to(eq(&1))))));
     }
 
     #[gtest]
     fn invalid_constructor_input_fails() {
         let invalid_strands = [
-            (Strand::new(0), StrandValidationError::Zero),
-            (Strand::try_from(0), StrandValidationError::Zero),
+            (Strand::try_new(0), StrandValidationError::Zero),
             (
-                Strand::new(u16::MAX as u32 + 1),
+                Strand::try_new(-1),
+                StrandValidationError::FromInt(<i16 as TryInto<u16>>::try_into(-1).err().unwrap()),
+            ),
+            (
+                Strand::try_new(u16::MAX as u32 + 1),
                 StrandValidationError::FromInt(
                     <u32 as TryInto<u16>>::try_into(u16::MAX as u32 + 1)
                         .err()
@@ -437,7 +367,7 @@ mod tests {
         ];
 
         for (invalid_strand, error) in invalid_strands {
-            expect_that!(invalid_strand, err(eq(error)));
+            expect_that!(*invalid_strand, err(eq(error)));
         }
     }
 
@@ -445,42 +375,42 @@ mod tests {
     fn invalid_addition_fails() {
         let invalid_addition_examples = [
             (
-                Strand::new(u16::MAX - 1).unwrap() + Strand::new(2).unwrap(),
+                Strand::try_new(u16::MAX - 1).unwrap() + Strand::try_new(2).unwrap(),
                 StrandValidationError::Addition {
                     left: u16::MAX - 1,
                     right: 2,
                 },
             ),
             (
-                Strand::new(2).unwrap() + Strand::new(u16::MAX - 1).unwrap(),
+                Strand::try_new(2).unwrap() + Strand::try_new(u16::MAX - 1).unwrap(),
                 StrandValidationError::Addition {
                     left: 2,
                     right: u16::MAX - 1,
                 },
             ),
             (
-                Strand::new(u16::MAX - 1).unwrap() + 2,
+                Strand::try_new(u16::MAX - 1).unwrap() + 2,
                 StrandValidationError::Addition {
                     left: u16::MAX - 1,
                     right: 2,
                 },
             ),
             (
-                Strand::new(2).unwrap() + (u16::MAX - 1),
+                Strand::try_new(2).unwrap() + (u16::MAX - 1),
                 StrandValidationError::Addition {
                     left: 2,
                     right: u16::MAX - 1,
                 },
             ),
             (
-                (u16::MAX - 1) + Strand::new(2).unwrap(),
+                (u16::MAX - 1) + Strand::try_new(2).unwrap(),
                 StrandValidationError::Addition {
                     left: u16::MAX - 1,
                     right: 2,
                 },
             ),
             (
-                2 + Strand::new(u16::MAX - 1).unwrap(),
+                2 + Strand::try_new(u16::MAX - 1).unwrap(),
                 StrandValidationError::Addition {
                     left: 2,
                     right: u16::MAX - 1,
@@ -489,7 +419,7 @@ mod tests {
         ];
 
         for (invalid_addition, error) in invalid_addition_examples {
-            expect_that!(invalid_addition, err(eq(error)));
+            expect_that!(*invalid_addition, err(eq(error)));
         }
     }
 
@@ -497,33 +427,33 @@ mod tests {
     fn invalid_subtraction_fails() {
         let invalid_subtraction_examples = [
             (
-                Strand::new(2).unwrap() - Strand::new(2).unwrap(),
+                Strand::try_new(2).unwrap() - Strand::try_new(2).unwrap(),
                 StrandValidationError::Subtraction { left: 2, right: 2 },
             ),
             (
-                Strand::new(2).unwrap() - 2,
+                Strand::try_new(2).unwrap() - 2,
                 StrandValidationError::Subtraction { left: 2, right: 2 },
             ),
             (
-                2 - Strand::new(2).unwrap(),
+                2 - Strand::try_new(2).unwrap(),
                 StrandValidationError::Subtraction { left: 2, right: 2 },
             ),
             (
-                Strand::new(2).unwrap() - Strand::new(3).unwrap(),
+                Strand::try_new(2).unwrap() - Strand::try_new(3).unwrap(),
                 StrandValidationError::Subtraction { left: 2, right: 3 },
             ),
             (
-                Strand::new(2).unwrap() - 3,
+                Strand::try_new(2).unwrap() - 3,
                 StrandValidationError::Subtraction { left: 2, right: 3 },
             ),
             (
-                2 - Strand::new(3).unwrap(),
+                2 - Strand::try_new(3).unwrap(),
                 StrandValidationError::Subtraction { left: 2, right: 3 },
             ),
         ];
 
         for (invalid_subtraction, error) in invalid_subtraction_examples {
-            expect_that!(invalid_subtraction, err(eq(error)));
+            expect_that!(*invalid_subtraction, err(eq(error)));
         }
     }
 }

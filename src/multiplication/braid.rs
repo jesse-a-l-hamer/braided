@@ -1,249 +1,509 @@
-use crate::{Braid, BraidValidationError, Letter, Word};
+use crate::{
+    Braid, BraidResult, BraidValidationError, Letter, LetterResult, Word, WordResult,
+    WordValidationError,
+};
 
 impl std::ops::Mul<Letter> for Braid {
-    type Output = Result<Self, BraidValidationError>;
+    type Output = BraidResult;
     fn mul(self, rhs: Letter) -> Self::Output {
         if let required_index = rhs.minimal_required_braid_index()
             && self.braid_index() < required_index
         {
-            Err(BraidValidationError::IndexTooSmall {
+            BraidResult::from(BraidValidationError::IndexTooSmall {
                 index: self.braid_index(),
                 minimal_required_index: required_index,
             })
         } else {
-            Self::new(Some(self.braid_index()), (self.word() * rhs)?)
+            match &*(self.word() * rhs) {
+                Ok(word) => Self::try_new(Some(self.braid_index()), word.clone()),
+                Err(e) => BraidResult::from(BraidValidationError::from(*e)),
+            }
         }
     }
 }
 impl std::ops::Mul<Braid> for Letter {
-    type Output = Result<Braid, BraidValidationError>;
+    type Output = BraidResult;
 
     fn mul(self, rhs: Braid) -> Self::Output {
         if let required_index = self.minimal_required_braid_index()
             && rhs.braid_index() < required_index
         {
-            Err(BraidValidationError::IndexTooSmall {
+            BraidResult::from(BraidValidationError::IndexTooSmall {
                 index: rhs.braid_index(),
                 minimal_required_index: required_index,
             })
         } else {
-            Braid::new(Some(rhs.braid_index()), (self * rhs.word())?)
+            match &*(self * rhs.word()) {
+                Ok(word) => Braid::try_new(Some(rhs.braid_index()), word.clone()),
+                Err(e) => BraidResult::from(BraidValidationError::from(*e)),
+            }
         }
     }
 }
 impl std::ops::Mul<Word> for Braid {
-    type Output = Result<Self, BraidValidationError>;
+    type Output = BraidResult;
     fn mul(self, rhs: Word) -> Self::Output {
         if let required_index = rhs.minimal_required_braid_index()
             && self.braid_index() < required_index
         {
-            Err(BraidValidationError::IndexTooSmall {
+            BraidResult::from(BraidValidationError::IndexTooSmall {
                 index: self.braid_index(),
                 minimal_required_index: required_index,
             })
         } else {
-            Self::new(Some(self.braid_index()), (self.word() * rhs)?)
+            match &*(self.word() * rhs) {
+                Ok(word) => Self::try_new(Some(self.braid_index()), word.clone()),
+                Err(e) => BraidResult::from(BraidValidationError::from(*e)),
+            }
         }
     }
 }
 impl std::ops::Mul<Braid> for Word {
-    type Output = Result<Braid, BraidValidationError>;
+    type Output = BraidResult;
 
     fn mul(self, rhs: Braid) -> Self::Output {
         if let required_index = self.minimal_required_braid_index()
             && rhs.braid_index() < required_index
         {
-            Err(BraidValidationError::IndexTooSmall {
+            BraidResult::from(BraidValidationError::IndexTooSmall {
                 index: rhs.braid_index(),
                 minimal_required_index: required_index,
             })
         } else {
-            Braid::new(Some(rhs.braid_index()), (self * rhs.word())?)
+            match &*(self * rhs.word()) {
+                Ok(word) => Braid::try_new(Some(rhs.braid_index()), word.clone()),
+                Err(e) => BraidResult::from(BraidValidationError::from(*e)),
+            }
         }
     }
 }
 impl std::ops::Mul for Braid {
-    type Output = Result<Self, BraidValidationError>;
+    type Output = BraidResult;
     fn mul(self, rhs: Self) -> Self::Output {
         if self.braid_index() != rhs.braid_index() {
-            Err(BraidValidationError::UnequalIndices {
+            BraidResult::from(BraidValidationError::UnequalIndices {
                 left: self.braid_index(),
                 right: rhs.braid_index(),
             })
         } else {
-            Self::new(Some(self.braid_index()), (self.word() * rhs.word())?)
+            match &*(self.word() * rhs.word()) {
+                Ok(word) => Self::try_new(Some(self.braid_index()), word.clone()),
+                Err(e) => BraidResult::from(BraidValidationError::from(*e)),
+            }
         }
     }
 }
+
 impl std::ops::Mul<Letter> for &Braid {
-    type Output = Result<Braid, BraidValidationError>;
+    type Output = BraidResult;
     fn mul(self, rhs: Letter) -> Self::Output {
         self.clone() * rhs
     }
 }
 impl std::ops::Mul<&Braid> for Letter {
-    type Output = Result<Braid, BraidValidationError>;
+    type Output = BraidResult;
     fn mul(self, rhs: &Braid) -> Self::Output {
         self * rhs.clone()
     }
 }
 impl std::ops::Mul<Word> for &Braid {
-    type Output = Result<Braid, BraidValidationError>;
+    type Output = BraidResult;
     fn mul(self, rhs: Word) -> Self::Output {
         self.clone() * rhs
     }
 }
 impl std::ops::Mul<&Braid> for Word {
-    type Output = Result<Braid, BraidValidationError>;
+    type Output = BraidResult;
     fn mul(self, rhs: &Braid) -> Self::Output {
         self * rhs.clone()
     }
 }
 impl std::ops::Mul<&Word> for Braid {
-    type Output = Result<Braid, BraidValidationError>;
+    type Output = BraidResult;
     fn mul(self, rhs: &Word) -> Self::Output {
         self * rhs.clone()
     }
 }
 impl std::ops::Mul<Braid> for &Word {
-    type Output = Result<Braid, BraidValidationError>;
+    type Output = BraidResult;
     fn mul(self, rhs: Braid) -> Self::Output {
         self.clone() * rhs
     }
 }
 impl std::ops::Mul<&Word> for &Braid {
-    type Output = Result<Braid, BraidValidationError>;
+    type Output = BraidResult;
     fn mul(self, rhs: &Word) -> Self::Output {
         self.clone() * rhs.clone()
     }
 }
 impl std::ops::Mul<&Braid> for &Word {
-    type Output = Result<Braid, BraidValidationError>;
+    type Output = BraidResult;
     fn mul(self, rhs: &Braid) -> Self::Output {
         self.clone() * rhs.clone()
     }
 }
 impl std::ops::Mul<Braid> for &Braid {
-    type Output = Result<Braid, BraidValidationError>;
+    type Output = BraidResult;
     fn mul(self, rhs: Braid) -> Self::Output {
         self.clone() * rhs
     }
 }
 impl std::ops::Mul<&Braid> for Braid {
-    type Output = Result<Braid, BraidValidationError>;
+    type Output = BraidResult;
     fn mul(self, rhs: &Braid) -> Self::Output {
         self * rhs.clone()
     }
 }
 impl std::ops::Mul<&Braid> for &Braid {
-    type Output = Result<Braid, BraidValidationError>;
+    type Output = BraidResult;
     fn mul(self, rhs: &Braid) -> Self::Output {
         self.clone() * rhs.clone()
     }
 }
 
+impl std::ops::Mul<Braid> for LetterResult {
+    type Output = BraidResult;
+    fn mul(self, rhs: Braid) -> Self::Output {
+        match *self {
+            Ok(lhs) => lhs * rhs,
+            Err(lhs) => BraidResult::from(Err(BraidValidationError::from(
+                WordValidationError::from(lhs),
+            ))),
+        }
+    }
+}
+impl std::ops::Mul<&Braid> for LetterResult {
+    type Output = BraidResult;
+    fn mul(self, rhs: &Braid) -> Self::Output {
+        match *self {
+            Ok(lhs) => lhs * rhs,
+            Err(lhs) => BraidResult::from(Err(BraidValidationError::from(
+                WordValidationError::from(lhs),
+            ))),
+        }
+    }
+}
+impl std::ops::Mul<LetterResult> for Braid {
+    type Output = BraidResult;
+    fn mul(self, rhs: LetterResult) -> Self::Output {
+        match *rhs {
+            Ok(rhs) => self * rhs,
+            Err(rhs) => BraidResult::from(Err(BraidValidationError::from(
+                WordValidationError::from(rhs),
+            ))),
+        }
+    }
+}
+impl std::ops::Mul<LetterResult> for &Braid {
+    type Output = BraidResult;
+    fn mul(self, rhs: LetterResult) -> Self::Output {
+        match *rhs {
+            Ok(rhs) => self * rhs,
+            Err(rhs) => BraidResult::from(Err(BraidValidationError::from(
+                WordValidationError::from(rhs),
+            ))),
+        }
+    }
+}
+impl std::ops::Mul<Braid> for WordResult {
+    type Output = BraidResult;
+    fn mul(self, rhs: Braid) -> Self::Output {
+        match &*self {
+            Ok(lhs) => lhs * rhs,
+            Err(lhs) => BraidResult::from(Err(BraidValidationError::from(*lhs))),
+        }
+    }
+}
+impl std::ops::Mul<&Braid> for WordResult {
+    type Output = BraidResult;
+    fn mul(self, rhs: &Braid) -> Self::Output {
+        match &*self {
+            Ok(lhs) => lhs * rhs,
+            Err(lhs) => BraidResult::from(Err(BraidValidationError::from(*lhs))),
+        }
+    }
+}
+impl std::ops::Mul<WordResult> for Braid {
+    type Output = BraidResult;
+    fn mul(self, rhs: WordResult) -> Self::Output {
+        match &*rhs {
+            Ok(rhs) => self * rhs,
+            Err(rhs) => BraidResult::from(Err(BraidValidationError::from(*rhs))),
+        }
+    }
+}
+impl std::ops::Mul<WordResult> for &Braid {
+    type Output = BraidResult;
+    fn mul(self, rhs: WordResult) -> Self::Output {
+        match &*rhs {
+            Ok(rhs) => self * rhs,
+            Err(rhs) => BraidResult::from(Err(BraidValidationError::from(*rhs))),
+        }
+    }
+}
+impl std::ops::Mul<Braid> for BraidResult {
+    type Output = BraidResult;
+    fn mul(self, rhs: Braid) -> Self::Output {
+        match &*self {
+            Ok(lhs) => lhs * rhs,
+            Err(lhs) => BraidResult::from(Err(*lhs)),
+        }
+    }
+}
+impl std::ops::Mul<&Braid> for BraidResult {
+    type Output = BraidResult;
+    fn mul(self, rhs: &Braid) -> Self::Output {
+        match &*self {
+            Ok(lhs) => lhs * rhs,
+            Err(lhs) => BraidResult::from(Err(*lhs)),
+        }
+    }
+}
+impl std::ops::Mul<BraidResult> for Braid {
+    type Output = BraidResult;
+    fn mul(self, rhs: BraidResult) -> Self::Output {
+        match &*rhs {
+            Ok(rhs) => self * rhs,
+            Err(rhs) => BraidResult::from(Err(*rhs)),
+        }
+    }
+}
+impl std::ops::Mul<BraidResult> for &Braid {
+    type Output = BraidResult;
+    fn mul(self, rhs: BraidResult) -> Self::Output {
+        match &*rhs {
+            Ok(rhs) => self * rhs,
+            Err(rhs) => BraidResult::from(Err(*rhs)),
+        }
+    }
+}
+impl std::ops::Mul<Word> for BraidResult {
+    type Output = BraidResult;
+    fn mul(self, rhs: Word) -> Self::Output {
+        match &*self {
+            Ok(lhs) => lhs * rhs,
+            Err(lhs) => BraidResult::from(Err(*lhs)),
+        }
+    }
+}
+impl std::ops::Mul<&Word> for BraidResult {
+    type Output = BraidResult;
+    fn mul(self, rhs: &Word) -> Self::Output {
+        match &*self {
+            Ok(lhs) => lhs * rhs,
+            Err(lhs) => BraidResult::from(Err(*lhs)),
+        }
+    }
+}
+impl std::ops::Mul<BraidResult> for Word {
+    type Output = BraidResult;
+    fn mul(self, rhs: BraidResult) -> Self::Output {
+        match &*rhs {
+            Ok(rhs) => self * rhs,
+            Err(rhs) => BraidResult::from(Err(*rhs)),
+        }
+    }
+}
+impl std::ops::Mul<BraidResult> for &Word {
+    type Output = BraidResult;
+    fn mul(self, rhs: BraidResult) -> Self::Output {
+        match &*rhs {
+            Ok(rhs) => self * rhs,
+            Err(rhs) => BraidResult::from(Err(*rhs)),
+        }
+    }
+}
+impl std::ops::Mul<Letter> for BraidResult {
+    type Output = BraidResult;
+    fn mul(self, rhs: Letter) -> Self::Output {
+        match &*self {
+            Ok(lhs) => lhs * rhs,
+            Err(lhs) => BraidResult::from(Err(*lhs)),
+        }
+    }
+}
+impl std::ops::Mul<BraidResult> for Letter {
+    type Output = BraidResult;
+    fn mul(self, rhs: BraidResult) -> Self::Output {
+        match &*rhs {
+            Ok(rhs) => self * rhs,
+            Err(rhs) => BraidResult::from(Err(*rhs)),
+        }
+    }
+}
+impl std::ops::Mul<LetterResult> for BraidResult {
+    type Output = BraidResult;
+    fn mul(self, rhs: LetterResult) -> Self::Output {
+        match (&*self, *rhs) {
+            (Ok(lhs), Ok(rhs)) => lhs * rhs,
+            (Err(lhs), _) => BraidResult::from(Err(*lhs)),
+            (_, Err(rhs)) => BraidResult::from(Err(BraidValidationError::from(
+                WordValidationError::from(rhs),
+            ))),
+        }
+    }
+}
+impl std::ops::Mul<BraidResult> for LetterResult {
+    type Output = BraidResult;
+    fn mul(self, rhs: BraidResult) -> Self::Output {
+        match (*self, &*rhs) {
+            (Ok(lhs), Ok(rhs)) => lhs * rhs,
+            (Err(lhs), _) => BraidResult::from(Err(BraidValidationError::from(
+                WordValidationError::from(lhs),
+            ))),
+            (_, Err(rhs)) => BraidResult::from(Err(*rhs)),
+        }
+    }
+}
+impl std::ops::Mul<WordResult> for BraidResult {
+    type Output = BraidResult;
+    fn mul(self, rhs: WordResult) -> Self::Output {
+        match (&*self, &*rhs) {
+            (Ok(lhs), Ok(rhs)) => lhs * rhs,
+            (Err(lhs), _) => BraidResult::from(Err(*lhs)),
+            (_, Err(rhs)) => BraidResult::from(Err(BraidValidationError::from(*rhs))),
+        }
+    }
+}
+impl std::ops::Mul<BraidResult> for WordResult {
+    type Output = BraidResult;
+    fn mul(self, rhs: BraidResult) -> Self::Output {
+        match (&*self, &*rhs) {
+            (Ok(lhs), Ok(rhs)) => lhs * rhs,
+            (Err(lhs), _) => BraidResult::from(Err(BraidValidationError::from(*lhs))),
+            (_, Err(rhs)) => BraidResult::from(Err(*rhs)),
+        }
+    }
+}
+impl std::ops::Mul<BraidResult> for BraidResult {
+    type Output = BraidResult;
+    fn mul(self, rhs: BraidResult) -> Self::Output {
+        match (&*self, &*rhs) {
+            (Ok(lhs), Ok(rhs)) => lhs * rhs,
+            (Err(lhs), _) => BraidResult::from(Err(*lhs)),
+            (_, Err(rhs)) => BraidResult::from(Err(*rhs)),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::{Braid, BraidIndex, BraidValidationError, Letter, Sign, Word, braid, letter, word};
+    use crate::{
+        Braid, BraidIndex, BraidResult, BraidValidationError, Letter, Sign, Word, braid, letter,
+        word,
+    };
     use googletest::matchers::{eq, err};
     use googletest::{assert_that, expect_that, gtest};
 
     #[gtest]
     fn valid_multiplication_with_letter_succeeds_and_computes_as_expected() {
         let letters = vec![
-            Letter::new(1, Some(3), Sign::Positive).unwrap(),
-            Letter::new(2, None::<u16>, Sign::Negative).unwrap(),
-            Letter::new(2, Some(8), Sign::Positive).unwrap(),
+            Letter::try_new(1, Some(3), Sign::Positive).unwrap(),
+            Letter::try_new(2, None::<u16>, Sign::Negative).unwrap(),
+            Letter::try_new(2, Some(8), Sign::Positive).unwrap(),
         ];
-        let braid = Braid::try_from(&letters[..]).unwrap();
-        let other_letter = Letter::new(3, Some(7), Sign::Negative).unwrap();
+        let braid = Braid::try_from_letters(&letters).as_ref().unwrap().clone();
+        let other_letter = Letter::try_new(3, Some(7), Sign::Negative).unwrap();
 
         expect_that!(
             braid.clone() * other_letter,
-            eq(&Braid::try_from(
-                [letters.clone(), vec![other_letter]].concat()
+            eq(&Braid::try_from_letters(
+                &[letters.clone(), vec![other_letter]].concat()
             ))
         );
         expect_that!(
             other_letter * braid,
-            eq(&Braid::try_from([vec![other_letter], letters].concat()))
+            eq(&Braid::try_from_letters(
+                &[vec![other_letter], letters].concat()
+            ))
         );
     }
 
     #[gtest]
     fn valid_multiplication_with_word_succeeds_and_computes_as_expected() {
-        let braid = Braid::try_from(vec![
-            Letter::new(1, Some(3), Sign::Positive).unwrap(),
-            Letter::new(2, None::<u16>, Sign::Negative).unwrap(),
-            Letter::new(2, Some(8), Sign::Positive).unwrap(),
+        let braid = Braid::try_from_letters(&vec![
+            Letter::try_new(1, Some(3), Sign::Positive).unwrap(),
+            Letter::try_new(2, None::<u16>, Sign::Negative).unwrap(),
+            Letter::try_new(2, Some(8), Sign::Positive).unwrap(),
         ])
-        .unwrap();
-        let word = Word::try_from(vec![
-            Letter::new(3, None::<u16>, Sign::Negative).unwrap(),
-            Letter::new(2, Some(7), Sign::Negative).unwrap(),
+        .as_ref()
+        .unwrap()
+        .clone();
+        let word = Word::try_from_letters(&vec![
+            Letter::try_new(3, None::<u16>, Sign::Negative).unwrap(),
+            Letter::try_new(2, Some(7), Sign::Negative).unwrap(),
         ])
-        .unwrap();
+        .as_ref()
+        .unwrap()
+        .clone();
 
         expect_that!(
             braid.clone() * word.clone(),
-            eq(&Braid::new(
+            eq(&Braid::try_new(
                 None::<u16>,
-                (braid.word() * word.clone()).unwrap()
+                (braid.word() * word.clone()).as_ref().unwrap().clone()
             )),
         );
         expect_that!(
             word.clone() * braid.clone(),
-            eq(&Braid::new(None::<u16>, (word * braid.word()).unwrap()))
+            eq(&Braid::try_new(
+                None::<u16>,
+                (word * braid.word()).as_ref().unwrap().clone()
+            ))
         );
     }
 
     #[gtest]
     fn valid_multiplication_with_braid_succeeds_and_computes_as_expected() {
-        let braid1 = Braid::try_from(vec![
-            Letter::new(1, Some(3), Sign::Positive).unwrap(),
-            Letter::new(2, None::<u16>, Sign::Negative).unwrap(),
-            Letter::new(2, Some(8), Sign::Positive).unwrap(),
+        let braid1 = Braid::try_from_letters(&vec![
+            Letter::try_new(1, Some(3), Sign::Positive).unwrap(),
+            Letter::try_new(2, None::<u16>, Sign::Negative).unwrap(),
+            Letter::try_new(2, Some(8), Sign::Positive).unwrap(),
         ])
-        .unwrap();
-        let braid2 = Braid::new(
+        .as_ref()
+        .unwrap()
+        .clone();
+        let braid2 = Braid::try_new(
             Some(8),
-            Word::try_from(vec![
-                Letter::new(3, None::<u16>, Sign::Negative).unwrap(),
-                Letter::new(2, Some(7), Sign::Negative).unwrap(),
+            Word::try_from_letters(&vec![
+                Letter::try_new(3, None::<u16>, Sign::Negative).unwrap(),
+                Letter::try_new(2, Some(7), Sign::Negative).unwrap(),
             ])
-            .unwrap(),
+            .as_ref()
+            .unwrap()
+            .clone(),
         )
-        .unwrap();
+        .as_ref()
+        .unwrap()
+        .clone();
 
         expect_that!(
             braid1.clone() * braid2.clone(),
-            eq(&Braid::new(
+            eq(&Braid::try_new(
                 None::<u16>,
-                (braid1.word() * braid2.word()).unwrap()
+                (braid1.word() * braid2.word()).as_ref().unwrap().clone()
             )),
         );
         expect_that!(
             braid2.clone() * braid1.clone(),
-            eq(&Braid::new(
+            eq(&Braid::try_new(
                 None::<u16>,
-                (braid2.word() * braid1.word()).unwrap()
+                (braid2.word() * braid1.word()).as_ref().unwrap().clone()
             ))
         );
     }
 
     #[gtest]
     fn invalid_multiplication_fails_as_expected() {
-        let letter = Letter::new(7, None::<u16>, Sign::Positive).unwrap();
-        let word = Word::new(vec![
+        let letter = Letter::try_new(7, None::<u16>, Sign::Positive).unwrap();
+        let word = Word::try_new(vec![
             (2, Some(8), Sign::Negative),
             (1, None::<u16>, Sign::Positive),
         ])
-        .unwrap();
-        let invalid_braids: Vec<(
-            Result<Braid, BraidValidationError>,
-            BraidValidationError,
-            &'static str,
-        )> = vec![
+        .as_ref()
+        .unwrap()
+        .clone();
+        let invalid_braids: Vec<(BraidResult, BraidValidationError, &'static str)> = vec![
             (
                 Braid::from_data(
                     None::<u16>,
@@ -254,11 +514,13 @@ mod tests {
                         (4, Some(5), Sign::Positive),
                     ],
                 )
+                .as_ref()
                 .unwrap()
+                .clone()
                     * letter,
                 BraidValidationError::IndexTooSmall {
-                    index: BraidIndex::new(5).unwrap(),
-                    minimal_required_index: BraidIndex::new(8).unwrap(),
+                    index: BraidIndex::try_new(5).unwrap(),
+                    minimal_required_index: BraidIndex::try_new(8).unwrap(),
                 },
                 "index too small, braid * letter",
             ),
@@ -273,10 +535,12 @@ mod tests {
                             (4, Some(5), Sign::Positive),
                         ],
                     )
-                    .unwrap(),
+                    .as_ref()
+                    .unwrap()
+                    .clone(),
                 BraidValidationError::IndexTooSmall {
-                    index: BraidIndex::new(5).unwrap(),
-                    minimal_required_index: BraidIndex::new(8).unwrap(),
+                    index: BraidIndex::try_new(5).unwrap(),
+                    minimal_required_index: BraidIndex::try_new(8).unwrap(),
                 },
                 "index too small, letter * braid",
             ),
@@ -290,11 +554,13 @@ mod tests {
                         (4, Some(5), Sign::Positive),
                     ],
                 )
+                .as_ref()
                 .unwrap()
+                .clone()
                     * word.clone(),
                 BraidValidationError::IndexTooSmall {
-                    index: BraidIndex::new(5).unwrap(),
-                    minimal_required_index: BraidIndex::new(8).unwrap(),
+                    index: BraidIndex::try_new(5).unwrap(),
+                    minimal_required_index: BraidIndex::try_new(8).unwrap(),
                 },
                 "index too small, braid * word",
             ),
@@ -309,19 +575,27 @@ mod tests {
                             (4, Some(5), Sign::Positive),
                         ],
                     )
-                    .unwrap(),
+                    .as_ref()
+                    .unwrap()
+                    .clone(),
                 BraidValidationError::IndexTooSmall {
-                    index: BraidIndex::new(5).unwrap(),
-                    minimal_required_index: BraidIndex::new(8).unwrap(),
+                    index: BraidIndex::try_new(5).unwrap(),
+                    minimal_required_index: BraidIndex::try_new(8).unwrap(),
                 },
                 "index too small, word * braid",
             ),
             (
-                Braid::from_data(Some(10), word.clone()).unwrap()
-                    * Braid::from_data(Some(11), word.clone()).unwrap(),
+                Braid::from_data(Some(10), word.clone())
+                    .as_ref()
+                    .unwrap()
+                    .clone()
+                    * Braid::from_data(Some(11), word.clone())
+                        .as_ref()
+                        .unwrap()
+                        .clone(),
                 BraidValidationError::UnequalIndices {
-                    left: BraidIndex::new(10).unwrap(),
-                    right: BraidIndex::new(11).unwrap(),
+                    left: BraidIndex::try_new(10).unwrap(),
+                    right: BraidIndex::try_new(11).unwrap(),
                 },
                 "unequal indices",
             ),
@@ -330,13 +604,16 @@ mod tests {
                     Some(10),
                     vec![(1, None::<u16>, Sign::Positive); u16::MAX as usize],
                 )
+                .as_ref()
                 .unwrap()
+                .clone()
                     * letter,
                 BraidValidationError::from(
-                    Word::new(vec![
+                    *Word::try_new(vec![
                         (1, None::<u16>, Sign::Positive);
                         u16::MAX as usize + 1
                     ])
+                    .as_ref()
                     .err()
                     .unwrap(),
                 ),
@@ -348,12 +625,15 @@ mod tests {
                         Some(10),
                         vec![(1, None::<u16>, Sign::Positive); u16::MAX as usize],
                     )
-                    .unwrap(),
+                    .as_ref()
+                    .unwrap()
+                    .clone(),
                 BraidValidationError::from(
-                    Word::new(vec![
+                    *Word::try_new(vec![
                         (1, None::<u16>, Sign::Positive);
                         u16::MAX as usize + 1
                     ])
+                    .as_ref()
                     .err()
                     .unwrap(),
                 ),
@@ -364,13 +644,16 @@ mod tests {
                     Some(10),
                     vec![(1, None::<u16>, Sign::Positive); u16::MAX as usize],
                 )
+                .as_ref()
                 .unwrap()
+                .clone()
                     * word.clone(),
                 BraidValidationError::from(
-                    Word::new(vec![
+                    *Word::try_new(vec![
                         (1, None::<u16>, Sign::Positive);
                         u16::MAX as usize + 12
                     ])
+                    .as_ref()
                     .err()
                     .unwrap(),
                 ),
@@ -381,12 +664,15 @@ mod tests {
                     Some(10),
                     vec![(1, None::<u16>, Sign::Positive); u16::MAX as usize],
                 )
-                .unwrap(),
+                .as_ref()
+                .unwrap()
+                .clone(),
                 BraidValidationError::from(
-                    Word::new(vec![
+                    *Word::try_new(vec![
                         (1, None::<u16>, Sign::Positive);
                         u16::MAX as usize + 12
                     ])
+                    .as_ref()
                     .err()
                     .unwrap(),
                 ),
@@ -397,31 +683,42 @@ mod tests {
                     None::<u16>,
                     vec![(1, None::<u16>, Sign::Positive); u16::MAX as usize],
                 )
+                .as_ref()
                 .unwrap()
+                .clone()
                     * Braid::from_data(None::<u16>, vec![(1, None::<u16>, Sign::Positive)])
-                        .unwrap(),
+                        .as_ref()
+                        .unwrap()
+                        .clone(),
                 BraidValidationError::from(
-                    Word::new(vec![
+                    *Word::try_new(vec![
                         (1, None::<u16>, Sign::Positive);
                         u16::MAX as usize + 1
                     ])
+                    .as_ref()
                     .err()
                     .unwrap(),
                 ),
                 "word failed validation, long_braid * short_braid",
             ),
             (
-                Braid::from_data(None::<u16>, vec![(1, None::<u16>, Sign::Positive)]).unwrap()
+                Braid::from_data(None::<u16>, vec![(1, None::<u16>, Sign::Positive)])
+                    .as_ref()
+                    .unwrap()
+                    .clone()
                     * Braid::from_data(
                         None::<u16>,
                         vec![(1, None::<u16>, Sign::Positive); u16::MAX as usize],
                     )
-                    .unwrap(),
+                    .as_ref()
+                    .unwrap()
+                    .clone(),
                 BraidValidationError::from(
-                    Word::new(vec![
+                    *Word::try_new(vec![
                         (1, None::<u16>, Sign::Positive);
                         u16::MAX as usize + 1
                     ])
+                    .as_ref()
                     .err()
                     .unwrap(),
                 ),
@@ -430,7 +727,7 @@ mod tests {
         ];
 
         for (invalid_braid, error, label) in invalid_braids {
-            expect_that!(invalid_braid, err(eq(&error)), "{label}")
+            expect_that!(*invalid_braid, err(eq(&error)), "{label}")
         }
     }
 

@@ -1,258 +1,7 @@
 use crate::{
-    BraidIndex, IndexValidationError, Letter, Sign, StrandValidationError, Word,
-    WordValidationError,
+    BraidIndex, BraidResult, BraidValidationError, IndexValidationError, Letter, Sign,
+    StrandValidationError, Word,
 };
-
-/// Represents failure during attempt to construct a [`Braid`].
-///
-/// The only _infallible_ context in which a [braid](Braid) can be constructed is via the
-/// [`Braid::from`] method, by passing an already-validated [`Word`] and _inferring_ the
-/// [`BraidIndex`] from it. Every other constructor---including the [braid!](crate::braid) macro as
-/// well as multiplication---may return a [`BraidValidationError`]. We go through the possible
-/// failure cases now.
-///
-/// <div class="warning">
-///
-/// Please see the documentation for the [braid!](crate::braid) macro for more information on its
-/// failure scenarios.
-///
-/// </div>
-///
-/// # Invalid Construction Using [`Braid::new`]
-///
-/// 1. Failure to construct an explicitly provided [`BraidIndex`]
-///    ([`BraidValidationError::IndexValidation`]):
-///
-/// ```
-/// use braided::{Braid, BraidValidationError, Sign, Word};
-/// use std::assert_matches;
-///
-/// let word = Word::new(vec![(1, None::<u16>, Sign::Positive)]).unwrap();
-///
-/// let zero_index = Braid::new(Some(0), word.clone());
-/// let negative_index = Braid::new(Some(-1), word.clone());
-/// let big_index = Braid::new(
-///     Some(u16::MAX as u32 + 1),
-///     word,
-/// );
-///
-/// assert_matches!(zero_index, Err(BraidValidationError::IndexValidation(_)));
-/// assert_matches!(negative_index, Err(BraidValidationError::IndexValidation(_)));
-/// assert_matches!(big_index, Err(BraidValidationError::IndexValidation(_)));
-/// ```
-///
-/// 2. An explicitly provided [`BraidIndex`] is smaller than required by the given [`Word`]
-///    ([`BraidValidationError::IndexTooSmall`]):
-///
-/// ```
-/// use braided::{Braid, BraidIndex, BraidValidationError, Sign, Word};
-///
-/// let word = Word::new(vec![(2, None::<u16>, Sign::Positive)]).unwrap();
-/// let index_too_small = Braid::from_data(Some(2), word);
-///
-/// assert_eq!(
-///     index_too_small,
-///     Err(BraidValidationError::IndexTooSmall {
-///         index: BraidIndex::new(2).unwrap(),
-///         minimal_required_index: BraidIndex::new(3).unwrap(),
-///     }),
-/// );
-/// ```
-///
-/// # Invalid Construction Using [`Braid::from_data`]
-///
-/// 1. Failure to construct an explicitly provided [`BraidIndex`]
-///    ([`BraidValidationError::IndexValidation`]):
-///
-/// ```
-/// use braided::{Braid, BraidValidationError, Sign};
-/// use std::assert_matches;
-///
-/// let zero_index = Braid::from_data(Some(0), vec![(1, None::<u16>, Sign::Positive)]);
-/// let negative_index = Braid::from_data(Some(-1), vec![(1, None::<u16>, Sign::Positive)]);
-/// let big_index = Braid::from_data(
-///     Some(u16::MAX as u32 + 1),
-///     vec![(1, None::<u16>, Sign::Positive)],
-/// );
-///
-/// assert_matches!(zero_index, Err(BraidValidationError::IndexValidation(_)));
-/// assert_matches!(negative_index, Err(BraidValidationError::IndexValidation(_)));
-/// assert_matches!(big_index, Err(BraidValidationError::IndexValidation(_)));
-/// ```
-///
-/// 2. An explicitly provided [`BraidIndex`] is smaller than required by the given [`Letter`] data
-///    ([`BraidValidationError::IndexTooSmall`]):
-///
-/// ```
-/// use braided::{Braid, BraidIndex, BraidValidationError, Sign};
-///
-/// let index_too_small = Braid::from_data(Some(2), vec![(2, None::<u16>, Sign::Positive)]);
-///
-/// assert_eq!(
-///     index_too_small,
-///     Err(BraidValidationError::IndexTooSmall {
-///         index: BraidIndex::new(2).unwrap(),
-///         minimal_required_index: BraidIndex::new(3).unwrap(),
-///     }),
-/// );
-/// ```
-///
-/// 3. Failure to construct a valid [`Word`] from the given [`Letter`] data
-///    ([`BraidValidationError::WordValidation`]):
-///
-/// ```
-/// use braided::{Braid, BraidValidationError, Sign};
-/// use std::assert_matches;
-///
-/// let bad_letter = Braid::from_data(None::<u16>, vec![(0, None::<u16>, Sign::Positive)]);
-/// let long_word = Braid::from_data(
-///     Some(2),
-///     vec![(1, None::<u16>, Sign::Positive); u16::MAX as usize + 1],
-/// );
-///
-/// assert_matches!(bad_letter, Err(BraidValidationError::WordValidation(_)));
-/// assert_matches!(long_word, Err(BraidValidationError::WordValidation(_)));
-/// ```
-///
-/// # Invalid Construction Using [`Braid::try_from`]
-///
-/// 1. Failure to construct a valid [`Word`] from the given [letters](Letter), (e.g., because the
-///    number of [letters](Letter) provided exceeds [`u16::MAX`]; uses a
-///    [`BraidValidationError::WordValidation`]).
-///
-/// ```
-/// use braided::{Braid, BraidValidationError, Letter, Sign};
-/// use std::assert_matches;
-///
-/// let many_letters = vec![
-///         Letter::new(1, None::<u16>, Sign::Positive).unwrap();
-///         u16::MAX as usize + 1
-///     ];
-/// let one_short_one_tall = vec![
-///     Letter::new(3, None::<u16>, Sign::Negative).unwrap(),
-///     Letter::new(1, Some(2u16.pow(15) + 1), Sign::Negative).unwrap(),
-/// ];
-///
-/// assert_matches!(Braid::try_from(many_letters), Err(BraidValidationError::WordValidation(_)));
-/// assert_matches!(Braid::try_from(one_short_one_tall), Err(BraidValidationError::WordValidation(_)));
-/// ```
-///
-/// # Invalid Construction When Using  [`Braid::trivial`]
-///
-/// 1. Failure to construct a valid [`BraidIndex`] ([`BraidValidationError::IndexValidation`]):
-///
-/// ```
-/// use braided::{Braid, BraidValidationError, Sign};
-/// use std::assert_matches;
-///
-/// let zero_index = Braid::trivial(0);
-/// let negative_index = Braid::trivial(-1);
-/// let big_index = Braid::trivial(u16::MAX as u32 + 1);
-///
-/// assert_matches!(zero_index, Err(BraidValidationError::IndexValidation(_)));
-/// assert_matches!(negative_index, Err(BraidValidationError::IndexValidation(_)));
-/// assert_matches!(big_index, Err(BraidValidationError::IndexValidation(_)));
-/// ```
-///
-/// # Invalid Construction When Multiplying a [`Braid`] and a ([`Letter`], [`Word`], or [`Braid`])
-///
-///
-/// 1. The [index](BraidIndex) of one of the [`Braid`] operands is smaller than required by some
-///    [letter](Letter) of the other operand ([`BraidValidationError::IndexTooSmall`]):
-///
-/// ```
-/// use braided::{Braid, BraidIndex, BraidValidationError, Letter, Sign};
-///
-/// let braid = Braid::from_data(
-///     None::<u16>,
-///     vec![
-///         (1, None::<u16>, Sign::Positive),
-///         (2, Some(5), Sign::Negative),
-///         (3, None::<u16>, Sign::Negative),
-///         (4, Some(5), Sign::Positive),
-///     ],
-/// )
-/// .unwrap();
-/// let letter = Letter::new(7, None::<u16>, Sign::Positive).unwrap();
-///
-/// assert_eq!(braid * letter, Err(BraidValidationError::IndexTooSmall {
-///         index: BraidIndex::new(5).unwrap(),
-///         minimal_required_index: BraidIndex::new(8).unwrap(),
-///     })
-/// );
-/// ```
-///
-/// 2. The [Artin length](Braid::artin_length) of the product exceeds the maximum length of
-///    [`u16::MAX`] ([`BraidValidationError::WordValidation`]):
-///
-/// ```
-/// use braided::{Braid, BraidIndex, BraidValidationError, Sign, Word};
-/// use std::assert_matches;
-///
-/// let braid = Braid::from_data(
-///     Some(10),
-///     vec![(1, None::<u16>, Sign::Positive); u16::MAX as usize],
-/// )
-/// .unwrap();
-/// let word = Word::new(vec![
-///     (2, Some(8), Sign::Negative),
-///     (1, None::<u16>, Sign::Positive),
-/// ]).unwrap();
-///
-/// assert_matches!(word * braid, Err(BraidValidationError::WordValidation(_)));
-/// ```
-///
-/// 3. Attempting to multiply two [braids](Braid) whose [braid indices](BraidIndex) are not equal
-///    ([`BraidValidationError::UnequalIndices`]):
-///
-/// ```
-/// use braided::{Braid, BraidIndex, BraidValidationError, Sign};
-///
-/// let left_braid = Braid::from_data(Some(2), vec![(1, None::<u16>, Sign::Positive)]).unwrap();
-/// let right_braid = Braid::from_data(Some(3), vec![(1, None::<u16>, Sign::Positive)]).unwrap();
-///
-/// assert_eq!(
-///     left_braid * right_braid,
-///     Err(BraidValidationError::UnequalIndices {
-///         left: BraidIndex::new(2).unwrap(),
-///         right: BraidIndex::new(3).unwrap(),
-///     }),
-/// );
-/// ```
-#[derive(Debug, thiserror::Error, PartialEq, Eq, Clone, Copy)]
-pub enum BraidValidationError {
-    /// Indicates that the [index](BraidIndex) of the [`Braid`] is not large enough to accommodate a
-    /// certain [`Letter`].
-    ///
-    /// This variant may be returned when explicitly providing a [`BraidIndex`] to a [`Braid`]
-    /// constructor, or when multiplying an existing [braid](Braid) by an offending [`Letter`],
-    /// [`Word`], or [`Braid`].
-    #[error("Given index {index:?} less than minimal required index {minimal_required_index:?}.")]
-    IndexTooSmall {
-        /// The [index](`BraidIndex`) of the inadequate braid.
-        index: BraidIndex,
-        /// The [index](`BraidIndex`) which is required to accommodate the offending [`Letter`].
-        minimal_required_index: BraidIndex,
-    },
-    /// Indicates an attempt to multiply two [braids](Braid) of unequal (`index`)[BraidIndex].
-    #[error("Attempt to multiply braids of unequal indices: {left:?} != {right:?}")]
-    UnequalIndices {
-        /// The [index](BraidIndex) of the left operand of the product.
-        left: BraidIndex,
-        /// The [index](BraidIndex) of the right operand of the product.
-        right: BraidIndex,
-    },
-    /// Indicates failure to construct the [index](BraidIndex) of the [braid](Braid).
-    ///
-    /// Transparent wrapper around [`IndexValidationError`].
-    #[error(transparent)]
-    IndexValidation(#[from] IndexValidationError),
-    /// Indicates failure to construct the [word](Word) of the [braid](Braid).
-    ///
-    /// Transparent wrapper around [`WordValidationError`].
-    #[error(transparent)]
-    WordValidation(#[from] WordValidationError),
-}
 
 /// The core struct of `braided`; may be thought of as describing a [weaving pattern](Word) among a
 /// [fixed number](BraidIndex) of disjoint [strands](crate::Strand).
@@ -661,28 +410,46 @@ impl Braid {
     ///
     /// See the documentation for the associated error type [`BraidValidationError`] for more
     /// information.
-    pub fn new<N>(index: Option<N>, word: Word) -> Result<Self, BraidValidationError>
+    pub fn try_new<N>(index: Option<N>, word: Word) -> BraidResult
     where
         N: TryInto<u16>,
         IndexValidationError: From<<N as TryInto<u16>>::Error>,
     {
         let minimal_required_index = word.minimal_required_braid_index();
         let index = if let Some(index) = index {
-            BraidIndex::new(index)?
+            match *BraidIndex::try_new(index) {
+                Ok(index) => index,
+                Err(e) => return BraidResult::from(BraidValidationError::from(e)),
+            }
         } else {
             minimal_required_index
         };
 
         if index < minimal_required_index {
-            Err(BraidValidationError::IndexTooSmall {
+            BraidResult::from(BraidValidationError::IndexTooSmall {
                 index,
                 minimal_required_index,
             })
         } else {
-            Ok(Self { index, word })
+            BraidResult::from(Self { index, word })
         }
     }
+    pub fn try_from_letters<L>(letters: &[L]) -> BraidResult
+    where
+        L: Into<Letter> + Clone + Copy,
+    {
+        let word_result = Word::try_from_letters(letters);
+        let word = match &*word_result {
+            Ok(word) => word,
+            Err(e) => return BraidResult::from(BraidValidationError::from(*e)),
+        };
+        let index = word.minimal_required_braid_index();
 
+        BraidResult::from(Self {
+            index,
+            word: word.clone(),
+        })
+    }
     /// Constructs a [`Braid`] from an optional [`BraidIndex`] and an iterable of [`Word`] data.
     ///
     /// The input data to this function is identical to that of the [`Word::new`] constructor,
@@ -714,10 +481,7 @@ impl Braid {
     ///
     /// See the documentation for the associated error type [`BraidValidationError`] for more
     /// information.
-    pub fn from_data<N, D, F, H>(
-        index: Option<N>,
-        word_data: D,
-    ) -> Result<Self, BraidValidationError>
+    pub fn from_data<N, D, F, H>(index: Option<N>, word_data: D) -> BraidResult
     where
         N: TryInto<u16>,
         IndexValidationError: From<<N as TryInto<u16>>::Error>,
@@ -728,8 +492,12 @@ impl Braid {
             + From<<H as TryInto<u16>>::Error>
             + From<std::convert::Infallible>,
     {
-        let word: Word = Word::new(word_data)?;
-        Self::new(index, word)
+        let word_result = Word::try_new(word_data);
+        let word = match &*word_result {
+            Ok(word) => word,
+            Err(e) => return BraidResult::from(BraidValidationError::from(*e)),
+        };
+        Self::try_new(index, word.clone())
     }
     /// Constructs the trivial [braid](Braid) of the given [index](BraidIndex).
     ///
@@ -748,7 +516,7 @@ impl Braid {
     ///
     /// See the documentation for the associated error type [`BraidValidationError`] for more
     /// information.
-    pub fn trivial<N>(index: N) -> Result<Self, BraidValidationError>
+    pub fn trivial<N>(index: N) -> BraidResult
     where
         N: TryInto<u16>,
         IndexValidationError: From<<N as TryInto<u16>>::Error>,
@@ -1055,7 +823,7 @@ impl Braid {
 
 impl Default for Braid {
     fn default() -> Self {
-        Self::trivial(1).unwrap()
+        Self::trivial(1).as_ref().unwrap().clone()
     }
 }
 
@@ -1070,28 +838,6 @@ impl From<Word> for Braid {
 impl From<&Word> for Braid {
     fn from(value: &Word) -> Self {
         Self::from(value.clone())
-    }
-}
-
-impl<L> TryFrom<Vec<L>> for Braid
-where
-    L: Into<Letter>,
-{
-    type Error = BraidValidationError;
-    fn try_from(value: Vec<L>) -> Result<Self, Self::Error> {
-        let word = Word::try_from(value)?;
-        let index = word.minimal_required_braid_index();
-
-        Ok(Self { index, word })
-    }
-}
-impl<L> TryFrom<&[L]> for Braid
-where
-    L: Into<Letter> + std::clone::Clone,
-{
-    type Error = BraidValidationError;
-    fn try_from(value: &[L]) -> Result<Self, Self::Error> {
-        Self::try_from(value.to_vec())
     }
 }
 
@@ -1118,48 +864,54 @@ impl AsRef<[Letter]> for Braid {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Braid, BraidIndex, BraidValidationError, Letter, Sign, Word};
-    use googletest::matchers::{anything, each, eq, err, is_false, is_true, ok, result_of_ref};
+    use crate::{Braid, BraidIndex, BraidResult, BraidValidationError, Letter, Sign, Word};
+    use googletest::matchers::{anything, eq, err, is_false, is_true, ok, result_of_ref};
     use googletest::{assert_that, expect_that, gtest};
 
     #[gtest]
     fn construction_from_a_valid_word_works_as_expected() {
-        let valid_word = Word::new(vec![
+        let valid_word = Word::try_new(vec![
             (1, None::<u16>, Sign::Positive),
             (2, Some(5), Sign::Negative),
             (3, None::<u16>, Sign::Negative),
             (4, Some(5), Sign::Positive),
         ])
-        .unwrap();
+        .as_ref()
+        .unwrap()
+        .clone();
 
         let braid_index = valid_word.minimal_required_braid_index();
 
         let braid_from_borrow = Braid::from(&valid_word);
         expect_that!(braid_from_borrow.word(), eq(&valid_word));
 
-        let braid_from_move = Braid::from(valid_word);
+        let braid_from_move = Braid::from(&valid_word);
         expect_that!(braid_from_move.braid_index(), eq(braid_index));
     }
 
-    #[test]
+    #[gtest]
     fn valid_construction_with_new_is_successful() {
-        let word = Word::new(vec![
+        let word = Word::try_new(vec![
             (1, None::<u16>, Sign::Positive),
             (2, Some(5), Sign::Negative),
             (3, None::<u16>, Sign::Negative),
             (4, Some(5), Sign::Positive),
         ])
-        .unwrap();
+        .as_ref()
+        .unwrap()
+        .clone();
 
         let valid_braids = [
-            Braid::new(None::<u16>, word.clone()),
-            Braid::new(Some(10), word),
+            Braid::try_new(None::<u16>, word.clone()),
+            Braid::try_new(Some(10), word),
         ];
 
-        assert_that!(valid_braids, each(ok(anything())));
+        for valid_braid in valid_braids {
+            expect_that!(*valid_braid, ok(anything()));
+        }
     }
 
-    #[test]
+    #[gtest]
     fn valid_construction_with_from_data_is_successful() {
         let letters_data = vec![
             (1, None::<u16>, Sign::Positive),
@@ -1173,28 +925,23 @@ mod tests {
             Braid::from_data(Some(10), letters_data),
         ];
 
-        assert_that!(valid_braids, each(ok(anything())));
+        for valid_braid in valid_braids {
+            expect_that!(*valid_braid, ok(anything()));
+        }
     }
 
     #[test]
-    fn valid_construction_with_try_from_is_successful() {
+    fn valid_construction_with_try_from_letters_is_successful() {
         let letters = vec![
-            Letter::new(1, None::<u16>, Sign::Positive).unwrap(),
-            Letter::new(2, Some(5), Sign::Negative).unwrap(),
-            Letter::new(3, None::<u16>, Sign::Negative).unwrap(),
-            Letter::new(4, Some(5), Sign::Positive).unwrap(),
+            Letter::try_new(1, None::<u16>, Sign::Positive).unwrap(),
+            Letter::try_new(2, Some(5), Sign::Negative).unwrap(),
+            Letter::try_new(3, None::<u16>, Sign::Negative).unwrap(),
+            Letter::try_new(4, Some(5), Sign::Positive).unwrap(),
         ];
 
-        let valid_braids = [Braid::try_from(letters.clone()), Braid::try_from(letters)];
+        let valid_braid = Braid::try_from_letters(&letters);
 
-        assert_that!(valid_braids, each(ok(anything())));
-        assert_that!(
-            valid_braids
-                .iter()
-                .map(|b| b.clone().unwrap().braid_index())
-                .collect::<Vec<_>>(),
-            each(eq(&BraidIndex::new(5).unwrap()))
-        );
+        assert_that!(*valid_braid, ok(anything()));
     }
 
     #[test]
@@ -1203,11 +950,11 @@ mod tests {
 
         let trivial_braid = Braid::trivial(braid_index);
 
-        assert_that!(trivial_braid, ok(anything()));
+        assert_that!(*trivial_braid, ok(anything()));
 
         assert_that!(
             trivial_braid,
-            eq(&Braid::new(Some(braid_index), Word::trivial()))
+            eq(&Braid::try_new(Some(braid_index), Word::trivial()))
         );
     }
 
@@ -1215,7 +962,7 @@ mod tests {
     fn default_braid_is_trivial_unknot() {
         let default_braid = Braid::default();
 
-        assert_that!(default_braid, eq(&Braid::trivial(1).unwrap()));
+        assert_that!(default_braid, eq(Braid::trivial(1).as_ref().unwrap()));
     }
 
     #[gtest]
@@ -1227,7 +974,10 @@ mod tests {
             (4, Some(5), Sign::Positive),
         ];
 
-        let braid = Braid::from_data(None::<u16>, letters_data.clone()).unwrap();
+        let braid = Braid::from_data(None::<u16>, letters_data.clone())
+            .as_ref()
+            .unwrap()
+            .clone();
 
         for (actual, expected) in braid.into_iter().zip(letters_data) {
             expect_that!(actual, eq(expected));
@@ -1244,7 +994,9 @@ mod tests {
                 (1, Some(2), Sign::Positive),
             ],
         )
-        .unwrap();
+        .as_ref()
+        .unwrap()
+        .clone();
         let expected_decomposition = Braid::from_data(
             None::<u16>,
             [
@@ -1255,7 +1007,9 @@ mod tests {
                 (1, None, Sign::Positive),
             ],
         )
-        .unwrap();
+        .as_ref()
+        .unwrap()
+        .clone();
 
         assert_that!(braid.decompose(), eq(&expected_decomposition));
     }
@@ -1272,7 +1026,9 @@ mod tests {
                 (1, None, Sign::Positive),
             ],
         )
-        .unwrap();
+        .as_ref()
+        .unwrap()
+        .clone();
         let expected_coalescence = Braid::from_data(
             None::<u16>,
             [
@@ -1281,7 +1037,9 @@ mod tests {
                 (1, Some(2), Sign::Positive),
             ],
         )
-        .unwrap();
+        .as_ref()
+        .unwrap()
+        .clone();
 
         assert_that!(braid.coalesce(), eq(&expected_coalescence));
     }
@@ -1289,11 +1047,11 @@ mod tests {
     #[test]
     fn deref_to_slice_of_letters_works_as_expected() {
         let letters = [
-            Letter::new(1, Some(3), Sign::Positive).unwrap(),
-            Letter::new(2, None::<u16>, Sign::Negative).unwrap(),
-            Letter::new(1, Some(2), Sign::Positive).unwrap(),
+            Letter::try_new(1, Some(3), Sign::Positive).unwrap(),
+            Letter::try_new(2, None::<u16>, Sign::Negative).unwrap(),
+            Letter::try_new(1, Some(2), Sign::Positive).unwrap(),
         ];
-        let braid = Braid::try_from(&letters[..]).unwrap();
+        let braid = Braid::try_from_letters(&letters).as_ref().unwrap().clone();
 
         assert_that!(*braid, eq(&letters));
     }
@@ -1304,11 +1062,11 @@ mod tests {
             b.as_ref() == v
         }
         let letters = [
-            Letter::new(1, Some(3), Sign::Positive).unwrap(),
-            Letter::new(2, None::<u16>, Sign::Negative).unwrap(),
-            Letter::new(1, Some(2), Sign::Positive).unwrap(),
+            Letter::try_new(1, Some(3), Sign::Positive).unwrap(),
+            Letter::try_new(2, None::<u16>, Sign::Negative).unwrap(),
+            Letter::try_new(1, Some(2), Sign::Positive).unwrap(),
         ];
-        let braid = Braid::try_from(&letters[..]).unwrap();
+        let braid = Braid::try_from_letters(&letters).as_ref().unwrap().clone();
 
         assert_that!(
             braid,
@@ -1318,22 +1076,33 @@ mod tests {
 
     #[gtest]
     fn properties_compute_as_expected() {
-        let word = Word::try_from(vec![
-            Letter::new(1, Some(3), Sign::Positive).unwrap(),
-            Letter::new(2, None::<u16>, Sign::Negative).unwrap(),
-            Letter::new(1, Some(2), Sign::Positive).unwrap(),
+        let word = Word::try_from_letters(&[
+            Letter::try_new(1, Some(3), Sign::Positive).unwrap(),
+            Letter::try_new(2, None::<u16>, Sign::Negative).unwrap(),
+            Letter::try_new(1, Some(2), Sign::Positive).unwrap(),
         ])
-        .unwrap();
-        let braid = Braid::new(Some(9), word.clone()).unwrap();
+        .as_ref()
+        .unwrap()
+        .clone();
+        let braid = Braid::try_new(Some(9), word.clone())
+            .as_ref()
+            .unwrap()
+            .clone();
 
         expect_that!(braid.word(), eq(&word));
         expect_that!(braid.letters(), eq(&word.letters()));
         expect_that!(
             braid.inverse(),
-            eq(&Braid::new(Some(9), word.inverse()).unwrap())
+            eq(&Braid::try_new(Some(9), word.inverse())
+                .as_ref()
+                .unwrap()
+                .clone())
         );
         expect_that!(braid.is_trivial(), is_false());
-        expect_that!(Braid::trivial(9).unwrap().is_trivial(), is_true());
+        expect_that!(
+            Braid::trivial(9).as_ref().unwrap().clone().is_trivial(),
+            is_true()
+        );
         expect_that!(braid.letter_length(), eq(word.length()));
         expect_that!(braid.artin_length(), eq(word.artin_length()));
         expect_that!(
@@ -1350,60 +1119,58 @@ mod tests {
             braid.minimal_required_braid_index(),
             eq(word.minimal_required_braid_index()),
         );
-        expect_that!(braid.braid_index(), eq(BraidIndex::new(9).unwrap()),);
+        expect_that!(braid.braid_index(), eq(BraidIndex::try_new(9).unwrap()),);
     }
 
     #[gtest]
     fn invalid_construction_with_new_fails_as_expected() {
-        let invalid_braids: Vec<(
-            Result<Braid, BraidValidationError>,
-            BraidValidationError,
-            &'static str,
-        )> = vec![
+        let invalid_braids: Vec<(BraidResult, BraidValidationError, &'static str)> = vec![
             (
-                Braid::new(
+                Braid::try_new(
                     Some(3),
-                    Word::new(vec![(1, Some(5), Sign::Positive)]).unwrap(),
+                    Word::try_new(vec![(1, Some(5), Sign::Positive)])
+                        .as_ref()
+                        .unwrap()
+                        .clone(),
                 ),
                 BraidValidationError::IndexTooSmall {
-                    index: BraidIndex::new(3).unwrap(),
-                    minimal_required_index: BraidIndex::new(5).unwrap(),
+                    index: BraidIndex::try_new(3).unwrap(),
+                    minimal_required_index: BraidIndex::try_new(5).unwrap(),
                 },
                 "index too small",
             ),
             (
-                Braid::new(
+                Braid::try_new(
                     Some(0),
-                    Word::new(vec![(1, Some(5), Sign::Positive)]).unwrap(),
+                    Word::try_new(vec![(1, Some(5), Sign::Positive)])
+                        .as_ref()
+                        .unwrap()
+                        .clone(),
                 ),
-                BraidValidationError::from(BraidIndex::new(0).err().unwrap()),
+                BraidValidationError::from(BraidIndex::try_new(0).err().unwrap()),
                 "index validation failure",
             ),
         ];
 
         for (invalid_braid, error, label) in invalid_braids {
-            expect_that!(invalid_braid, err(eq(&error)), "{label}")
+            expect_that!(*invalid_braid, err(eq(&error)), "{label}")
         }
     }
 
     #[gtest]
     fn invalid_construction_with_from_data_fails_as_expected() {
-        let invalid_braids: Vec<(
-            Result<Braid, BraidValidationError>,
-            BraidValidationError,
-            &'static str,
-        )> = vec![
+        let invalid_braids: Vec<(BraidResult, BraidValidationError, &'static str)> = vec![
             (
                 Braid::from_data(Some(3), vec![(1, Some(5), Sign::Positive)]),
                 BraidValidationError::IndexTooSmall {
-                    index: BraidIndex::new(3).unwrap(),
-                    minimal_required_index: BraidIndex::new(5).unwrap(),
+                    index: BraidIndex::try_new(3).unwrap(),
+                    minimal_required_index: BraidIndex::try_new(5).unwrap(),
                 },
                 "index too small",
             ),
             (
                 Braid::from_data(Some(0), vec![(1, Some(5), Sign::Positive)]),
-                BraidValidationError::from(BraidIndex::new(0).err().unwrap()),
+                BraidValidationError::from(BraidIndex::try_new(0).err().unwrap()),
                 "index validation failure",
             ),
             (
@@ -1412,10 +1179,11 @@ mod tests {
                     vec![(1, None::<u16>, Sign::Positive); u16::MAX as usize + 1],
                 ),
                 BraidValidationError::from(
-                    Word::new(vec![
+                    *Word::try_new(vec![
                         (1, None::<u16>, Sign::Positive);
                         u16::MAX as usize + 1
                     ])
+                    .as_ref()
                     .err()
                     .unwrap(),
                 ),
@@ -1424,44 +1192,39 @@ mod tests {
         ];
 
         for (invalid_braid, error, label) in invalid_braids {
-            expect_that!(invalid_braid, err(eq(&error)), "{label}")
+            expect_that!(*invalid_braid, err(eq(&error)), "{label}")
         }
     }
 
     #[gtest]
-    fn invalid_construction_with_try_from_fails_as_expected() {
-        let invalid_braids: Vec<(
-            Result<Braid, BraidValidationError>,
-            BraidValidationError,
-            &'static str,
-        )> = vec![
+    fn invalid_construction_with_try_from_letters_fails_as_expected() {
+        let invalid_braids: Vec<(BraidResult, BraidValidationError, &'static str)> = vec![
             (
-                Braid::try_from(vec![
-                    Letter::new(1, None::<u16>, Sign::Positive).unwrap();
-                    u16::MAX as usize + 1
-                ]),
+                Braid::try_from_letters(
+                    &[Letter::try_new(1, None::<u16>, Sign::Positive).unwrap();
+                        u16::MAX as usize + 1],
+                ),
                 BraidValidationError::from(
-                    Word::try_from(vec![
-                        Letter::new(1, None::<u16>, Sign::Positive).unwrap();
-                        u16::MAX as usize + 1
-                    ])
+                    *Word::try_from_letters(
+                        &[Letter::try_new(1, None::<u16>, Sign::Positive).unwrap();
+                            u16::MAX as usize + 1],
+                    )
+                    .as_ref()
                     .err()
                     .unwrap(),
                 ),
                 "Word validation failure - from Vec",
             ),
             (
-                Braid::try_from(
-                    &vec![Letter::new(2, Some(3), Sign::Positive).unwrap(); u16::MAX as usize + 1]
-                        [..],
+                Braid::try_from_letters(
+                    &[Letter::try_new(2, Some(3), Sign::Positive).unwrap(); u16::MAX as usize + 1],
                 ),
                 BraidValidationError::from(
-                    Word::try_from(
-                        &vec![
-                            Letter::new(2, Some(3), Sign::Positive).unwrap();
-                            u16::MAX as usize + 1
-                        ][..],
+                    *Word::try_from_letters(
+                        &[Letter::try_new(2, Some(3), Sign::Positive).unwrap();
+                            u16::MAX as usize + 1],
                     )
+                    .as_ref()
                     .err()
                     .unwrap(),
                 ),
@@ -1470,36 +1233,32 @@ mod tests {
         ];
 
         for (invalid_braid, error, label) in invalid_braids {
-            expect_that!(invalid_braid, err(eq(&error)), "{label}")
+            expect_that!(*invalid_braid, err(eq(&error)), "{label}")
         }
     }
 
     #[gtest]
     fn invalid_construction_of_trivial_braid_fails_as_expected() {
-        let invalid_braids: Vec<(
-            Result<Braid, BraidValidationError>,
-            BraidValidationError,
-            &'static str,
-        )> = vec![
+        let invalid_braids: Vec<(BraidResult, BraidValidationError, &'static str)> = vec![
             (
                 Braid::trivial(0),
-                BraidValidationError::from(BraidIndex::new(0).err().unwrap()),
+                BraidValidationError::from(BraidIndex::try_new(0).err().unwrap()),
                 "zero index",
             ),
             (
                 Braid::trivial(-1),
-                BraidValidationError::from(BraidIndex::new(-1).err().unwrap()),
+                BraidValidationError::from(BraidIndex::try_new(-1).err().unwrap()),
                 "negative index",
             ),
             (
                 Braid::trivial(u16::MAX as u32 + 1),
-                BraidValidationError::from(BraidIndex::new(u16::MAX as u32 + 1).err().unwrap()),
+                BraidValidationError::from(BraidIndex::try_new(u16::MAX as u32 + 1).err().unwrap()),
                 "big index",
             ),
         ];
 
         for (invalid_braid, error, label) in invalid_braids {
-            expect_that!(invalid_braid, err(eq(&error)), "{label}")
+            expect_that!(*invalid_braid, err(eq(&error)), "{label}")
         }
     }
 }
