@@ -823,7 +823,7 @@ impl Braid {
 
 impl Default for Braid {
     fn default() -> Self {
-        Self::trivial(1).as_ref().unwrap().clone()
+        Self::trivial(1).clone_unwrap()
     }
 }
 
@@ -876,9 +876,7 @@ mod tests {
             (3, None::<u16>, Sign::Negative),
             (4, Some(5), Sign::Positive),
         ])
-        .as_ref()
-        .unwrap()
-        .clone();
+        .clone_unwrap();
 
         let braid_index = valid_word.minimal_required_braid_index();
 
@@ -897,9 +895,7 @@ mod tests {
             (3, None::<u16>, Sign::Negative),
             (4, Some(5), Sign::Positive),
         ])
-        .as_ref()
-        .unwrap()
-        .clone();
+        .clone_unwrap();
 
         let valid_braids = [
             Braid::try_new(None::<u16>, word.clone()),
@@ -962,7 +958,7 @@ mod tests {
     fn default_braid_is_trivial_unknot() {
         let default_braid = Braid::default();
 
-        assert_that!(default_braid, eq(Braid::trivial(1).as_ref().unwrap()));
+        assert_that!(default_braid, eq(&Braid::trivial(1).clone_unwrap()));
     }
 
     #[gtest]
@@ -974,10 +970,7 @@ mod tests {
             (4, Some(5), Sign::Positive),
         ];
 
-        let braid = Braid::from_data(None::<u16>, letters_data.clone())
-            .as_ref()
-            .unwrap()
-            .clone();
+        let braid = Braid::from_data(None::<u16>, letters_data.clone()).clone_unwrap();
 
         for (actual, expected) in braid.into_iter().zip(letters_data) {
             expect_that!(actual, eq(expected));
@@ -994,9 +987,7 @@ mod tests {
                 (1, Some(2), Sign::Positive),
             ],
         )
-        .as_ref()
-        .unwrap()
-        .clone();
+        .clone_unwrap();
         let expected_decomposition = Braid::from_data(
             None::<u16>,
             [
@@ -1007,9 +998,7 @@ mod tests {
                 (1, None, Sign::Positive),
             ],
         )
-        .as_ref()
-        .unwrap()
-        .clone();
+        .clone_unwrap();
 
         assert_that!(braid.decompose(), eq(&expected_decomposition));
     }
@@ -1026,9 +1015,7 @@ mod tests {
                 (1, None, Sign::Positive),
             ],
         )
-        .as_ref()
-        .unwrap()
-        .clone();
+        .clone_unwrap();
         let expected_coalescence = Braid::from_data(
             None::<u16>,
             [
@@ -1037,9 +1024,7 @@ mod tests {
                 (1, Some(2), Sign::Positive),
             ],
         )
-        .as_ref()
-        .unwrap()
-        .clone();
+        .clone_unwrap();
 
         assert_that!(braid.coalesce(), eq(&expected_coalescence));
     }
@@ -1051,7 +1036,7 @@ mod tests {
             Letter::try_new(2, None::<u16>, Sign::Negative).unwrap(),
             Letter::try_new(1, Some(2), Sign::Positive).unwrap(),
         ];
-        let braid = Braid::try_from_letters(&letters).as_ref().unwrap().clone();
+        let braid = Braid::try_from_letters(&letters).clone_unwrap();
 
         assert_that!(*braid, eq(&letters));
     }
@@ -1066,7 +1051,7 @@ mod tests {
             Letter::try_new(2, None::<u16>, Sign::Negative).unwrap(),
             Letter::try_new(1, Some(2), Sign::Positive).unwrap(),
         ];
-        let braid = Braid::try_from_letters(&letters).as_ref().unwrap().clone();
+        let braid = Braid::try_from_letters(&letters).clone_unwrap();
 
         assert_that!(
             braid,
@@ -1081,28 +1066,17 @@ mod tests {
             Letter::try_new(2, None::<u16>, Sign::Negative).unwrap(),
             Letter::try_new(1, Some(2), Sign::Positive).unwrap(),
         ])
-        .as_ref()
-        .unwrap()
-        .clone();
-        let braid = Braid::try_new(Some(9), word.clone())
-            .as_ref()
-            .unwrap()
-            .clone();
+        .clone_unwrap();
+        let braid = Braid::try_new(Some(9), word.clone()).clone_unwrap();
 
         expect_that!(braid.word(), eq(&word));
         expect_that!(braid.letters(), eq(&word.letters()));
         expect_that!(
             braid.inverse(),
-            eq(&Braid::try_new(Some(9), word.inverse())
-                .as_ref()
-                .unwrap()
-                .clone())
+            eq(&Braid::try_new(Some(9), word.inverse()).clone_unwrap())
         );
         expect_that!(braid.is_trivial(), is_false());
-        expect_that!(
-            Braid::trivial(9).as_ref().unwrap().clone().is_trivial(),
-            is_true()
-        );
+        expect_that!(Braid::trivial(9).clone_unwrap().is_trivial(), is_true());
         expect_that!(braid.letter_length(), eq(word.length()));
         expect_that!(braid.artin_length(), eq(word.artin_length()));
         expect_that!(
@@ -1128,10 +1102,7 @@ mod tests {
             (
                 Braid::try_new(
                     Some(3),
-                    Word::try_new(vec![(1, Some(5), Sign::Positive)])
-                        .as_ref()
-                        .unwrap()
-                        .clone(),
+                    Word::try_new(vec![(1, Some(5), Sign::Positive)]).clone_unwrap(),
                 ),
                 BraidValidationError::IndexTooSmall {
                     index: BraidIndex::try_new(3).unwrap(),
@@ -1142,10 +1113,7 @@ mod tests {
             (
                 Braid::try_new(
                     Some(0),
-                    Word::try_new(vec![(1, Some(5), Sign::Positive)])
-                        .as_ref()
-                        .unwrap()
-                        .clone(),
+                    Word::try_new(vec![(1, Some(5), Sign::Positive)]).clone_unwrap(),
                 ),
                 BraidValidationError::from(BraidIndex::try_new(0).err().unwrap()),
                 "index validation failure",
@@ -1179,13 +1147,11 @@ mod tests {
                     vec![(1, None::<u16>, Sign::Positive); u16::MAX as usize + 1],
                 ),
                 BraidValidationError::from(
-                    *Word::try_new(vec![
+                    Word::try_new(vec![
                         (1, None::<u16>, Sign::Positive);
                         u16::MAX as usize + 1
                     ])
-                    .as_ref()
-                    .err()
-                    .unwrap(),
+                    .clone_unwrap_err(),
                 ),
                 "word validation failure",
             ),
@@ -1205,13 +1171,11 @@ mod tests {
                         u16::MAX as usize + 1],
                 ),
                 BraidValidationError::from(
-                    *Word::try_from_letters(
+                    Word::try_from_letters(
                         &[Letter::try_new(1, None::<u16>, Sign::Positive).unwrap();
                             u16::MAX as usize + 1],
                     )
-                    .as_ref()
-                    .err()
-                    .unwrap(),
+                    .clone_unwrap_err(),
                 ),
                 "Word validation failure - from Vec",
             ),
@@ -1220,13 +1184,11 @@ mod tests {
                     &[Letter::try_new(2, Some(3), Sign::Positive).unwrap(); u16::MAX as usize + 1],
                 ),
                 BraidValidationError::from(
-                    *Word::try_from_letters(
+                    Word::try_from_letters(
                         &[Letter::try_new(2, Some(3), Sign::Positive).unwrap();
                             u16::MAX as usize + 1],
                     )
-                    .as_ref()
-                    .err()
-                    .unwrap(),
+                    .clone_unwrap_err(),
                 ),
                 "Word validation failure - from slice",
             ),

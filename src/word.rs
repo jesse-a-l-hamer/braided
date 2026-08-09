@@ -726,9 +726,7 @@ mod tests {
 
         assert_that!(
             trivial,
-            eq(Word::try_new(Vec::<(u16, Option<u16>, _)>::new())
-                .as_ref()
-                .unwrap())
+            eq(&Word::try_new(Vec::<(u16, Option<u16>, _)>::new()).clone_unwrap())
         );
     }
 
@@ -743,19 +741,18 @@ mod tests {
             (1, Some(3), Sign::Positive),
             (2, None, Sign::Negative),
             (1, Some(2), Sign::Positive),
-        ]);
+        ])
+        .clone_unwrap();
         let expected_decomposition = Word::try_new([
             (1, None::<u16>, Sign::Negative),
             (2, None, Sign::Positive),
             (1, None, Sign::Positive),
             (2, None, Sign::Negative),
             (1, None, Sign::Positive),
-        ]);
+        ])
+        .clone_unwrap();
 
-        assert_that!(
-            word.as_ref().unwrap().decompose(),
-            eq(expected_decomposition.as_ref().unwrap())
-        );
+        assert_that!(word.decompose(), eq(&expected_decomposition));
     }
 
     #[test]
@@ -766,17 +763,16 @@ mod tests {
             (2, None, Sign::Negative),
             (2, None, Sign::Negative),
             (1, None, Sign::Positive),
-        ]);
+        ])
+        .clone_unwrap();
         let expected_coalescence = Word::try_new([
             (1, Some(3), Sign::Positive),
             (2, None, Sign::Negative),
             (1, Some(2), Sign::Positive),
-        ]);
+        ])
+        .clone_unwrap();
 
-        assert_that!(
-            word.as_ref().unwrap().coalesce(),
-            eq(expected_coalescence.as_ref().unwrap())
-        );
+        assert_that!(word.coalesce(), eq(&expected_coalescence));
     }
 
     #[gtest]
@@ -786,33 +782,29 @@ mod tests {
             Letter::try_new(2, None::<u16>, Sign::Negative).unwrap(),
             Letter::try_new(1, Some(2), Sign::Positive).unwrap(),
         ];
-        let word = Word::try_from_letters(&letters);
+        let word = Word::try_from_letters(&letters).clone_unwrap();
 
-        expect_that!(word.as_ref().unwrap().letters(), eq(&letters));
+        expect_that!(word.letters(), eq(&letters));
         expect_that!(
-            word.as_ref().unwrap().inverse(),
-            eq(Word::try_from_letters(
+            word.inverse(),
+            eq(&Word::try_from_letters(
                 &letters
                     .iter()
                     .rev()
                     .map(|&l| l.inverse())
                     .collect::<Vec<Letter>>()
             )
-            .as_ref()
-            .unwrap())
+            .clone_unwrap())
         );
-        expect_that!(word.as_ref().unwrap().is_trivial(), is_false());
+        expect_that!(word.is_trivial(), is_false());
         expect_that!(Word::trivial().is_trivial(), is_true());
+        expect_that!(word.length(), eq(letters.len().try_into().unwrap()));
         expect_that!(
-            word.as_ref().unwrap().length(),
-            eq(letters.len().try_into().unwrap())
-        );
-        expect_that!(
-            word.as_ref().unwrap().artin_length(),
+            word.artin_length(),
             eq(letters.iter().map(|&l| l.artin_length()).sum())
         );
         expect_that!(
-            word.as_ref().unwrap().minimal_required_braid_index(),
+            word.minimal_required_braid_index(),
             eq(letters
                 .iter()
                 .map(|&l| l.minimal_required_braid_index())
@@ -829,13 +821,9 @@ mod tests {
             (1, Some(2), Sign::Positive),
         ];
 
-        for (actual, expected) in Word::try_new(letter_data)
-            .as_ref()
-            .unwrap()
-            .clone()
-            .into_iter()
-            .zip(letter_data)
-        {
+        let word = Word::try_new(letter_data).clone_unwrap();
+
+        for (actual, expected) in word.into_iter().zip(letter_data) {
             expect_that!(actual, eq(expected));
         }
     }
@@ -847,9 +835,9 @@ mod tests {
             Letter::try_new(2, None::<u16>, Sign::Negative).unwrap(),
             Letter::try_new(1, Some(2), Sign::Positive).unwrap(),
         ];
-        let word = Word::try_from_letters(&letters);
+        let word = Word::try_from_letters(&letters).clone_unwrap();
 
-        assert_that!(**word.as_ref().unwrap(), eq(&letters));
+        assert_that!(*word, eq(&letters));
     }
 
     #[test]
@@ -862,10 +850,10 @@ mod tests {
             Letter::try_new(2, None::<u16>, Sign::Negative).unwrap(),
             Letter::try_new(1, Some(2), Sign::Positive).unwrap(),
         ];
-        let word = Word::try_from_letters(&letters);
+        let word = Word::try_from_letters(&letters).clone_unwrap();
 
         assert_that!(
-            word.as_ref().unwrap(),
+            word,
             result_of_ref!(|w: &Word| as_ref_tester(w, &letters), is_true()),
         );
     }

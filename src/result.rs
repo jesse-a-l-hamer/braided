@@ -19,20 +19,6 @@ pub struct StrandResult(Result<Strand, StrandValidationError>);
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct WordResult(Result<Word, WordValidationError>);
 
-trait ResultWrapper<T, E>
-where
-    Self: std::ops::Deref<Target = Result<T, E>>,
-    E: std::fmt::Debug + Clone + Copy,
-    T: Clone + std::fmt::Debug,
-{
-    fn clone_unwrap(&self) -> T {
-        (*self).clone().unwrap()
-    }
-    fn clone_unwrap_err(&self) -> E {
-        (*self).clone().unwrap_err()
-    }
-}
-
 impl From<Result<ArtinGenerator, ArtinValidationError>> for ArtinResult {
     fn from(value: Result<ArtinGenerator, ArtinValidationError>) -> Self {
         Self(value)
@@ -59,7 +45,6 @@ impl std::ops::DerefMut for ArtinResult {
         &mut self.0
     }
 }
-impl ResultWrapper<ArtinGenerator, ArtinValidationError> for ArtinResult {}
 
 impl From<Result<BandGenerator, BandValidationError>> for BandResult {
     fn from(value: Result<BandGenerator, BandValidationError>) -> Self {
@@ -87,8 +72,15 @@ impl std::ops::DerefMut for BandResult {
         &mut self.0
     }
 }
-impl ResultWrapper<BandGenerator, BandValidationError> for BandResult {}
 
+impl BraidResult {
+    pub fn clone_unwrap(&self) -> Braid {
+        <Result<Braid, BraidValidationError> as Clone>::clone(self).unwrap()
+    }
+    pub fn clone_unwrap_err(&self) -> BraidValidationError {
+        <Result<Braid, BraidValidationError> as Clone>::clone(self).unwrap_err()
+    }
+}
 impl From<Result<Braid, BraidValidationError>> for BraidResult {
     fn from(value: Result<Braid, BraidValidationError>) -> Self {
         Self(value)
@@ -115,7 +107,6 @@ impl std::ops::DerefMut for BraidResult {
         &mut self.0
     }
 }
-impl ResultWrapper<Braid, BraidValidationError> for BraidResult {}
 
 impl From<Result<BraidIndex, IndexValidationError>> for IndexResult {
     fn from(value: Result<BraidIndex, IndexValidationError>) -> Self {
@@ -143,7 +134,6 @@ impl std::ops::DerefMut for IndexResult {
         &mut self.0
     }
 }
-impl ResultWrapper<BraidIndex, IndexValidationError> for IndexResult {}
 
 impl From<Result<Letter, LetterValidationError>> for LetterResult {
     fn from(value: Result<Letter, LetterValidationError>) -> Self {
@@ -171,7 +161,6 @@ impl std::ops::DerefMut for LetterResult {
         &mut self.0
     }
 }
-impl ResultWrapper<Letter, LetterValidationError> for LetterResult {}
 
 impl From<Result<Strand, StrandValidationError>> for StrandResult {
     fn from(value: Result<Strand, StrandValidationError>) -> Self {
@@ -199,8 +188,15 @@ impl std::ops::DerefMut for StrandResult {
         &mut self.0
     }
 }
-impl ResultWrapper<Strand, StrandValidationError> for StrandResult {}
 
+impl WordResult {
+    pub fn clone_unwrap(&self) -> Word {
+        <Result<Word, WordValidationError> as Clone>::clone(self).unwrap()
+    }
+    pub fn clone_unwrap_err(&self) -> WordValidationError {
+        <Result<Word, WordValidationError> as Clone>::clone(self).unwrap_err()
+    }
+}
 impl From<Result<Word, WordValidationError>> for WordResult {
     fn from(value: Result<Word, WordValidationError>) -> Self {
         Self(value)
@@ -227,4 +223,3 @@ impl std::ops::DerefMut for WordResult {
         &mut self.0
     }
 }
-impl ResultWrapper<Word, WordValidationError> for WordResult {}

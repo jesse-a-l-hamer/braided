@@ -232,7 +232,7 @@ mod tests {
             Letter::try_new(2, None::<u16>, Sign::Negative).unwrap(),
             Letter::try_new(1, Some(2), Sign::Positive).unwrap(),
         ];
-        let word = Word::try_from_letters(&letters).as_ref().unwrap().clone();
+        let word = Word::try_from_letters(&letters).clone_unwrap();
         let other_letter = Letter::try_new(3, Some(7), Sign::Negative).unwrap();
 
         expect_that!(
@@ -261,8 +261,8 @@ mod tests {
             Letter::try_new(2, Some(7), Sign::Negative).unwrap(),
         ];
 
-        let word1 = Word::try_from_letters(&letters1).as_ref().unwrap().clone();
-        let word2 = Word::try_from_letters(&letters2).as_ref().unwrap().clone();
+        let word1 = Word::try_from_letters(&letters1).clone_unwrap();
+        let word2 = Word::try_from_letters(&letters2).clone_unwrap();
 
         expect_that!(
             word1.clone() * word2.clone(),
@@ -282,17 +282,11 @@ mod tests {
 
         expect_that!(
             *(letter * Word::trivial()),
-            ok(eq(&Word::try_from_letters(&[letter])
-                .as_ref()
-                .unwrap()
-                .clone()))
+            ok(eq(&Word::try_from_letters(&[letter]).clone_unwrap()))
         );
         expect_that!(
             *(Word::trivial() * letter),
-            ok(eq(&Word::try_from_letters(&[letter])
-                .as_ref()
-                .unwrap()
-                .clone()))
+            ok(eq(&Word::try_from_letters(&[letter]).clone_unwrap()))
         );
 
         let word = Word::try_from_letters(&[
@@ -300,9 +294,7 @@ mod tests {
             Letter::try_new(2, None::<u16>, Sign::Negative).unwrap(),
             Letter::try_new(1, Some(2), Sign::Positive).unwrap(),
         ])
-        .as_ref()
-        .unwrap()
-        .clone();
+        .clone_unwrap();
 
         expect_that!(*(word.clone() * Word::trivial()), ok(eq(&word)));
         expect_that!(*(Word::trivial() * word.clone()), ok(eq(&word)))
@@ -315,9 +307,7 @@ mod tests {
             Letter::try_new(2, None::<u16>, Sign::Negative).unwrap(),
             Letter::try_new(1, Some(2), Sign::Positive).unwrap(),
         ])
-        .as_ref()
-        .unwrap()
-        .clone();
+        .clone_unwrap();
 
         expect_that!(*(word.clone() * word.inverse()), ok(eq(&Word::trivial())));
         expect_that!(*(word.inverse() * word.clone()), ok(eq(&Word::trivial())));
@@ -330,18 +320,14 @@ mod tests {
             (2, None, Sign::Negative),
             (1, Some(2), Sign::Positive),
         ])
-        .as_ref()
-        .unwrap()
-        .clone();
+        .clone_unwrap();
         let long_word =
             Word::try_from_letters(&vec![
                 Letter::try_new(1, None::<u16>, Sign::Positive)
                     .unwrap();
                 u16::MAX as usize
             ])
-            .as_ref()
-            .unwrap()
-            .clone();
+            .clone_unwrap();
         let short_letter = Letter::try_new(2, None::<u16>, Sign::Negative).unwrap();
         let tall_letter = Letter::try_new(1, Some(2usize.pow(15) + 1), Sign::Positive).unwrap();
 
@@ -394,18 +380,14 @@ mod tests {
             (2, None, Sign::Negative),
             (1, Some(2), Sign::Positive),
         ])
-        .as_ref()
-        .unwrap()
-        .clone();
+        .clone_unwrap();
         let long_word =
             Word::try_from_letters(&vec![
                 Letter::try_new(1, None::<u16>, Sign::Positive)
                     .unwrap();
                 u16::MAX as usize
             ])
-            .as_ref()
-            .unwrap()
-            .clone();
+            .clone_unwrap();
 
         let invalid_products = [
             (
@@ -436,7 +418,7 @@ mod tests {
     #[gtest]
     fn can_multiply_letter_with_borrowed_word() {
         let letter = letter![1; +].unwrap();
-        let word = word![[2; -1], [1 => 3; 2]].as_ref().unwrap().clone();
+        let word = word![[2; -1], [1 => 3; 2]].clone_unwrap();
 
         expect_that!(letter * &word, eq(&word![[1; 1], [2; -1], [1 => 3; 2]]));
         expect_that!(&word * letter, eq(&word![[2; -1], [1 => 3; 2], [1; 1]]));
@@ -444,9 +426,9 @@ mod tests {
 
     #[gtest]
     fn can_multiply_borrowed_word_and_word() {
-        let word1 = word![[2; -1], [1 => 3; 2]].as_ref().unwrap().clone();
-        let word2 = word![[1; 7], [2; -3]].as_ref().unwrap().clone();
-        let word3 = word![[1 => 3; 4]].as_ref().unwrap().clone();
+        let word1 = word![[2; -1], [1 => 3; 2]].clone_unwrap();
+        let word2 = word![[1; 7], [2; -3]].clone_unwrap();
+        let word3 = word![[1 => 3; 4]].clone_unwrap();
 
         expect_that!(
             &word1 * word2,
@@ -460,8 +442,8 @@ mod tests {
 
     #[test]
     fn can_multiply_borrowed_word_and_borrowed_word() {
-        let word1 = word![[2; -1], [1 => 3; 2]].as_ref().unwrap().clone();
-        let word2 = word![[1; 7], [2; -3]].as_ref().unwrap().clone();
+        let word1 = word![[2; -1], [1 => 3; 2]].clone_unwrap();
+        let word2 = word![[1; 7], [2; -3]].clone_unwrap();
 
         assert_that!(
             &word1 * &word2,
@@ -472,7 +454,7 @@ mod tests {
     #[gtest]
     fn can_multiply_word_and_letter_result() {
         let letter_result = letter![1; +];
-        let word = word![[2; -1], [1 => 3; 2]].as_ref().unwrap().clone();
+        let word = word![[2; -1], [1 => 3; 2]].clone_unwrap();
 
         expect_that!(
             word.clone() * letter_result,
@@ -509,7 +491,7 @@ mod tests {
 
     #[gtest]
     fn can_multiply_word_and_word_result() {
-        let word = word![[1; 1]].as_ref().unwrap().clone();
+        let word = word![[1; 1]].clone_unwrap();
         let word_result = word![[2; -1], [1 => 3; 2]];
 
         expect_that!(

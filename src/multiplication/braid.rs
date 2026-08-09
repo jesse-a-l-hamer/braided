@@ -402,7 +402,7 @@ mod tests {
             Letter::try_new(2, None::<u16>, Sign::Negative).unwrap(),
             Letter::try_new(2, Some(8), Sign::Positive).unwrap(),
         ];
-        let braid = Braid::try_from_letters(&letters).as_ref().unwrap().clone();
+        let braid = Braid::try_from_letters(&letters).clone_unwrap();
         let other_letter = Letter::try_new(3, Some(7), Sign::Negative).unwrap();
 
         expect_that!(
@@ -426,29 +426,25 @@ mod tests {
             Letter::try_new(2, None::<u16>, Sign::Negative).unwrap(),
             Letter::try_new(2, Some(8), Sign::Positive).unwrap(),
         ])
-        .as_ref()
-        .unwrap()
-        .clone();
+        .clone_unwrap();
         let word = Word::try_from_letters(&[
             Letter::try_new(3, None::<u16>, Sign::Negative).unwrap(),
             Letter::try_new(2, Some(7), Sign::Negative).unwrap(),
         ])
-        .as_ref()
-        .unwrap()
-        .clone();
+        .clone_unwrap();
 
         expect_that!(
             braid.clone() * word.clone(),
             eq(&Braid::try_new(
                 None::<u16>,
-                (braid.word() * word.clone()).as_ref().unwrap().clone()
+                (braid.word() * word.clone()).clone_unwrap()
             )),
         );
         expect_that!(
             word.clone() * braid.clone(),
             eq(&Braid::try_new(
                 None::<u16>,
-                (word * braid.word()).as_ref().unwrap().clone()
+                (word * braid.word()).clone_unwrap()
             ))
         );
     }
@@ -460,35 +456,29 @@ mod tests {
             Letter::try_new(2, None::<u16>, Sign::Negative).unwrap(),
             Letter::try_new(2, Some(8), Sign::Positive).unwrap(),
         ])
-        .as_ref()
-        .unwrap()
-        .clone();
+        .clone_unwrap();
         let braid2 = Braid::try_new(
             Some(8),
             Word::try_from_letters(&[
                 Letter::try_new(3, None::<u16>, Sign::Negative).unwrap(),
                 Letter::try_new(2, Some(7), Sign::Negative).unwrap(),
             ])
-            .as_ref()
-            .unwrap()
-            .clone(),
+            .clone_unwrap(),
         )
-        .as_ref()
-        .unwrap()
-        .clone();
+        .clone_unwrap();
 
         expect_that!(
             braid1.clone() * braid2.clone(),
             eq(&Braid::try_new(
                 None::<u16>,
-                (braid1.word() * braid2.word()).as_ref().unwrap().clone()
+                (braid1.word() * braid2.word()).clone_unwrap()
             )),
         );
         expect_that!(
             braid2.clone() * braid1.clone(),
             eq(&Braid::try_new(
                 None::<u16>,
-                (braid2.word() * braid1.word()).as_ref().unwrap().clone()
+                (braid2.word() * braid1.word()).clone_unwrap()
             ))
         );
     }
@@ -500,9 +490,7 @@ mod tests {
             (2, Some(8), Sign::Negative),
             (1, None::<u16>, Sign::Positive),
         ])
-        .as_ref()
-        .unwrap()
-        .clone();
+        .clone_unwrap();
         let invalid_braids: Vec<(BraidResult, BraidValidationError, &'static str)> = vec![
             (
                 Braid::from_data(
@@ -514,9 +502,7 @@ mod tests {
                         (4, Some(5), Sign::Positive),
                     ],
                 )
-                .as_ref()
-                .unwrap()
-                .clone()
+                .clone_unwrap()
                     * letter,
                 BraidValidationError::IndexTooSmall {
                     index: BraidIndex::try_new(5).unwrap(),
@@ -535,9 +521,7 @@ mod tests {
                             (4, Some(5), Sign::Positive),
                         ],
                     )
-                    .as_ref()
-                    .unwrap()
-                    .clone(),
+                    .clone_unwrap(),
                 BraidValidationError::IndexTooSmall {
                     index: BraidIndex::try_new(5).unwrap(),
                     minimal_required_index: BraidIndex::try_new(8).unwrap(),
@@ -554,9 +538,7 @@ mod tests {
                         (4, Some(5), Sign::Positive),
                     ],
                 )
-                .as_ref()
-                .unwrap()
-                .clone()
+                .clone_unwrap()
                     * word.clone(),
                 BraidValidationError::IndexTooSmall {
                     index: BraidIndex::try_new(5).unwrap(),
@@ -575,9 +557,7 @@ mod tests {
                             (4, Some(5), Sign::Positive),
                         ],
                     )
-                    .as_ref()
-                    .unwrap()
-                    .clone(),
+                    .clone_unwrap(),
                 BraidValidationError::IndexTooSmall {
                     index: BraidIndex::try_new(5).unwrap(),
                     minimal_required_index: BraidIndex::try_new(8).unwrap(),
@@ -585,14 +565,8 @@ mod tests {
                 "index too small, word * braid",
             ),
             (
-                Braid::from_data(Some(10), word.clone())
-                    .as_ref()
-                    .unwrap()
-                    .clone()
-                    * Braid::from_data(Some(11), word.clone())
-                        .as_ref()
-                        .unwrap()
-                        .clone(),
+                Braid::from_data(Some(10), word.clone()).clone_unwrap()
+                    * Braid::from_data(Some(11), word.clone()).clone_unwrap(),
                 BraidValidationError::UnequalIndices {
                     left: BraidIndex::try_new(10).unwrap(),
                     right: BraidIndex::try_new(11).unwrap(),
@@ -604,18 +578,14 @@ mod tests {
                     Some(10),
                     vec![(1, None::<u16>, Sign::Positive); u16::MAX as usize],
                 )
-                .as_ref()
-                .unwrap()
-                .clone()
+                .clone_unwrap()
                     * letter,
                 BraidValidationError::from(
-                    *Word::try_new(vec![
+                    Word::try_new(vec![
                         (1, None::<u16>, Sign::Positive);
                         u16::MAX as usize + 1
                     ])
-                    .as_ref()
-                    .err()
-                    .unwrap(),
+                    .clone_unwrap_err(),
                 ),
                 "word failed validation, braid * letter",
             ),
@@ -625,17 +595,13 @@ mod tests {
                         Some(10),
                         vec![(1, None::<u16>, Sign::Positive); u16::MAX as usize],
                     )
-                    .as_ref()
-                    .unwrap()
-                    .clone(),
+                    .clone_unwrap(),
                 BraidValidationError::from(
-                    *Word::try_new(vec![
+                    Word::try_new(vec![
                         (1, None::<u16>, Sign::Positive);
                         u16::MAX as usize + 1
                     ])
-                    .as_ref()
-                    .err()
-                    .unwrap(),
+                    .clone_unwrap_err(),
                 ),
                 "word failed validation, letter * braid",
             ),
@@ -644,18 +610,14 @@ mod tests {
                     Some(10),
                     vec![(1, None::<u16>, Sign::Positive); u16::MAX as usize],
                 )
-                .as_ref()
-                .unwrap()
-                .clone()
+                .clone_unwrap()
                     * word.clone(),
                 BraidValidationError::from(
-                    *Word::try_new(vec![
+                    Word::try_new(vec![
                         (1, None::<u16>, Sign::Positive);
                         u16::MAX as usize + 12
                     ])
-                    .as_ref()
-                    .err()
-                    .unwrap(),
+                    .clone_unwrap_err(),
                 ),
                 "word failed validation, braid * word",
             ),
@@ -664,17 +626,13 @@ mod tests {
                     Some(10),
                     vec![(1, None::<u16>, Sign::Positive); u16::MAX as usize],
                 )
-                .as_ref()
-                .unwrap()
-                .clone(),
+                .clone_unwrap(),
                 BraidValidationError::from(
-                    *Word::try_new(vec![
+                    Word::try_new(vec![
                         (1, None::<u16>, Sign::Positive);
                         u16::MAX as usize + 12
                     ])
-                    .as_ref()
-                    .err()
-                    .unwrap(),
+                    .clone_unwrap_err(),
                 ),
                 "word failed validation, word * braid",
             ),
@@ -683,44 +641,32 @@ mod tests {
                     None::<u16>,
                     vec![(1, None::<u16>, Sign::Positive); u16::MAX as usize],
                 )
-                .as_ref()
-                .unwrap()
-                .clone()
+                .clone_unwrap()
                     * Braid::from_data(None::<u16>, vec![(1, None::<u16>, Sign::Positive)])
-                        .as_ref()
-                        .unwrap()
-                        .clone(),
+                        .clone_unwrap(),
                 BraidValidationError::from(
-                    *Word::try_new(vec![
+                    Word::try_new(vec![
                         (1, None::<u16>, Sign::Positive);
                         u16::MAX as usize + 1
                     ])
-                    .as_ref()
-                    .err()
-                    .unwrap(),
+                    .clone_unwrap_err(),
                 ),
                 "word failed validation, long_braid * short_braid",
             ),
             (
                 Braid::from_data(None::<u16>, vec![(1, None::<u16>, Sign::Positive)])
-                    .as_ref()
-                    .unwrap()
-                    .clone()
+                    .clone_unwrap()
                     * Braid::from_data(
                         None::<u16>,
                         vec![(1, None::<u16>, Sign::Positive); u16::MAX as usize],
                     )
-                    .as_ref()
-                    .unwrap()
-                    .clone(),
+                    .clone_unwrap(),
                 BraidValidationError::from(
-                    *Word::try_new(vec![
+                    Word::try_new(vec![
                         (1, None::<u16>, Sign::Positive);
                         u16::MAX as usize + 1
                     ])
-                    .as_ref()
-                    .err()
-                    .unwrap(),
+                    .clone_unwrap_err(),
                 ),
                 "word failed validation, short_braid * long_braid",
             ),
@@ -734,7 +680,7 @@ mod tests {
     #[gtest]
     fn can_multiply_borrowed_braid_with_letter() {
         let letter = letter![1; +].unwrap();
-        let braid = braid![(); [2; -1], [1 => 3; 3]].as_ref().unwrap().clone();
+        let braid = braid![(); [2; -1], [1 => 3; 3]].clone_unwrap();
 
         expect_that!(
             &braid * letter,
@@ -748,9 +694,9 @@ mod tests {
 
     #[gtest]
     fn can_multiply_borrowed_braid_with_word() {
-        let word1 = word![[1; 1], [2; -3]].as_ref().unwrap().clone();
-        let word2 = word![[1 => 3; 2]].as_ref().unwrap().clone();
-        let braid = braid![(); [2; -1], [1 => 3; 3]].as_ref().unwrap().clone();
+        let word1 = word![[1; 1], [2; -3]].clone_unwrap();
+        let word2 = word![[1 => 3; 2]].clone_unwrap();
+        let braid = braid![(); [2; -1], [1 => 3; 3]].clone_unwrap();
 
         expect_that!(
             &braid * word1,
@@ -764,9 +710,9 @@ mod tests {
 
     #[gtest]
     fn can_multiply_braid_with_borrowed_word() {
-        let braid1 = braid![(); [1; 1], [2; -3]].as_ref().unwrap().clone();
-        let braid2 = braid![(); [1 => 3; 2]].as_ref().unwrap().clone();
-        let word = word![[2; -1], [1 => 3; 3]].as_ref().unwrap().clone();
+        let braid1 = braid![(); [1; 1], [2; -3]].clone_unwrap();
+        let braid2 = braid![(); [1 => 3; 2]].clone_unwrap();
+        let word = word![[2; -1], [1 => 3; 3]].clone_unwrap();
 
         expect_that!(
             &word * braid1,
@@ -780,8 +726,8 @@ mod tests {
 
     #[gtest]
     fn can_multiply_borrowed_braid_with_borrowed_word() {
-        let braid = braid![(); [1; 1], [2; -3]].as_ref().unwrap().clone();
-        let word = word![[2; -1], [1 => 3; 3]].as_ref().unwrap().clone();
+        let braid = braid![(); [1; 1], [2; -3]].clone_unwrap();
+        let word = word![[2; -1], [1 => 3; 3]].clone_unwrap();
 
         expect_that!(
             &word * &braid,
@@ -795,9 +741,9 @@ mod tests {
 
     #[gtest]
     fn can_multiply_braid_with_borrowed_braid() {
-        let braid1 = braid![(); [1; 1], [2; -3]].as_ref().unwrap().clone();
-        let braid2 = braid![(); [1 => 3; 2]].as_ref().unwrap().clone();
-        let braid = braid![(); [2; -1], [1 => 3; 3]].as_ref().unwrap().clone();
+        let braid1 = braid![(); [1; 1], [2; -3]].clone_unwrap();
+        let braid2 = braid![(); [1 => 3; 2]].clone_unwrap();
+        let braid = braid![(); [2; -1], [1 => 3; 3]].clone_unwrap();
 
         expect_that!(
             &braid * braid1,
@@ -811,8 +757,8 @@ mod tests {
 
     #[test]
     fn can_multiply_borrowed_braid_with_borrowed_braid() {
-        let braid1 = braid![(); [1; 1], [2; -3]].as_ref().unwrap().clone();
-        let braid2 = braid![(); [1 => 3; 2]].as_ref().unwrap().clone();
+        let braid1 = braid![(); [1; 1], [2; -3]].clone_unwrap();
+        let braid2 = braid![(); [1 => 3; 2]].clone_unwrap();
 
         assert_that!(
             &braid1 * &braid2,
@@ -823,7 +769,7 @@ mod tests {
     #[gtest]
     fn can_multiply_braid_with_letter_result() {
         let letter_result = letter![1; +];
-        let braid = braid![(); [1 => 3; -3], [2; 7]].as_ref().unwrap().clone();
+        let braid = braid![(); [1 => 3; -3], [2; 7]].clone_unwrap();
 
         let letter_times_braid = braid![(); [1; 1], [1 => 3; -3], [2; 7]];
         let braid_times_letter = braid![(); [1 => 3; -3], [2; 7], [1; 1]];
@@ -851,7 +797,7 @@ mod tests {
     #[gtest]
     fn can_multiply_braid_with_word_result() {
         let word_result = word![[1; 3], [2; -7]];
-        let braid = braid![(); [1 => 3; 2], [1; 1]].as_ref().unwrap().clone();
+        let braid = braid![(); [1 => 3; 2], [1; 1]].clone_unwrap();
 
         let word_times_braid = braid![(); [1; 3], [2; -7], [1 => 3; 2], [1; 1]];
         let braid_times_word = braid![(); [1 => 3; 2], [1; 1], [1; 3], [2; -7]];
@@ -904,7 +850,7 @@ mod tests {
 
     #[gtest]
     fn can_multiply_word_with_braid_result() {
-        let word = word![[1; 3], [2; -7]].as_ref().unwrap().clone();
+        let word = word![[1; 3], [2; -7]].clone_unwrap();
         let braid_result = braid![(); [1 => 3; 2], [1; 1]];
 
         let word_times_braid = braid![(); [1; 3], [2; -7], [1 => 3; 2], [1; 1]];
@@ -932,7 +878,7 @@ mod tests {
 
     #[gtest]
     fn can_multiply_braid_with_braid_result() {
-        let braid = braid![(); [1; 3], [2; -7]].as_ref().unwrap().clone();
+        let braid = braid![(); [1; 3], [2; -7]].clone_unwrap();
         let braid_result = braid![(); [1 => 3; 2], [1; 1]];
 
         let braid_times_braid_result = braid![(); [1; 3], [2; -7], [1 => 3; 2], [1; 1]];
