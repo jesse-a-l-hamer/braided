@@ -19,7 +19,7 @@ use crate::{StrandResult, StrandValidationError};
 /// # Construction
 ///
 /// The recommended means of constructing a [`Strand`] is via the associated function
-/// [`Strand::new`]. The reader is referred to the documentation for that function for further
+/// [`Strand::try_new`]. The reader is referred to the documentation for that function for further
 /// detail.
 ///
 /// # Interoperability with [`u16`]
@@ -32,7 +32,7 @@ use crate::{StrandResult, StrandValidationError};
 /// ```
 /// use braided::Strand;
 ///
-/// assert_eq!(u16::from(Strand::new(1).unwrap()), 1);
+/// assert_eq!(u16::from(Strand::try_new(1).unwrap()), 1);
 /// ```
 ///
 /// Second, [`std::ops::Deref`] is iplemented on [`Strand`] to allow easy dereferencing into a
@@ -41,7 +41,7 @@ use crate::{StrandResult, StrandValidationError};
 /// ```
 /// use braided::Strand;
 ///
-/// assert_eq!(*Strand::new(1).unwrap(), 1);
+/// assert_eq!(*Strand::try_new(1).unwrap(), 1);
 /// ```
 ///
 /// Finally, [`AsRef<u16>`] is implemented on [`Strand`], allowing for [`Strand`] to be used in
@@ -52,7 +52,7 @@ use crate::{StrandResult, StrandValidationError};
 ///
 /// fn double<S: AsRef<u16>>(s: S) -> u16 { s.as_ref() * 2 }
 ///
-/// assert_eq!(double(Strand::new(2).unwrap()), 4);
+/// assert_eq!(double(Strand::try_new(2).unwrap()), 4);
 /// ```
 /// Note that as [`BraidIndex`](crate::BraidIndex) also implements [`AsRef<u16>`], this allows for
 /// defining generic functions which accept both [`Strand`] and [`BraidIndex`](crate::BraidIndex).
@@ -67,9 +67,9 @@ use crate::{StrandResult, StrandValidationError};
 /// ```
 /// use braided::Strand;
 ///
-/// assert_eq!(Strand::new(2).unwrap() + Strand::new(3).unwrap(), Strand::new(5));
+/// assert_eq!(Strand::try_new(2).unwrap() + Strand::try_new(3).unwrap(), Strand::try_new(5));
 ///
-/// assert_eq!(Strand::new(2).unwrap() + 3, Strand::new(5));
+/// assert_eq!(Strand::try_new(2).unwrap() + 3, Strand::try_new(5));
 /// ```
 ///
 /// - [`std::ops::Add<Strand>`] and for [`u16`]:
@@ -77,7 +77,7 @@ use crate::{StrandResult, StrandValidationError};
 /// ```
 /// use braided::Strand;
 ///
-/// assert_eq!(2 + Strand::new(3).unwrap(), Strand::new(5));
+/// assert_eq!(2 + Strand::try_new(3).unwrap(), Strand::try_new(5));
 /// ```
 ///
 /// - [`std::ops::Sub<Strand>`] and [`std::ops::Sub<u16>`] for [`Strand`]:
@@ -85,9 +85,9 @@ use crate::{StrandResult, StrandValidationError};
 /// ```
 /// use braided::Strand;
 ///
-/// assert_eq!(Strand::new(3).unwrap() - Strand::new(2).unwrap(), Strand::new(1));
+/// assert_eq!(Strand::try_new(3).unwrap() - Strand::try_new(2).unwrap(), Strand::try_new(1));
 ///
-/// assert_eq!(Strand::new(3).unwrap() - 2, Strand::new(1));
+/// assert_eq!(Strand::try_new(3).unwrap() - 2, Strand::try_new(1));
 /// ```
 ///
 /// - [`std::ops::Sub<Strand>`] for [`u16`]:
@@ -95,7 +95,7 @@ use crate::{StrandResult, StrandValidationError};
 /// ```
 /// use braided::Strand;
 ///
-/// assert_eq!(3 - Strand::new(2).unwrap(), Strand::new(1));
+/// assert_eq!(3 - Strand::try_new(2).unwrap(), Strand::try_new(1));
 /// ```
 ///
 /// Note that each of the arithmetic operations above is fallible. See the documentation for
@@ -109,6 +109,14 @@ impl Strand {
     ///
     /// This is the recommended means of constructing a new strand.
     ///
+    /// <div class="warning">
+    ///
+    /// The return type is [`StrandResult`](StrandResult), which is a new-type wrapper around
+    /// [`Result<Strand, StrandValidationError>`]. Use the dereference operator "*" for easy access to
+    /// the inner value.
+    ///
+    /// </div>
+    ///
     /// # Examples
     ///
     /// One may construct a new [`Strand`] directly from a [`u16`]:
@@ -117,7 +125,7 @@ impl Strand {
     /// use braided::Strand;
     /// use std::assert_matches;
     ///
-    /// assert_matches!(Strand::new(1), Ok(_));
+    /// assert_matches!(*Strand::try_new(1), Ok(_));
     /// ```
     ///
     /// or from anything that coerces into a [`u16`]:
@@ -126,10 +134,10 @@ impl Strand {
     /// use braided::Strand;
     /// use std::assert_matches;
     ///
-    /// assert_matches!(Strand::new(i16::MAX), Ok(_));
-    /// assert_matches!(Strand::new(-(i16::MIN + 1)), Ok(_));
-    /// assert_matches!(Strand::new(1 as usize), Ok(_));
-    /// assert_matches!(Strand::new(-(-1 as isize)), Ok(_));
+    /// assert_matches!(*Strand::try_new(i16::MAX), Ok(_));
+    /// assert_matches!(*Strand::try_new(-(i16::MIN + 1)), Ok(_));
+    /// assert_matches!(*Strand::try_new(1 as usize), Ok(_));
+    /// assert_matches!(*Strand::try_new(-(-1 as isize)), Ok(_));
     /// ```
     ///
     /// including other [`Strand`]s:
@@ -138,7 +146,7 @@ impl Strand {
     /// use braided::Strand;
     /// use std::assert_matches;
     ///
-    /// assert_matches!(Strand::new(Strand::new(1).unwrap()), Ok(_));
+    /// assert_matches!(*Strand::try_new(Strand::try_new(1).unwrap()), Ok(_));
     /// ```
     ///
     /// as well as [`BraidIndex`](crate::BraidIndex):
@@ -147,7 +155,7 @@ impl Strand {
     /// use braided::{BraidIndex, Strand};
     /// use std::assert_matches;
     ///
-    /// assert_matches!(Strand::new(BraidIndex::new(1).unwrap()), Ok(_));
+    /// assert_matches!(*Strand::try_new(BraidIndex::try_new(1).unwrap()), Ok(_));
     /// ```
     pub fn try_new<K>(index: K) -> StrandResult
     where
