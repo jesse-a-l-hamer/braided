@@ -522,4 +522,212 @@ mod tests {
             eq(&braid![(); [1; 1], [2; -3], [1 => 3; 2]])
         );
     }
+
+    #[gtest]
+    fn can_multiply_braid_with_letter_result() {
+        let letter_result = letter![1; +];
+        let braid = braid![(); [1 => 3; -3], [2; 7]].unwrap();
+
+        let letter_times_braid = braid![(); [1; 1], [1 => 3; -3], [2; 7]];
+        let braid_times_letter = braid![(); [1 => 3; -3], [2; 7], [1; 1]];
+
+        let tests = [
+            (
+                letter_result * braid.clone(),
+                &letter_times_braid,
+                "R<L> * B",
+            ),
+            (letter_result * &braid, &letter_times_braid, "R<L> * &B"),
+            (
+                braid.clone() * letter_result,
+                &braid_times_letter,
+                "B * R<L>",
+            ),
+            (&braid * letter_result, &braid_times_letter, "&B * R<L>"),
+        ];
+
+        for (actual, expected, label) in tests {
+            expect_that!(actual, eq(expected), "{label}");
+        }
+    }
+
+    #[gtest]
+    fn can_multiply_braid_with_word_result() {
+        let word_result = word![[1; 3], [2; -7]];
+        let braid = braid![(); [1 => 3; 2], [1; 1]].unwrap();
+
+        let word_times_braid = braid![(); [1; 3], [2; -7], [1 => 3; 2], [1; 1]];
+        let braid_times_word = braid![(); [1 => 3; 2], [1; 1], [1; 3], [2; -7]];
+
+        let tests = [
+            (
+                word_result.clone() * braid.clone(),
+                &word_times_braid,
+                "R<W> * B",
+            ),
+            (word_result.clone() * &braid, &word_times_braid, "R<W> * &B"),
+            (
+                braid.clone() * word_result.clone(),
+                &braid_times_word,
+                "B * R<W>",
+            ),
+            (&braid * word_result, &braid_times_word, "&B * R<W>"),
+        ];
+
+        for (actual, expected, label) in tests {
+            expect_that!(actual, eq(expected), "{label}");
+        }
+    }
+
+    #[gtest]
+    fn can_multiply_letter_with_braid_result() {
+        let letter = letter![1; +].unwrap();
+        let braid_result = braid![(); [1 => 3; -3], [2; 7]];
+
+        let letter_times_braid = braid![(); [1; 1], [1 => 3; -3], [2; 7]];
+        let braid_times_letter = braid![(); [1 => 3; -3], [2; 7], [1; 1]];
+
+        let tests = [
+            (
+                letter * braid_result.clone(),
+                &letter_times_braid,
+                "L * R<B>",
+            ),
+            (
+                braid_result.clone() * letter,
+                &braid_times_letter,
+                "R<B> * L",
+            ),
+        ];
+
+        for (actual, expected, label) in tests {
+            expect_that!(actual, eq(expected), "{label}");
+        }
+    }
+
+    #[gtest]
+    fn can_multiply_word_with_braid_result() {
+        let word = word![[1; 3], [2; -7]].unwrap();
+        let braid_result = braid![(); [1 => 3; 2], [1; 1]];
+
+        let word_times_braid = braid![(); [1; 3], [2; -7], [1 => 3; 2], [1; 1]];
+        let braid_times_word = braid![(); [1 => 3; 2], [1; 1], [1; 3], [2; -7]];
+
+        let tests = [
+            (
+                word.clone() * braid_result.clone(),
+                &word_times_braid,
+                "W * R<B>",
+            ),
+            (&word * braid_result.clone(), &word_times_braid, "&W * R<B>"),
+            (
+                braid_result.clone() * word.clone(),
+                &braid_times_word,
+                "R<B> * W",
+            ),
+            (braid_result * &word, &braid_times_word, "R<B> * &W"),
+        ];
+
+        for (actual, expected, label) in tests {
+            expect_that!(actual, eq(expected), "{label}");
+        }
+    }
+
+    #[gtest]
+    fn can_multiply_braid_with_braid_result() {
+        let braid = braid![(); [1; 3], [2; -7]].unwrap();
+        let braid_result = braid![(); [1 => 3; 2], [1; 1]];
+
+        let braid_times_braid_result = braid![(); [1; 3], [2; -7], [1 => 3; 2], [1; 1]];
+        let braid_result_times_braid = braid![(); [1 => 3; 2], [1; 1], [1; 3], [2; -7]];
+        let tests = [
+            (
+                braid.clone() * braid_result.clone(),
+                &braid_times_braid_result,
+                "B * R<B>",
+            ),
+            (
+                &braid * braid_result.clone(),
+                &braid_times_braid_result,
+                "&B * R<B>",
+            ),
+            (
+                braid_result.clone() * braid.clone(),
+                &braid_result_times_braid,
+                "R<B> * B",
+            ),
+            (
+                braid_result * &braid,
+                &braid_result_times_braid,
+                "R<B> * &B",
+            ),
+        ];
+
+        for (actual, expected, label) in tests {
+            expect_that!(actual, eq(expected), "{label}");
+        }
+    }
+
+    #[test]
+    fn can_multiply_letter_result_with_braid_result() {
+        let letter_result = letter![1; +];
+        let braid_result = braid![(); [1 => 3; -3], [2; 7]];
+
+        let letter_times_braid = braid![(); [1; 1], [1 => 3; -3], [2; 7]];
+        let braid_times_letter = braid![(); [1 => 3; -3], [2; 7], [1; 1]];
+
+        let tests = [
+            (
+                letter_result * braid_result.clone(),
+                &letter_times_braid,
+                "R<L> * R<B>",
+            ),
+            (
+                braid_result.clone() * letter_result,
+                &braid_times_letter,
+                "R<B> * R<L>",
+            ),
+        ];
+
+        for (actual, expected, label) in tests {
+            expect_that!(actual, eq(expected), "{label}");
+        }
+    }
+
+    #[test]
+    fn can_multiply_word_result_with_braid_result() {
+        let word_result = word![[1; 3], [2; -7]];
+        let braid_result = braid![(); [1 => 3; 2], [1; 1]];
+
+        let word_times_braid = braid![(); [1; 3], [2; -7], [1 => 3; 2], [1; 1]];
+        let braid_times_word = braid![(); [1 => 3; 2], [1; 1], [1; 3], [2; -7]];
+
+        let tests = [
+            (
+                word_result.clone() * braid_result.clone(),
+                &word_times_braid,
+                "R<W> * R<B>",
+            ),
+            (
+                braid_result.clone() * word_result.clone(),
+                &braid_times_word,
+                "R<B> * R<W>",
+            ),
+        ];
+
+        for (actual, expected, label) in tests {
+            expect_that!(actual, eq(expected), "{label}");
+        }
+    }
+
+    #[test]
+    fn can_multiply_braid_result_with_braid_result() {
+        let braid_result1 = braid![(); [1; 3], [2; -7]];
+        let braid_result2 = braid![(); [1 => 3; 2], [1; 1]];
+
+        assert_that!(
+            braid_result1 * braid_result2,
+            eq(&braid![(); [1; 3], [2; -7], [1 => 3; 2], [1; 1]])
+        );
+    }
 }
