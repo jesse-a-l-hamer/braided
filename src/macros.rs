@@ -4,6 +4,14 @@
 /// [`Letter::Artin`](crate::Letter::Artin) variant) or two positive integers and a sign (for the
 /// [`Letter::Band`](crate::Letter::Band) variant). See the examples below for details.
 ///
+/// <div class="warning">
+///
+/// The return type is [`LetterResult`](crate::LetterResult), which is a new-type wrapper around
+/// [`Result<Letter, LetterValidationError>`]. Use the dereference operator "*" for easy access to
+/// the inner value.
+///
+/// </div>
+///
 /// # Examples
 ///
 /// ```
@@ -13,20 +21,22 @@
 /// # fn main() {
 /// // A single integer and a sign is interpreted as an Artin generator:
 /// let artin = letter![1; +];
-/// assert_matches!(artin, Ok(Letter::Artin(_)));
-/// assert_eq!(artin, Letter::new(1, None::<u16>, Sign::Positive));
+/// assert_matches!(*artin, Ok(Letter::Artin(_)));
+/// assert_eq!(artin, Letter::try_new(1, None::<u16>, Sign::Positive));
 ///
-/// // Two integers and a sign is interpreted as a Band generator:
+/// // Two integers separated by "=>" and a sign is interpreted as a Band generator:
 /// let band = letter![2 => 4; -];
-/// assert_matches!(band, Ok(Letter::Band(_)));
-/// assert_eq!(band, Letter::new(2, Some(4), Sign::Negative));
+/// assert_matches!(*band, Ok(Letter::Band(_)));
+/// assert_eq!(band, Letter::try_new(2, Some(4), Sign::Negative));
 /// # }
 /// ```
 ///
 /// # Errors
 ///
-/// Under the hood, a call is made to the [`Letter::new`](crate::Letter::new) constructor, and
-/// will return errors under the same circumstances.
+/// Under the hood, a call is made to the [`Letter::try_new`](crate::Letter::try_new) constructor, and
+/// will return errors under the same circumstances. See [`LetterResult`](crate::LetterResult) and
+/// [`LetterValidationError`](crate::LetterValidationError) for more information on the return type
+/// and error type, respectively.
 ///
 /// ```
 /// use braided::{
@@ -39,19 +49,19 @@
 /// // Strand indices must be positive:
 /// let bad_letter_1 = letter![-1; +];
 /// assert_matches!(
-///     bad_letter_1,
+///     *bad_letter_1,
 ///     Err(LetterValidationError::ArtinValidation(ArtinValidationError::StrandValidation(_))),
 /// );
 /// let bad_letter_2 = letter![0 => 4; -];
 /// assert_matches!(
-///     bad_letter_2,
+///     *bad_letter_2,
 ///     Err(LetterValidationError::BandValidation(BandValidationError::StrandValidation(_))),
 /// );
 ///
 /// // Strand indices must also be within the [`u16`] range:
 /// let bad_letter_3 = letter![u16::MAX as u32 + 1; +];
 /// assert_matches!(
-///     bad_letter_3,
+///     *bad_letter_3,
 ///     Err(
 ///         LetterValidationError::ArtinValidation(
 ///             ArtinValidationError::StrandValidation(
@@ -64,7 +74,7 @@
 /// // Bands must be well-formed:
 /// let bad_letter_4 = letter![4 => 1; +];
 /// assert_matches!(
-///     bad_letter_4,
+///     *bad_letter_4,
 ///     Err(LetterValidationError::BandValidation(BandValidationError::FootOverHead {..})),
 /// )
 /// # }
@@ -101,6 +111,16 @@ macro_rules! letter {
 /// [letter length](crate::Word::length) does not. More information on the fallibility of this
 /// macro can be found in the _**Errors**_ section below.
 ///
+/// <div class="warning">
+///
+/// The return type is [`WordResult`](crate::WordResult), which is a new-type wrapper around
+/// [`Result<Word, WordValidationError>`]. Use the dereference operator "*" for easy access to
+/// the inner value, and use the [`clone_unwrap`](crate::WordResult::clone_unwrap) and
+/// [`clone_unwrap_err`](crate::WordResult::clone_unwrap_err) instead of `unwrap` and `unwrap_err`,
+/// respectively.
+///
+/// </div>
+///
 /// # Examples
 ///
 /// ```
@@ -109,19 +129,19 @@ macro_rules! letter {
 /// # fn main() {
 /// // Passing nothing constructs the trivial word:
 /// let trivial = word![];
-/// assert_eq!(trivial, Ok(Word::trivial()));
+/// assert_eq!(*trivial, Ok(Word::trivial()));
 ///
 /// // Create a word from a single letter repeated several times:
 /// let positive_artin_cubed = word![[2; 3]];
-/// assert_eq!(positive_artin_cubed, Word::new(vec![(2, None::<u16>, Sign::Positive); 3]));
+/// assert_eq!(positive_artin_cubed, Word::try_new(vec![(2, None::<u16>, Sign::Positive); 3]));
 /// let negative_band_squared = word![[1 => 4; -2]];
-/// assert_eq!(negative_band_squared, Word::new(vec![(1, Some(4), Sign::Negative); 2]));
+/// assert_eq!(negative_band_squared, Word::try_new(vec![(1, Some(4), Sign::Negative); 2]));
 ///
 /// // Create a word from an arbitrary sequence of factors, using either generator variant:
 /// let wacky_word = word![[2 => 5; 7], [3; -2], [1 => 2; -3], [2; 9]];
 /// assert_eq!(
 ///     wacky_word,
-///     Word::new([
+///     Word::try_new([
 ///         vec![(2, Some(5), Sign::Positive); 7],
 ///         vec![(3, None, Sign::Negative); 2],
 ///         vec![(1, Some(2), Sign::Negative); 3],
@@ -133,9 +153,9 @@ macro_rules! letter {
 ///
 /// # Errors
 ///
-/// [`word!`](crate::word) will return a [`WordValidationError`](crate::WordValidationError) in any
-/// context where the associated [`Word::new`](crate::Word::new) function does. In particular, all
-/// of the following are errors:
+/// [`word!`](crate::word) will return a wrapped [`WordValidationError`](crate::WordValidationError)
+/// in any context where the associated [`Word::try_new`](crate::Word::try_new) function does. In
+/// particular, all of the following are errors:
 ///
 /// 1. Having an Artin length which exceeds [`u16::MAX`]
 ///    ([`WordValidationError::TooLong`](crate::WordValidationError::TooLong)).
@@ -148,9 +168,9 @@ macro_rules! letter {
 /// let long_word_bands = word![[1 => 3; (u16::MAX as u32).div_euclid(3) + 1]];
 /// let long_product = word![[1; u16::MAX as u32 -1], [3; 2]];
 ///
-/// assert_matches!(long_word_artin, Err(WordValidationError::TooLong(_)));
-/// assert_matches!(long_word_bands, Err(WordValidationError::TooLong(_)));
-/// assert_matches!(long_product, Err(WordValidationError::TooLong(_)));
+/// assert_matches!(*long_word_artin, Err(WordValidationError::TooLong(_)));
+/// assert_matches!(*long_word_bands, Err(WordValidationError::TooLong(_)));
+/// assert_matches!(*long_product, Err(WordValidationError::TooLong(_)));
 /// # }
 /// ```
 ///
@@ -165,9 +185,9 @@ macro_rules! letter {
 /// let malformed_in_middle = word![[1; 2], [4 => 1; -3], [0; -1]];
 /// let malformed_at_end = word![[1; 2], [1 => 4; -3], [0; -1]];
 ///
-/// assert_matches!(malformed_at_start, Err(WordValidationError::LetterValidation(_)));
-/// assert_matches!(malformed_in_middle, Err(WordValidationError::LetterValidation(_)));
-/// assert_matches!(malformed_at_end, Err(WordValidationError::LetterValidation(_)));
+/// assert_matches!(*malformed_at_start, Err(WordValidationError::LetterValidation(_)));
+/// assert_matches!(*malformed_in_middle, Err(WordValidationError::LetterValidation(_)));
+/// assert_matches!(*malformed_at_end, Err(WordValidationError::LetterValidation(_)));
 /// # }
 /// ```
 ///
@@ -179,7 +199,7 @@ macro_rules! letter {
 /// # #[macro_use] extern crate braided;
 /// # fn main() {
 /// let too_big_exponent = word![[1; u64::MAX]];
-/// assert_matches!(too_big_exponent, Err(WordValidationError::FromInt(_)));
+/// assert_matches!(*too_big_exponent, Err(WordValidationError::FromInt(_)));
 /// # }
 /// ```
 #[macro_export]
@@ -254,6 +274,16 @@ macro_rules! word {
 ///
 /// The macro will panic if neither the index nor the word are specified.
 ///
+/// <div class="warning">
+///
+/// The return type is [`BraidResult`](crate::BraidResult), which is a new-type wrapper around
+/// [`Result<Braid, BraidValidationError>`]. Use the dereference operator "*" for easy access to
+/// the inner value, and use the [`clone_unwrap`](crate::BraidResult::clone_unwrap) and
+/// [`clone_unwrap_err`](crate::BraidResult::clone_unwrap_err) instead of `unwrap` and `unwrap_err`,
+/// respectively.
+///
+/// </div>
+///
 /// # Examples
 ///
 /// ```
@@ -264,7 +294,7 @@ macro_rules! word {
 /// assert_eq!(trivial_3_braid, Braid::trivial(3));
 ///
 /// let braid_with_inferred_index = braid![(); [1 => 3; -2], [3; 3], [1; 4]];
-/// assert_eq!(braid_with_inferred_index, Braid::from_data(
+/// assert_eq!(braid_with_inferred_index, Braid::try_from_data(
 ///     None::<u16>,
 ///     [
 ///         vec![(1, Some(3), Sign::Negative); 2],
@@ -273,10 +303,10 @@ macro_rules! word {
 ///     ]
 ///     .concat()
 /// ));
-/// assert_eq!(*braid_with_inferred_index.unwrap().braid_index(), 4);
+/// assert_eq!(*braid_with_inferred_index.clone_unwrap().braid_index(), 4);
 ///
 /// let braid_with_explicit_index = braid![(10); [1 => 3; -2], [3; 3], [1; 4]];
-/// assert_eq!(braid_with_explicit_index, Braid::from_data(
+/// assert_eq!(braid_with_explicit_index, Braid::try_from_data(
 ///     Some(10),
 ///     [
 ///         vec![(1, Some(3), Sign::Negative); 2],
@@ -285,14 +315,14 @@ macro_rules! word {
 ///     ]
 ///     .concat()
 /// ));
-/// assert_eq!(*braid_with_explicit_index.unwrap().braid_index(), 10);
+/// assert_eq!(*braid_with_explicit_index.clone_unwrap().braid_index(), 10);
 /// # }
 /// ```
 ///
 /// # Errors
 ///
-/// The macro will return a [`BraidValidationError`](crate::BraidValidationError) in any of the
-/// following circumstances:
+/// The macro will return a wrapped [`BraidValidationError`](crate::BraidValidationError) in any of
+/// the following circumstances:
 ///
 /// 1. An explicitly provided index is smaller than is required by the given word
 ///    ([`BraidValidationError::IndexTooSmall`](crate::BraidValidationError::IndexTooSmall)).
@@ -304,7 +334,7 @@ macro_rules! word {
 /// # fn main() {
 /// let index_too_small = braid![(1); [1; 1]];
 ///
-/// assert_matches!(index_too_small, Err(BraidValidationError::IndexTooSmall { .. }));
+/// assert_matches!(*index_too_small, Err(BraidValidationError::IndexTooSmall { .. }));
 /// # }
 /// ```
 ///
@@ -320,9 +350,9 @@ macro_rules! word {
 /// let zero_index = braid![(0); [1; 1]];
 /// let big_index = braid![(u16::MAX as u32 + 1); [1; 1]];
 ///
-/// assert_matches!(negative_index, Err(BraidValidationError::IndexValidation(_)));
-/// assert_matches!(zero_index, Err(BraidValidationError::IndexValidation(_)));
-/// assert_matches!(big_index, Err(BraidValidationError::IndexValidation(_)));
+/// assert_matches!(*negative_index, Err(BraidValidationError::IndexValidation(_)));
+/// assert_matches!(*zero_index, Err(BraidValidationError::IndexValidation(_)));
+/// assert_matches!(*big_index, Err(BraidValidationError::IndexValidation(_)));
 /// # }
 /// ```
 ///
@@ -338,9 +368,9 @@ macro_rules! word {
 /// let invalid_letter = braid![(); [4 => 1; 2]];
 /// let invalid_exponent = braid![(); [1; u32::MAX]];
 ///
-/// assert_matches!(too_long, Err(BraidValidationError::WordValidation(_)));
-/// assert_matches!(invalid_letter, Err(BraidValidationError::WordValidation(_)));
-/// assert_matches!(invalid_exponent, Err(BraidValidationError::WordValidation(_)));
+/// assert_matches!(*too_long, Err(BraidValidationError::WordValidation(_)));
+/// assert_matches!(*invalid_letter, Err(BraidValidationError::WordValidation(_)));
+/// assert_matches!(*invalid_exponent, Err(BraidValidationError::WordValidation(_)));
 /// # }
 /// ```
 #[macro_export]
