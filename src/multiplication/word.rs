@@ -282,20 +282,20 @@ mod tests {
 
         expect_that!(
             *(letter * Word::trivial()),
-            ok(eq(&Word::try_from_letters(&vec![letter])
+            ok(eq(&Word::try_from_letters(&[letter])
                 .as_ref()
                 .unwrap()
                 .clone()))
         );
         expect_that!(
             *(Word::trivial() * letter),
-            ok(eq(&Word::try_from_letters(&vec![letter])
+            ok(eq(&Word::try_from_letters(&[letter])
                 .as_ref()
                 .unwrap()
                 .clone()))
         );
 
-        let word = Word::try_from_letters(&vec![
+        let word = Word::try_from_letters(&[
             Letter::try_new(1, Some(3), Sign::Positive).unwrap(),
             Letter::try_new(2, None::<u16>, Sign::Negative).unwrap(),
             Letter::try_new(1, Some(2), Sign::Positive).unwrap(),
@@ -310,7 +310,7 @@ mod tests {
 
     #[gtest]
     fn multiplication_with_inverse_yields_trivial() {
-        let word = Word::try_from_letters(&vec![
+        let word = Word::try_from_letters(&[
             Letter::try_new(1, Some(3), Sign::Positive).unwrap(),
             Letter::try_new(2, None::<u16>, Sign::Negative).unwrap(),
             Letter::try_new(1, Some(2), Sign::Positive).unwrap(),
@@ -436,7 +436,7 @@ mod tests {
     #[gtest]
     fn can_multiply_letter_with_borrowed_word() {
         let letter = letter![1; +].unwrap();
-        let word = word![[2; -1], [1 => 3; 2]].unwrap();
+        let word = word![[2; -1], [1 => 3; 2]].as_ref().unwrap().clone();
 
         expect_that!(letter * &word, eq(&word![[1; 1], [2; -1], [1 => 3; 2]]));
         expect_that!(&word * letter, eq(&word![[2; -1], [1 => 3; 2], [1; 1]]));
@@ -444,9 +444,9 @@ mod tests {
 
     #[gtest]
     fn can_multiply_borrowed_word_and_word() {
-        let word1 = word![[2; -1], [1 => 3; 2]].unwrap();
-        let word2 = word![[1; 7], [2; -3]].unwrap();
-        let word3 = word![[1 => 3; 4]].unwrap();
+        let word1 = word![[2; -1], [1 => 3; 2]].as_ref().unwrap().clone();
+        let word2 = word![[1; 7], [2; -3]].as_ref().unwrap().clone();
+        let word3 = word![[1 => 3; 4]].as_ref().unwrap().clone();
 
         expect_that!(
             &word1 * word2,
@@ -460,8 +460,8 @@ mod tests {
 
     #[test]
     fn can_multiply_borrowed_word_and_borrowed_word() {
-        let word1 = word![[2; -1], [1 => 3; 2]].unwrap();
-        let word2 = word![[1; 7], [2; -3]].unwrap();
+        let word1 = word![[2; -1], [1 => 3; 2]].as_ref().unwrap().clone();
+        let word2 = word![[1; 7], [2; -3]].as_ref().unwrap().clone();
 
         assert_that!(
             &word1 * &word2,
@@ -472,7 +472,7 @@ mod tests {
     #[gtest]
     fn can_multiply_word_and_letter_result() {
         let letter_result = letter![1; +];
-        let word = word![[2; -1], [1 => 3; 2]].unwrap();
+        let word = word![[2; -1], [1 => 3; 2]].as_ref().unwrap().clone();
 
         expect_that!(
             word.clone() * letter_result,
@@ -509,7 +509,7 @@ mod tests {
 
     #[gtest]
     fn can_multiply_word_and_word_result() {
-        let word = word![[1; 1]].unwrap();
+        let word = word![[1; 1]].as_ref().unwrap().clone();
         let word_result = word![[2; -1], [1 => 3; 2]];
 
         expect_that!(

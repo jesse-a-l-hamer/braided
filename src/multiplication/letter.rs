@@ -70,7 +70,7 @@ impl std::ops::Mul for LetterResult {
 mod tests {
     use crate::{Letter, Sign, Word, WordValidationError, letter, word};
     use googletest::matchers::{eq, err, ok};
-    use googletest::{expect_that, gtest};
+    use googletest::{assert_that, expect_that, gtest};
 
     #[gtest]
     fn valid_multiplication_succeeds_and_computes_as_expected() {
@@ -128,6 +128,6 @@ mod tests {
         let letter_result1 = letter![1; +];
         let letter_result2 = letter![2; -];
 
-        expect_that!(letter_result1 * letter_result2, eq(&word![[1; 1], [2; -1]]));
+        assert_that!(letter_result1 * letter_result2, eq(&word![[1; 1], [2; -1]]));
     }
 }

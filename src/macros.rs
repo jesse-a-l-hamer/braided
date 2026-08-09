@@ -642,7 +642,10 @@ mod tests {
             *braid,
             ok(eq(&Braid::from_data(
                 Some(10),
-                word![[2 => 4; -1], [1; 2], [3 => 4; -3], [2; 3]].unwrap()
+                word![[2 => 4; -1], [1; 2], [3 => 4; -3], [2; 3]]
+                    .as_ref()
+                    .unwrap()
+                    .clone()
             )
             .as_ref()
             .unwrap()
@@ -655,7 +658,10 @@ mod tests {
         assert_that!(
             *braid,
             ok(eq(&Braid::from(
-                word![[2 => 4; -1], [1; 2], [3 => 4; -3], [2; 3]].unwrap()
+                word![[2 => 4; -1], [1; 2], [3 => 4; -3], [2; 3]]
+                    .as_ref()
+                    .unwrap()
+                    .clone()
             )))
         )
     }
@@ -664,30 +670,45 @@ mod tests {
         let invalid_braids: [(BraidResult, BraidValidationError); 10] = [
             (
                 braid![(1); [1; 1]],
-                *Braid::from_data(Some(1), word![[1; 1]].unwrap())
+                *Braid::from_data(Some(1), word![[1; 1]].as_ref().unwrap().clone())
                     .as_ref()
                     .err()
                     .unwrap(),
             ),
             (
                 braid![(-1); [1 => 3; 2], [2; -4], [3 => 4; 3]],
-                *Braid::from_data(Some(-1), word![[1 => 3; 2], [2; -4], [3 => 4; 3]].unwrap())
-                    .as_ref()
-                    .err()
-                    .unwrap(),
+                *Braid::from_data(
+                    Some(-1),
+                    word![[1 => 3; 2], [2; -4], [3 => 4; 3]]
+                        .as_ref()
+                        .unwrap()
+                        .clone(),
+                )
+                .as_ref()
+                .err()
+                .unwrap(),
             ),
             (
                 braid![(0);[1 => 3; 2], [2; -4], [3 => 4; 3]],
-                *Braid::from_data(Some(0), word![[1 => 3; 2], [2; -4], [3 => 4; 3]].unwrap())
-                    .as_ref()
-                    .err()
-                    .unwrap(),
+                *Braid::from_data(
+                    Some(0),
+                    word![[1 => 3; 2], [2; -4], [3 => 4; 3]]
+                        .as_ref()
+                        .unwrap()
+                        .clone(),
+                )
+                .as_ref()
+                .err()
+                .unwrap(),
             ),
             (
                 braid![(u16::MAX as u32 + 1);[1 => 3; 2], [2; -4], [3 => 4; 3]],
                 *Braid::from_data(
                     Some(u16::MAX as u32 + 1),
-                    word![[1 => 3; 2], [2; -4], [3 => 4; 3]].unwrap(),
+                    word![[1 => 3; 2], [2; -4], [3 => 4; 3]]
+                        .as_ref()
+                        .unwrap()
+                        .clone(),
                 )
                 .as_ref()
                 .err()

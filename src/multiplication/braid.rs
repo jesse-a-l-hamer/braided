@@ -421,7 +421,7 @@ mod tests {
 
     #[gtest]
     fn valid_multiplication_with_word_succeeds_and_computes_as_expected() {
-        let braid = Braid::try_from_letters(&vec![
+        let braid = Braid::try_from_letters(&[
             Letter::try_new(1, Some(3), Sign::Positive).unwrap(),
             Letter::try_new(2, None::<u16>, Sign::Negative).unwrap(),
             Letter::try_new(2, Some(8), Sign::Positive).unwrap(),
@@ -429,7 +429,7 @@ mod tests {
         .as_ref()
         .unwrap()
         .clone();
-        let word = Word::try_from_letters(&vec![
+        let word = Word::try_from_letters(&[
             Letter::try_new(3, None::<u16>, Sign::Negative).unwrap(),
             Letter::try_new(2, Some(7), Sign::Negative).unwrap(),
         ])
@@ -455,7 +455,7 @@ mod tests {
 
     #[gtest]
     fn valid_multiplication_with_braid_succeeds_and_computes_as_expected() {
-        let braid1 = Braid::try_from_letters(&vec![
+        let braid1 = Braid::try_from_letters(&[
             Letter::try_new(1, Some(3), Sign::Positive).unwrap(),
             Letter::try_new(2, None::<u16>, Sign::Negative).unwrap(),
             Letter::try_new(2, Some(8), Sign::Positive).unwrap(),
@@ -465,7 +465,7 @@ mod tests {
         .clone();
         let braid2 = Braid::try_new(
             Some(8),
-            Word::try_from_letters(&vec![
+            Word::try_from_letters(&[
                 Letter::try_new(3, None::<u16>, Sign::Negative).unwrap(),
                 Letter::try_new(2, Some(7), Sign::Negative).unwrap(),
             ])
@@ -734,7 +734,7 @@ mod tests {
     #[gtest]
     fn can_multiply_borrowed_braid_with_letter() {
         let letter = letter![1; +].unwrap();
-        let braid = braid![(); [2; -1], [1 => 3; 3]].unwrap();
+        let braid = braid![(); [2; -1], [1 => 3; 3]].as_ref().unwrap().clone();
 
         expect_that!(
             &braid * letter,
@@ -748,9 +748,9 @@ mod tests {
 
     #[gtest]
     fn can_multiply_borrowed_braid_with_word() {
-        let word1 = word![[1; 1], [2; -3]].unwrap();
-        let word2 = word![[1 => 3; 2]].unwrap();
-        let braid = braid![(); [2; -1], [1 => 3; 3]].unwrap();
+        let word1 = word![[1; 1], [2; -3]].as_ref().unwrap().clone();
+        let word2 = word![[1 => 3; 2]].as_ref().unwrap().clone();
+        let braid = braid![(); [2; -1], [1 => 3; 3]].as_ref().unwrap().clone();
 
         expect_that!(
             &braid * word1,
@@ -764,9 +764,9 @@ mod tests {
 
     #[gtest]
     fn can_multiply_braid_with_borrowed_word() {
-        let braid1 = braid![(); [1; 1], [2; -3]].unwrap();
-        let braid2 = braid![(); [1 => 3; 2]].unwrap();
-        let word = word![[2; -1], [1 => 3; 3]].unwrap();
+        let braid1 = braid![(); [1; 1], [2; -3]].as_ref().unwrap().clone();
+        let braid2 = braid![(); [1 => 3; 2]].as_ref().unwrap().clone();
+        let word = word![[2; -1], [1 => 3; 3]].as_ref().unwrap().clone();
 
         expect_that!(
             &word * braid1,
@@ -780,8 +780,8 @@ mod tests {
 
     #[gtest]
     fn can_multiply_borrowed_braid_with_borrowed_word() {
-        let braid = braid![(); [1; 1], [2; -3]].unwrap();
-        let word = word![[2; -1], [1 => 3; 3]].unwrap();
+        let braid = braid![(); [1; 1], [2; -3]].as_ref().unwrap().clone();
+        let word = word![[2; -1], [1 => 3; 3]].as_ref().unwrap().clone();
 
         expect_that!(
             &word * &braid,
@@ -795,9 +795,9 @@ mod tests {
 
     #[gtest]
     fn can_multiply_braid_with_borrowed_braid() {
-        let braid1 = braid![(); [1; 1], [2; -3]].unwrap();
-        let braid2 = braid![(); [1 => 3; 2]].unwrap();
-        let braid = braid![(); [2; -1], [1 => 3; 3]].unwrap();
+        let braid1 = braid![(); [1; 1], [2; -3]].as_ref().unwrap().clone();
+        let braid2 = braid![(); [1 => 3; 2]].as_ref().unwrap().clone();
+        let braid = braid![(); [2; -1], [1 => 3; 3]].as_ref().unwrap().clone();
 
         expect_that!(
             &braid * braid1,
@@ -811,8 +811,8 @@ mod tests {
 
     #[test]
     fn can_multiply_borrowed_braid_with_borrowed_braid() {
-        let braid1 = braid![(); [1; 1], [2; -3]].unwrap();
-        let braid2 = braid![(); [1 => 3; 2]].unwrap();
+        let braid1 = braid![(); [1; 1], [2; -3]].as_ref().unwrap().clone();
+        let braid2 = braid![(); [1 => 3; 2]].as_ref().unwrap().clone();
 
         assert_that!(
             &braid1 * &braid2,
@@ -823,7 +823,7 @@ mod tests {
     #[gtest]
     fn can_multiply_braid_with_letter_result() {
         let letter_result = letter![1; +];
-        let braid = braid![(); [1 => 3; -3], [2; 7]].unwrap();
+        let braid = braid![(); [1 => 3; -3], [2; 7]].as_ref().unwrap().clone();
 
         let letter_times_braid = braid![(); [1; 1], [1 => 3; -3], [2; 7]];
         let braid_times_letter = braid![(); [1 => 3; -3], [2; 7], [1; 1]];
@@ -851,7 +851,7 @@ mod tests {
     #[gtest]
     fn can_multiply_braid_with_word_result() {
         let word_result = word![[1; 3], [2; -7]];
-        let braid = braid![(); [1 => 3; 2], [1; 1]].unwrap();
+        let braid = braid![(); [1 => 3; 2], [1; 1]].as_ref().unwrap().clone();
 
         let word_times_braid = braid![(); [1; 3], [2; -7], [1 => 3; 2], [1; 1]];
         let braid_times_word = braid![(); [1 => 3; 2], [1; 1], [1; 3], [2; -7]];
@@ -904,7 +904,7 @@ mod tests {
 
     #[gtest]
     fn can_multiply_word_with_braid_result() {
-        let word = word![[1; 3], [2; -7]].unwrap();
+        let word = word![[1; 3], [2; -7]].as_ref().unwrap().clone();
         let braid_result = braid![(); [1 => 3; 2], [1; 1]];
 
         let word_times_braid = braid![(); [1; 3], [2; -7], [1 => 3; 2], [1; 1]];
@@ -932,7 +932,7 @@ mod tests {
 
     #[gtest]
     fn can_multiply_braid_with_braid_result() {
-        let braid = braid![(); [1; 3], [2; -7]].unwrap();
+        let braid = braid![(); [1; 3], [2; -7]].as_ref().unwrap().clone();
         let braid_result = braid![(); [1 => 3; 2], [1; 1]];
 
         let braid_times_braid_result = braid![(); [1; 3], [2; -7], [1 => 3; 2], [1; 1]];
@@ -965,7 +965,7 @@ mod tests {
         }
     }
 
-    #[test]
+    #[gtest]
     fn can_multiply_letter_result_with_braid_result() {
         let letter_result = letter![1; +];
         let braid_result = braid![(); [1 => 3; -3], [2; 7]];
@@ -991,7 +991,7 @@ mod tests {
         }
     }
 
-    #[test]
+    #[gtest]
     fn can_multiply_word_result_with_braid_result() {
         let word_result = word![[1; 3], [2; -7]];
         let braid_result = braid![(); [1 => 3; 2], [1; 1]];
