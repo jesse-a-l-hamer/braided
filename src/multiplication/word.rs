@@ -219,6 +219,73 @@ impl std::ops::Mul for WordResult {
     }
 }
 
+impl std::ops::Mul<Letter> for &WordResult {
+    type Output = WordResult;
+    fn mul(self, rhs: Letter) -> Self::Output {
+        (*self).clone() * rhs
+    }
+}
+impl std::ops::Mul<&WordResult> for Letter {
+    type Output = WordResult;
+    fn mul(self, rhs: &WordResult) -> Self::Output {
+        self * (*rhs).clone()
+    }
+}
+impl std::ops::Mul<LetterResult> for &WordResult {
+    type Output = WordResult;
+    fn mul(self, rhs: LetterResult) -> Self::Output {
+        (*self).clone() * rhs
+    }
+}
+impl std::ops::Mul<&WordResult> for LetterResult {
+    type Output = WordResult;
+    fn mul(self, rhs: &WordResult) -> Self::Output {
+        self * (*rhs).clone()
+    }
+}
+impl std::ops::Mul<Word> for &WordResult {
+    type Output = WordResult;
+    fn mul(self, rhs: Word) -> Self::Output {
+        (*self).clone() * rhs
+    }
+}
+impl std::ops::Mul<&WordResult> for Word {
+    type Output = WordResult;
+    fn mul(self, rhs: &WordResult) -> Self::Output {
+        self * (*rhs).clone()
+    }
+}
+impl std::ops::Mul<&Word> for &WordResult {
+    type Output = WordResult;
+    fn mul(self, rhs: &Word) -> Self::Output {
+        (*self).clone() * rhs
+    }
+}
+impl std::ops::Mul<&WordResult> for &Word {
+    type Output = WordResult;
+    fn mul(self, rhs: &WordResult) -> Self::Output {
+        self * (*rhs).clone()
+    }
+}
+impl std::ops::Mul<WordResult> for &WordResult {
+    type Output = WordResult;
+    fn mul(self, rhs: WordResult) -> Self::Output {
+        (*self).clone() * rhs
+    }
+}
+impl std::ops::Mul<&WordResult> for WordResult {
+    type Output = WordResult;
+    fn mul(self, rhs: &WordResult) -> Self::Output {
+        self * (*rhs).clone()
+    }
+}
+impl std::ops::Mul for &WordResult {
+    type Output = WordResult;
+    fn mul(self, rhs: Self) -> Self::Output {
+        (*self).clone() * (*rhs).clone()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{Letter, Sign, Word, WordValidationError, letter, word};
@@ -539,7 +606,36 @@ mod tests {
     }
 
     #[gtest]
-    fn can_multiply_with_borrowed_word_result() {}
+    fn can_multiply_with_borrowed_word_result() {
+        let letter = letter![1; +].unwrap();
+        let letter_result = letter![1; +];
+        let word = word![[1; 1]].clone_unwrap();
+        let word_result = word![[1; 1]];
+        let borrowed_word_result = &word_result;
+
+        let product = word![[1; 2]].clone_unwrap();
+
+        expect_that!(*(borrowed_word_result * letter), ok(eq(&product)));
+        expect_that!(*(letter * borrowed_word_result), ok(eq(&product)));
+        expect_that!(*(borrowed_word_result * letter_result), ok(eq(&product)));
+        expect_that!(*(letter_result * borrowed_word_result), ok(eq(&product)));
+        expect_that!(*(borrowed_word_result * word.clone()), ok(eq(&product)));
+        expect_that!(*(word.clone() * borrowed_word_result), ok(eq(&product)));
+        expect_that!(*(borrowed_word_result * &word), ok(eq(&product)));
+        expect_that!(*(&word * borrowed_word_result), ok(eq(&product)));
+        expect_that!(
+            *(borrowed_word_result * word_result.clone()),
+            ok(eq(&product))
+        );
+        expect_that!(
+            *(word_result.clone() * borrowed_word_result),
+            ok(eq(&product))
+        );
+        expect_that!(
+            *(borrowed_word_result * borrowed_word_result),
+            ok(eq(&product))
+        );
+    }
 
     #[gtest]
     fn multiplication_with_error_operand_propagates_error() {
@@ -553,7 +649,7 @@ mod tests {
         let invalid_word_result = word![[0; 1]];
         let word_error = invalid_word_result.clone_unwrap_err();
 
-        // expect letter_error
+        // LETTER_RESULT
         expect_that!(*(invalid_letter_result * &word), err(eq(&letter_error)));
         expect_that!(*(&word * invalid_letter_result), err(eq(&letter_error)));
         expect_that!(
@@ -577,7 +673,7 @@ mod tests {
             err(eq(&letter_error))
         );
 
-        // expect word_error
+        // WORD_RESULT
         expect_that!(
             *(invalid_word_result.clone() * letter),
             err(eq(&word_error))
@@ -594,7 +690,6 @@ mod tests {
             *(letter_result * invalid_word_result.clone()),
             err(eq(&word_error))
         );
-
         expect_that!(*(invalid_word_result.clone() * &word), err(eq(&word_error)));
         expect_that!(*(&word * invalid_word_result.clone()), err(eq(&word_error)));
         expect_that!(
@@ -619,6 +714,42 @@ mod tests {
         );
         expect_that!(
             *(invalid_word_result.clone() * word![[1; u16::MAX as u32 + 1]]),
+            err(eq(&word_error))
+        );
+
+        // BORROWED WORD_RESULT
+        expect_that!(*(&invalid_word_result * letter), err(eq(&word_error)));
+        expect_that!(*(letter * &invalid_word_result), err(eq(&word_error)));
+        expect_that!(
+            *(&invalid_word_result * letter_result),
+            err(eq(&word_error))
+        );
+        expect_that!(
+            *(letter_result * &invalid_word_result),
+            err(eq(&word_error))
+        );
+        expect_that!(*(&invalid_word_result * &word), err(eq(&word_error)));
+        expect_that!(*(&word * &invalid_word_result), err(eq(&word_error)));
+        expect_that!(*(&invalid_word_result * word.clone()), err(eq(&word_error)));
+        expect_that!(*(word.clone() * &invalid_word_result), err(eq(&word_error)));
+        expect_that!(
+            *(&invalid_word_result * word_result.clone()),
+            err(eq(&word_error))
+        );
+        expect_that!(
+            *(word_result.clone() * &invalid_word_result),
+            err(eq(&word_error))
+        );
+        expect_that!(
+            *(&invalid_word_result * invalid_letter_result),
+            err(eq(&word_error))
+        );
+        expect_that!(
+            *(&invalid_word_result * word![[1; u16::MAX as u32 + 1]]),
+            err(eq(&word_error))
+        );
+        expect_that!(
+            *(&invalid_word_result * &word![[1; u16::MAX as u32 + 1]]),
             err(eq(&word_error))
         );
     }
