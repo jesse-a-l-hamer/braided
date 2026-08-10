@@ -420,3 +420,185 @@ impl std::ops::DerefMut for WordResult {
         &mut self.0
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        ArtinGenerator, ArtinResult, ArtinValidationError, BandGenerator, BandResult,
+        BandValidationError, Braid, BraidIndex, BraidResult, BraidValidationError, IndexResult,
+        IndexValidationError, Letter, LetterResult, LetterValidationError, Sign, Strand,
+        StrandResult, StrandValidationError, Word, WordResult, WordValidationError,
+    };
+    use googletest::matchers::{eq, err, ok};
+    use googletest::{expect_that, gtest};
+
+    fn get_valids() -> (
+        ArtinGenerator,
+        BandGenerator,
+        Braid,
+        BraidIndex,
+        Letter,
+        Strand,
+        Word,
+    ) {
+        (
+            ArtinGenerator::try_new(1, Sign::Positive).unwrap(),
+            BandGenerator::try_new(1, 3, Sign::Positive).unwrap(),
+            Braid::try_from_data(None::<u16>, vec![(1, None::<u16>, Sign::Positive)])
+                .clone_unwrap(),
+            BraidIndex::try_new(2).unwrap(),
+            Letter::try_new(1, None::<u16>, Sign::Positive).unwrap(),
+            Strand::try_new(1).unwrap(),
+            Word::try_new(vec![(1, None::<u16>, Sign::Positive)]).clone_unwrap(),
+        )
+    }
+
+    fn get_invalids() -> (
+        ArtinValidationError,
+        BandValidationError,
+        BraidValidationError,
+        IndexValidationError,
+        LetterValidationError,
+        StrandValidationError,
+        WordValidationError,
+    ) {
+        (
+            ArtinGenerator::try_new(0, Sign::Positive).unwrap_err(),
+            BandGenerator::try_new(0, 3, Sign::Positive).unwrap_err(),
+            Braid::try_from_data(Some(1), vec![(1, None::<u16>, Sign::Positive)])
+                .clone_unwrap_err(),
+            BraidIndex::try_new(0).unwrap_err(),
+            Letter::try_new(0, None::<u16>, Sign::Positive).unwrap_err(),
+            Strand::try_new(0).unwrap_err(),
+            Word::try_new(vec![(0, None::<u16>, Sign::Positive)]).clone_unwrap_err(),
+        )
+    }
+    #[gtest]
+    fn can_construct_results_from_ok_type() {
+        let valids = get_valids();
+        expect_that!(
+            ArtinResult::from(valids.0),
+            eq(ArtinResult::from(Ok(valids.0)))
+        );
+        expect_that!(
+            BandResult::from(valids.1),
+            eq(BandResult::from(Ok(valids.1)))
+        );
+        expect_that!(
+            BraidResult::from(valids.2.clone()),
+            eq(&BraidResult::from(Ok(valids.2)))
+        );
+        expect_that!(
+            IndexResult::from(valids.3),
+            eq(IndexResult::from(Ok(valids.3)))
+        );
+        expect_that!(
+            LetterResult::from(valids.4),
+            eq(LetterResult::from(Ok(valids.4)))
+        );
+        expect_that!(
+            StrandResult::from(valids.5),
+            eq(StrandResult::from(Ok(valids.5)))
+        );
+        expect_that!(
+            WordResult::from(valids.6.clone()),
+            eq(&WordResult::from(Ok(valids.6)))
+        );
+    }
+
+    #[gtest]
+    fn can_construct_results_from_error_type() {
+        let invalids = get_invalids();
+        expect_that!(
+            ArtinResult::from(invalids.0),
+            eq(ArtinResult::from(Err(invalids.0)))
+        );
+        expect_that!(
+            BandResult::from(invalids.1),
+            eq(BandResult::from(Err(invalids.1)))
+        );
+        expect_that!(
+            BraidResult::from(invalids.2),
+            eq(&BraidResult::from(Err(invalids.2)))
+        );
+        expect_that!(
+            IndexResult::from(invalids.3),
+            eq(IndexResult::from(Err(invalids.3)))
+        );
+        expect_that!(
+            LetterResult::from(invalids.4),
+            eq(LetterResult::from(Err(invalids.4)))
+        );
+        expect_that!(
+            StrandResult::from(invalids.5),
+            eq(StrandResult::from(Err(invalids.5)))
+        );
+        expect_that!(
+            WordResult::from(invalids.6),
+            eq(&WordResult::from(Err(invalids.6)))
+        );
+    }
+
+    #[gtest]
+    fn can_deref_results_into_underlying_result_type() {
+        let valids = get_valids();
+        expect_that!(*ArtinResult::from(valids.0), ok(eq(valids.0)));
+        expect_that!(*BandResult::from(valids.1), ok(eq(valids.1)));
+        expect_that!(*BraidResult::from(valids.2.clone()), ok(eq(&valids.2)));
+        expect_that!(*IndexResult::from(valids.3), ok(eq(valids.3)));
+        expect_that!(*LetterResult::from(valids.4), ok(eq(valids.4)));
+        expect_that!(*StrandResult::from(valids.5), ok(eq(valids.5)));
+        expect_that!(*WordResult::from(valids.6.clone()), ok(eq(&valids.6)));
+
+        let invalids = get_invalids();
+        expect_that!(*ArtinResult::from(invalids.0), err(eq(invalids.0)));
+        expect_that!(*BandResult::from(invalids.1), err(eq(invalids.1)));
+        expect_that!(*BraidResult::from(invalids.2), err(eq(&invalids.2)));
+        expect_that!(*IndexResult::from(invalids.3), err(eq(invalids.3)));
+        expect_that!(*LetterResult::from(invalids.4), err(eq(invalids.4)));
+        expect_that!(*StrandResult::from(invalids.5), err(eq(invalids.5)));
+        expect_that!(*WordResult::from(invalids.6), err(eq(&invalids.6)));
+    }
+
+    #[gtest]
+    fn can_mutably_deref_into_mutable_underlying_result_type() {
+        let valids = get_valids();
+        let invalids = get_invalids();
+
+        let mut result = ArtinResult::from(valids.0);
+        expect_that!(*result, ok(eq(valids.0)));
+        *result = Err(invalids.0);
+        expect_that!(*result, err(eq(invalids.0)));
+
+        let mut result = BandResult::from(valids.1);
+        expect_that!(*result, ok(eq(valids.1)));
+        *result = Err(invalids.1);
+        expect_that!(*result, err(eq(invalids.1)));
+
+        let mut result = BraidResult::from(valids.2.clone());
+        expect_that!(*result, ok(eq(&valids.2)));
+        *result = Err(invalids.2);
+        expect_that!(*result, err(eq(&invalids.2)));
+
+        let mut result = IndexResult::from(valids.3);
+        expect_that!(*result, ok(eq(valids.3)));
+        *result = Err(invalids.3);
+        expect_that!(*result, err(eq(invalids.3)));
+
+        let mut result = LetterResult::from(valids.4);
+        expect_that!(*result, ok(eq(valids.4)));
+        *result = Err(invalids.4);
+        expect_that!(*result, err(eq(invalids.4)));
+
+        let mut result = StrandResult::from(valids.5);
+        expect_that!(*result, ok(eq(valids.5)));
+        *result = Err(invalids.5);
+        expect_that!(*result, err(eq(invalids.5)));
+
+        let mut result = WordResult::from(valids.6.clone());
+        expect_that!(*result, ok(eq(&valids.6)));
+        *result = Err(invalids.6);
+        expect_that!(*result, err(eq(&invalids.6)));
+
+    }
+}
