@@ -537,4 +537,89 @@ mod tests {
             eq(&word![[1; 1], [2; -1], [1 => 3; 2]])
         );
     }
+
+    #[gtest]
+    fn can_multiply_with_borrowed_word_result() {}
+
+    #[gtest]
+    fn multiplication_with_error_operand_propagates_error() {
+        let letter = letter![1; +].unwrap();
+        let letter_result = letter![1 => 3; -];
+        let invalid_letter_result = letter![2 => 1; +];
+        let letter_error = WordValidationError::from(invalid_letter_result.unwrap_err());
+
+        let word = word![[1 => 3; 2], [2; 3]].clone_unwrap();
+        let word_result = word![[1; -2], [2 => 3; 2]];
+        let invalid_word_result = word![[0; 1]];
+        let word_error = invalid_word_result.clone_unwrap_err();
+
+        // expect letter_error
+        expect_that!(*(invalid_letter_result * &word), err(eq(&letter_error)));
+        expect_that!(*(&word * invalid_letter_result), err(eq(&letter_error)));
+        expect_that!(
+            *(invalid_letter_result * word.clone()),
+            err(eq(&letter_error))
+        );
+        expect_that!(
+            *(word.clone() * invalid_letter_result),
+            err(eq(&letter_error))
+        );
+        expect_that!(
+            *(invalid_letter_result * word_result.clone()),
+            err(eq(&letter_error))
+        );
+        expect_that!(
+            *(word_result.clone() * invalid_letter_result),
+            err(eq(&letter_error))
+        );
+        expect_that!(
+            *(invalid_letter_result * invalid_word_result.clone()),
+            err(eq(&letter_error))
+        );
+
+        // expect word_error
+        expect_that!(
+            *(invalid_word_result.clone() * letter),
+            err(eq(&word_error))
+        );
+        expect_that!(
+            *(letter * invalid_word_result.clone()),
+            err(eq(&word_error))
+        );
+        expect_that!(
+            *(invalid_word_result.clone() * letter_result),
+            err(eq(&word_error))
+        );
+        expect_that!(
+            *(letter_result * invalid_word_result.clone()),
+            err(eq(&word_error))
+        );
+
+        expect_that!(*(invalid_word_result.clone() * &word), err(eq(&word_error)));
+        expect_that!(*(&word * invalid_word_result.clone()), err(eq(&word_error)));
+        expect_that!(
+            *(invalid_word_result.clone() * word.clone()),
+            err(eq(&word_error))
+        );
+        expect_that!(
+            *(word.clone() * invalid_word_result.clone()),
+            err(eq(&word_error))
+        );
+        expect_that!(
+            *(invalid_word_result.clone() * word_result.clone()),
+            err(eq(&word_error))
+        );
+        expect_that!(
+            *(word_result.clone() * invalid_word_result.clone()),
+            err(eq(&word_error))
+        );
+        expect_that!(
+            *(invalid_word_result.clone() * invalid_letter_result),
+            err(eq(&word_error))
+        );
+        expect_that!(
+            *(invalid_word_result.clone() * word![[1; u16::MAX as u32 + 1]]),
+            err(eq(&word_error))
+        );
+    }
 }

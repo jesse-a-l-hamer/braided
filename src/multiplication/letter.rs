@@ -130,4 +130,31 @@ mod tests {
 
         assert_that!(letter_result1 * letter_result2, eq(&word![[1; 1], [2; -1]]));
     }
+
+    #[gtest]
+    fn can_multiply_with_borrowed_letter_result() {}
+
+    #[gtest]
+    fn multiplication_with_error_operand_propagates_error() {
+        let letter = letter![1; +].unwrap();
+        let valid_letter_result = letter![2; -];
+        let invalid_letter_result = letter![0; +];
+        let error = WordValidationError::from(invalid_letter_result.unwrap_err());
+
+        expect_that!(*(letter * invalid_letter_result), err(eq(&error)));
+        expect_that!(*(invalid_letter_result * letter), err(eq(&error)));
+
+        expect_that!(
+            *(valid_letter_result * invalid_letter_result),
+            err(eq(&error))
+        );
+        expect_that!(
+            *(invalid_letter_result * valid_letter_result),
+            err(eq(&error))
+        );
+        expect_that!(
+            *(invalid_letter_result * letter![2 => 1; -]),
+            err(eq(&error))
+        );
+    }
 }

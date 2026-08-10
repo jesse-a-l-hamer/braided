@@ -389,8 +389,8 @@ impl std::ops::Mul<BraidResult> for BraidResult {
 #[cfg(test)]
 mod tests {
     use crate::{
-        Braid, BraidIndex, BraidResult, BraidValidationError, Letter, Sign, Word, braid, letter,
-        word,
+        Braid, BraidIndex, BraidResult, BraidValidationError, Letter, Sign, Word,
+        WordValidationError, braid, letter, word,
     };
     use googletest::matchers::{eq, err};
     use googletest::{assert_that, expect_that, gtest};
@@ -976,6 +976,159 @@ mod tests {
         assert_that!(
             braid_result1 * braid_result2,
             eq(&braid![(); [1; 3], [2; -7], [1 => 3; 2], [1; 1]])
+        );
+    }
+
+    #[gtest]
+    fn can_multiply_with_borrowed_braid_result() {}
+
+    #[gtest]
+    fn multiplication_with_error_operand_propagates_error() {
+        let invalid_letter_result = letter![2 => 1; +];
+        let invalid_word_result = word![[0; -1], [1 => 3; 3]];
+        let invalid_braid_result = braid![(1); [1 => 3; 2]];
+
+        let letter_error = BraidValidationError::from(WordValidationError::from(
+            invalid_letter_result.unwrap_err(),
+        ));
+        let word_error = BraidValidationError::from(invalid_word_result.clone_unwrap_err());
+        let braid_error = invalid_braid_result.clone_unwrap_err();
+
+        let letter = letter![1; +].unwrap();
+        let valid_letter_result = letter![2; -];
+        let word = word![[1 => 3; 3]].clone_unwrap();
+        let valid_word_result = word![[1; 2], [2; -3]];
+        let braid = braid![(3); [1; -2], [2; -3]].clone_unwrap();
+        let valid_braid_result = braid![(3); [1 => 3; -2], [2; 4]];
+
+        expect_that!(
+            *(invalid_letter_result * braid.clone()),
+            err(eq(&letter_error))
+        );
+        expect_that!(
+            *(braid.clone() * invalid_letter_result),
+            err(eq(&letter_error))
+        );
+        expect_that!(*(invalid_letter_result * &braid), err(eq(&letter_error)));
+        expect_that!(*(&braid * invalid_letter_result), err(eq(&letter_error)));
+        expect_that!(
+            *(invalid_letter_result * valid_braid_result.clone()),
+            err(eq(&letter_error))
+        );
+        expect_that!(
+            *(valid_braid_result.clone() * invalid_letter_result),
+            err(eq(&letter_error))
+        );
+        expect_that!(
+            *(invalid_letter_result * invalid_braid_result.clone()),
+            err(eq(&letter_error))
+        );
+
+        expect_that!(
+            *(invalid_word_result.clone() * braid.clone()),
+            err(eq(&word_error))
+        );
+        expect_that!(
+            *(braid.clone() * invalid_word_result.clone()),
+            err(eq(&word_error))
+        );
+        expect_that!(
+            *(invalid_word_result.clone() * &braid),
+            err(eq(&word_error))
+        );
+        expect_that!(
+            *(&braid * invalid_word_result.clone()),
+            err(eq(&word_error))
+        );
+        expect_that!(
+            *(invalid_word_result.clone() * valid_braid_result.clone()),
+            err(eq(&word_error))
+        );
+        expect_that!(
+            *(valid_braid_result.clone() * invalid_word_result.clone()),
+            err(eq(&word_error))
+        );
+        expect_that!(
+            *(invalid_word_result.clone() * invalid_braid_result.clone()),
+            err(eq(&word_error))
+        );
+
+        expect_that!(
+            *(invalid_braid_result.clone() * letter),
+            err(eq(&braid_error))
+        );
+        expect_that!(
+            *(letter * invalid_braid_result.clone()),
+            err(eq(&braid_error))
+        );
+        expect_that!(
+            *(invalid_braid_result.clone() * valid_letter_result),
+            err(eq(&braid_error))
+        );
+        expect_that!(
+            *(valid_letter_result * invalid_braid_result.clone()),
+            err(eq(&braid_error))
+        );
+        expect_that!(
+            *(invalid_braid_result.clone() * word.clone()),
+            err(eq(&braid_error))
+        );
+        expect_that!(
+            *(word.clone() * invalid_braid_result.clone()),
+            err(eq(&braid_error))
+        );
+        expect_that!(
+            *(invalid_braid_result.clone() * &word),
+            err(eq(&braid_error))
+        );
+        expect_that!(
+            *(&word * invalid_braid_result.clone()),
+            err(eq(&braid_error))
+        );
+        expect_that!(
+            *(invalid_braid_result.clone() * valid_word_result.clone()),
+            err(eq(&braid_error))
+        );
+        expect_that!(
+            *(valid_word_result.clone() * invalid_braid_result.clone()),
+            err(eq(&braid_error))
+        );
+
+        expect_that!(
+            *(invalid_braid_result.clone() * braid.clone()),
+            err(eq(&braid_error))
+        );
+        expect_that!(
+            *(braid.clone() * invalid_braid_result.clone()),
+            err(eq(&braid_error))
+        );
+        expect_that!(
+            *(invalid_braid_result.clone() * &braid),
+            err(eq(&braid_error))
+        );
+        expect_that!(
+            *(&braid * invalid_braid_result.clone()),
+            err(eq(&braid_error))
+        );
+        expect_that!(
+            *(invalid_braid_result.clone() * valid_braid_result.clone()),
+            err(eq(&braid_error))
+        );
+        expect_that!(
+            *(valid_braid_result.clone() * invalid_braid_result.clone()),
+            err(eq(&braid_error))
+        );
+        expect_that!(
+            *(invalid_braid_result.clone() * invalid_letter_result),
+            err(eq(&braid_error))
+        );
+        expect_that!(
+            *(invalid_braid_result.clone() * invalid_word_result.clone()),
+            err(eq(&braid_error))
+        );
+        expect_that!(
+            *(invalid_braid_result.clone() * braid![(0); [1; 1]]),
+            err(eq(&braid_error))
         );
     }
 }
