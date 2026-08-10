@@ -1,46 +1,4 @@
-use crate::Strand;
-
-/// Represents a failed validation when attepting to construct a [`BraidIndex`].
-///
-/// A [`BraidIndex`] wraps a [`u16`], so the variants of [`IndexValidationError`] correspond
-/// to different failure modes of the attempted conversion.
-///
-/// Note that there is as yet no variant corresponding to the attempt to pass a negative number
-/// to an index constructor. While this would definitely be an error, there is currently no code
-/// path through which such an error is possible.
-///
-/// # Examples
-///
-/// ```
-/// use braided::{BraidIndex, IndexValidationError};
-/// use std::assert_matches;
-///
-/// assert_matches!(
-///     BraidIndex::new(0),
-///     Err(IndexValidationError::Zero),
-/// );
-///
-/// assert_matches!(
-///     BraidIndex::new(u16::MAX as u32 + 1),
-///     Err(IndexValidationError::FromInt(_))
-/// );
-/// ```
-#[derive(Debug, thiserror::Error, PartialEq, Eq, Clone, Copy)]
-pub enum IndexValidationError {
-    /// Indicates failure to construct a [`BraidIndex`] from zero.
-    #[error("Braid index cannot be zero")]
-    Zero,
-    /// Wrapper around [`std::num::TryFromIntError`], indicating failure to convert an integer
-    /// value into a [`u16`] during [`BraidIndex`] construction.
-    #[error(transparent)]
-    FromInt(#[from] std::num::TryFromIntError),
-    /// Wrapper around a [`std::convert::Infallible`].
-    ///
-    /// This variant exists purely to make the type system happy; in practice this variant cannot
-    /// occur.
-    #[error(transparent)]
-    Infallible(#[from] std::convert::Infallible),
-}
+use crate::{IndexResult, IndexValidationError, Strand};
 
 /// A wrapper around a [`u16`] representing the total number of [strands](crate::Strand) in a given
 /// braid.
@@ -81,7 +39,7 @@ pub enum IndexValidationError {
 /// # Construction
 ///
 /// The recommended means of constructing a [`BraidIndex`] is via the associated function
-/// [`BraidIndex::new`]. Please see the documentation for that function for more details and
+/// [`BraidIndex::try_new`]. Please see the documentation for that function for more details and
 /// examples.
 ///
 /// # Interoperability with [`u16`]
@@ -94,7 +52,7 @@ pub enum IndexValidationError {
 /// ```
 /// use braided::BraidIndex;
 ///
-/// assert_eq!(u16::from(BraidIndex::new(1).unwrap()), 1);
+/// assert_eq!(u16::from(BraidIndex::try_new(1).unwrap()), 1);
 /// ```
 ///
 /// 2. [`std::ops::Deref`] for [`BraidIndex`], with [`Target = u16`](u16).
@@ -102,7 +60,7 @@ pub enum IndexValidationError {
 /// ```
 /// use braided::BraidIndex;
 ///
-/// assert_eq!(*BraidIndex::new(1).unwrap(), 1);
+/// assert_eq!(*BraidIndex::try_new(1).unwrap(), 1);
 /// ```
 ///
 /// 3. [`AsRef<u16>`] for [`BraidIndex`].
@@ -112,7 +70,7 @@ pub enum IndexValidationError {
 ///
 /// fn double<S: AsRef<u16>>(s: S) -> u16 { s.as_ref() * 2 }
 ///
-/// assert_eq!(double(BraidIndex::new(2).unwrap()), 4);
+/// assert_eq!(double(BraidIndex::try_new(2).unwrap()), 4);
 /// ```
 ///
 /// Note that as [`Strand`] also implements [`AsRef<u16>`], this allows for defining generic
@@ -126,6 +84,14 @@ impl BraidIndex {
     ///
     /// This is the recommended way of constructing a [`BraidIndex`].
     ///
+    /// <div class="warning">
+    ///
+    /// The return type is [`IndexResult`](IndexResult), which is a new-type wrapper around
+    /// [`Result<BraidIndex, IndexValidationError>`]. Use the dereference operator "*" for easy access to
+    /// the inner value.
+    ///
+    /// </div>
+    ///
     /// # Examples
     ///
     /// One may construct a new [`BraidIndex`] directly from a [`u16`]:
@@ -134,7 +100,7 @@ impl BraidIndex {
     /// use braided::BraidIndex;
     /// use std::assert_matches;
     ///
-    /// assert_matches!(BraidIndex::new(1), Ok(_));
+    /// assert_matches!(*BraidIndex::try_new(1), Ok(_));
     /// ```
     ///
     /// or from anything that coerces into a [`u16`]:
@@ -143,10 +109,10 @@ impl BraidIndex {
     /// use braided::BraidIndex;
     /// use std::assert_matches;
     ///
-    /// assert_matches!(BraidIndex::new(i16::MAX), Ok(_));
-    /// assert_matches!(BraidIndex::new(-(i16::MIN + 1)), Ok(_));
-    /// assert_matches!(BraidIndex::new(1 as usize), Ok(_));
-    /// assert_matches!(BraidIndex::new(-(-1 as isize)), Ok(_));
+    /// assert_matches!(*BraidIndex::try_new(i16::MAX), Ok(_));
+    /// assert_matches!(*BraidIndex::try_new(-(i16::MIN + 1)), Ok(_));
+    /// assert_matches!(*BraidIndex::try_new(1 as usize), Ok(_));
+    /// assert_matches!(*BraidIndex::try_new(-(-1 as isize)), Ok(_));
     /// ```
     ///
     /// including other [`BraidIndex`]:
@@ -155,7 +121,7 @@ impl BraidIndex {
     /// use braided::BraidIndex;
     /// use std::assert_matches;
     ///
-    /// assert_matches!(BraidIndex::new(BraidIndex::new(1).unwrap()), Ok(_));
+    /// assert_matches!(*BraidIndex::try_new(BraidIndex::try_new(1).unwrap()), Ok(_));
     /// ```
     ///
     /// as well as [`Strand`]:
@@ -164,27 +130,25 @@ impl BraidIndex {
     /// use braided::{BraidIndex, Strand};
     /// use std::assert_matches;
     ///
-    /// assert_matches!(BraidIndex::new(Strand::new(1).unwrap()), Ok(_));
+    /// assert_matches!(*BraidIndex::try_new(Strand::try_new(1).unwrap()), Ok(_));
     /// ```
-    pub fn new<N>(index: N) -> Result<Self, IndexValidationError>
+    pub fn try_new<N>(index: N) -> IndexResult
     where
         N: TryInto<u16>,
         IndexValidationError: From<<N as TryInto<u16>>::Error>,
     {
-        Self::try_from(index.try_into()?)
-    }
-}
-
-impl TryFrom<u16> for BraidIndex {
-    type Error = IndexValidationError;
-    fn try_from(value: u16) -> Result<Self, Self::Error> {
-        if value == 0 {
-            Err(IndexValidationError::Zero)
+        let index = match index.try_into() {
+            Ok(index) => index,
+            Err(e) => return IndexResult::from(IndexValidationError::from(e)),
+        };
+        if index == 0 {
+            IndexResult::from(IndexValidationError::Zero)
         } else {
-            Ok(Self(value))
+            IndexResult::from(Self(index))
         }
     }
 }
+
 impl From<Strand> for BraidIndex {
     fn from(value: Strand) -> Self {
         Self(value.into())
@@ -211,44 +175,43 @@ impl AsRef<u16> for BraidIndex {
 
 #[cfg(test)]
 mod tests {
-    use crate::{BraidIndex, IndexValidationError, Strand};
+    use crate::{BraidIndex, IndexResult, IndexValidationError, Strand};
     use googletest::matchers::{anything, derefs_to, each, eq, err, ok, result_of_ref};
     use googletest::{assert_that, expect_that, gtest};
 
     #[test]
     fn valid_input_yields_successful_construction() {
         let valid_indices = [
-            BraidIndex::try_from(1),
-            Ok(BraidIndex::from(Strand::new(1).unwrap())),
-            BraidIndex::new(1),
-            BraidIndex::new(Strand::new(1).unwrap()),
-            BraidIndex::new(BraidIndex::try_from(1).unwrap()),
+            IndexResult::from(BraidIndex::from(Strand::try_new(1).unwrap())),
+            BraidIndex::try_new(1),
+            BraidIndex::try_new(Strand::try_new(1).unwrap()),
+            BraidIndex::try_new(BraidIndex::try_new(1).unwrap()),
         ];
 
-        assert_that!(valid_indices, each(ok(anything())));
+        assert_that!(&valid_indices, each(derefs_to(ok(anything()))));
     }
 
     #[test]
     fn derefs_to_u16() {
         let test_indices = [
-            &BraidIndex::try_from(1),
-            &Ok(BraidIndex::from(Strand::new(1).unwrap())),
-            &BraidIndex::new(1),
-            &BraidIndex::new(Strand::new(1).unwrap()),
-            &BraidIndex::new(BraidIndex::try_from(1).unwrap()),
+            &IndexResult::from(BraidIndex::from(Strand::try_new(1).unwrap())),
+            &BraidIndex::try_new(1),
+            &BraidIndex::try_new(Strand::try_new(1).unwrap()),
+            &BraidIndex::try_new(BraidIndex::try_new(1).unwrap()),
         ];
 
-        assert_that!(test_indices, each(ok(derefs_to(eq(&1)))));
+        assert_that!(test_indices, each(derefs_to(ok(derefs_to(eq(&1))))));
     }
 
     #[test]
     fn can_coerce_index_into_u16() {
-        let coerced_indices: [u16; 5] = [
-            BraidIndex::try_from(1).unwrap().into(),
-            BraidIndex::from(Strand::new(1).unwrap()).into(),
-            BraidIndex::new(1).unwrap().into(),
-            BraidIndex::new(Strand::new(1).unwrap()).unwrap().into(),
-            BraidIndex::new(BraidIndex::try_from(1).unwrap())
+        let coerced_indices: [u16; 4] = [
+            BraidIndex::from(Strand::try_new(1).unwrap()).into(),
+            BraidIndex::try_new(1).unwrap().into(),
+            BraidIndex::try_new(Strand::try_new(1).unwrap())
+                .unwrap()
+                .into(),
+            BraidIndex::try_new(BraidIndex::try_new(1).unwrap())
                 .unwrap()
                 .into(),
         ];
@@ -263,11 +226,10 @@ mod tests {
         }
 
         let test_indices = [
-            BraidIndex::try_from(1).unwrap(),
-            BraidIndex::from(Strand::new(1).unwrap()),
-            BraidIndex::new(1).unwrap(),
-            BraidIndex::new(Strand::new(1).unwrap()).unwrap(),
-            BraidIndex::new(BraidIndex::try_from(1).unwrap()).unwrap(),
+            BraidIndex::from(Strand::try_new(1).unwrap()),
+            BraidIndex::try_new(1).unwrap(),
+            BraidIndex::try_new(Strand::try_new(1).unwrap()).unwrap(),
+            BraidIndex::try_new(BraidIndex::try_new(1).unwrap()).unwrap(),
         ];
 
         assert_that!(
@@ -279,10 +241,13 @@ mod tests {
     #[gtest]
     fn invalid_constructor_input_fails() {
         let invalid_indices = [
-            (BraidIndex::new(0), IndexValidationError::Zero),
-            (BraidIndex::try_from(0), IndexValidationError::Zero),
+            (BraidIndex::try_new(0), IndexValidationError::Zero),
             (
-                BraidIndex::new(u16::MAX as u32 + 1),
+                BraidIndex::try_new(-1),
+                IndexValidationError::FromInt(<i16 as TryInto<u16>>::try_into(-1).err().unwrap()),
+            ),
+            (
+                BraidIndex::try_new(u16::MAX as u32 + 1),
                 IndexValidationError::FromInt(
                     <u32 as TryInto<u16>>::try_into(u16::MAX as u32 + 1)
                         .err()
@@ -292,7 +257,7 @@ mod tests {
         ];
 
         for (invalid_index, error) in invalid_indices {
-            expect_that!(invalid_index, err(eq(error)));
+            expect_that!(*invalid_index, err(eq(error)));
         }
     }
 }

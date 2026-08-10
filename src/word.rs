@@ -1,105 +1,7 @@
 use crate::{
-    ArtinGenerator, BandGenerator, BraidIndex, Letter, LetterValidationError, Sign,
-    StrandValidationError,
+    ArtinGenerator, BandGenerator, BraidIndex, Letter, Sign, StrandValidationError, WordResult,
+    WordValidationError,
 };
-
-/// Represents possible failures when attempting to construct a new [`Word`].
-///
-/// Note that the [`WordValidationError::FromInt`] variant is only possible when supplying a bad
-/// exponent to the [`word!`](crate::word) macro. Please see the documentation for that macro for
-/// more details and examples.
-///
-/// # Examples
-///
-/// 1. Attempting to multiply two words whose combined [Artin length](Word::artin_length) exceeds
-///    [`u16::MAX`] ([`WordValidationError::TooLong`]):
-///
-/// ```
-/// use braided::{Letter, Sign, Word, WordValidationError};
-///
-/// let letter = Letter::new(1, None::<u16>, Sign::Positive).unwrap();
-/// let long_word = Word::try_from(vec![letter; u16::MAX as usize]).unwrap();
-///
-/// assert_eq!(
-///     &long_word * &long_word,
-///     Err(WordValidationError::TooLong(2 * (u16::MAX as u32))),
-/// );
-///
-/// // Note: you can still multiply two long words than cancel into a short one
-/// assert_eq!(
-///     &long_word * long_word.inverse(),
-///     Ok(Word::trivial())
-/// );
-///
-/// // Failure can also occur when multiplying a word by a letter with large Artin length
-/// let tall_letter = Letter::new(1, Some(2u16.pow(15) + 1), Sign::Negative).unwrap();
-/// let short_word = Word::new(
-///     vec![(2, None::<u16>, Sign::Positive), (1, Some(5), Sign::Negative)]
-/// ).unwrap();
-/// assert_eq!(
-///     &short_word * tall_letter,
-///     Err(WordValidationError::TooLong(u16::MAX as u32 + 8)),
-/// );
-/// assert_eq!(
-///     tall_letter * &short_word,
-///     Err(WordValidationError::TooLong(u16::MAX as u32 + 8)),
-/// );
-/// ```
-///
-/// 2. Attempting to construct a word with a malformed [letter](Letter)
-///    ([`WordValidationError::LetterValidation`]):
-///
-/// ```
-/// use braided::{Word, Sign, WordValidationError};
-/// use std::assert_matches;
-///
-/// assert_matches!(
-///     Word::new(vec![(0, Some(3), Sign::Positive)]),
-///     Err(WordValidationError::LetterValidation(_)),
-/// );
-/// assert_matches!(
-///     Word::new(vec![(-1, None::<u16>, Sign::Positive)]),
-///     Err(WordValidationError::LetterValidation(_)),
-/// );
-/// assert_matches!(
-///     Word::new(vec![(u16::MAX, None::<u16>, Sign::Positive)]),
-///     Err(WordValidationError::LetterValidation(_)),
-/// );
-/// assert_matches!(
-///     Word::new(vec![(3, Some(3), Sign::Positive)]),
-///     Err(WordValidationError::LetterValidation(_)),
-/// );
-/// assert_matches!(
-///     Word::new(vec![(4, Some(3), Sign::Positive)]),
-///     Err(WordValidationError::LetterValidation(_)),
-/// );
-/// ```
-#[derive(Debug, thiserror::Error, PartialEq, Eq, Clone, Copy)]
-pub enum WordValidationError {
-    /// Occurs when attempting to multiply two [words](Word) whose combined
-    /// [Artin length](Word::artin_length) exceeds [`u16::MAX`].
-    ///
-    /// Wraps the total Artin length.
-    #[error("Attempting to create word of length {0} > {max}", max = u16::MAX)]
-    TooLong(u32),
-    /// Indicates failure to validate one of the [letters](Letter) of the word.
-    ///
-    /// Transparent wrapper around [`LetterValidationError`].
-    #[error(transparent)]
-    LetterValidation(#[from] LetterValidationError),
-    /// Indicates failure to coerce an integer into [`u16`].
-    ///
-    /// This variant is only possible when providing a bad exponent to the [word!](crate::word) macro.
-    ///
-    /// Transparent wrapper around [`std::num::TryFromIntError`].
-    #[error(transparent)]
-    FromInt(#[from] std::num::TryFromIntError),
-    /// This variant exists purely to make the type system happy; it cannot occur in practice.
-    ///
-    /// Transparent wrapper around [`std::convert::Infallible`].
-    #[error(transparent)]
-    Infallible(#[from] std::convert::Infallible),
-}
 
 /// A formal _word_ in the [letters](Letter) of a braid group.
 ///
@@ -112,40 +14,51 @@ pub enum WordValidationError {
 ///
 /// </div>
 ///
-/// 1. From raw letter data, using [Word::new]:
+/// <div class="warning">
+///
+/// The return type for all fallible constructors is [`WordResult`](crate::WordResult), which is a
+/// new-type wrapper around [`Result<Word, WordValidationError>`]. Use the dereference operator
+/// "*" for easy access to the inner value, and use the
+/// [`clone_unwrap`](crate::WordResult::clone_unwrap) and
+/// [`clone_unwrap_err`](crate::WordResult::clone_unwrap_err) instead of `unwrap` and `unwrap_err`,
+/// respectively.
+///
+/// </div>
+///
+/// The following is an overview of all constructors for [`Word`] (excluding multiplication).
+///
+/// 1. Use [`Word::try_new`] if you have an iterable of [letter](Letter) _data_.
 ///
 /// ```
 /// use braided::{Sign, Word};
 /// use std::assert_matches;
 ///
-/// let new_word = Word::new(vec![
+/// let new_word = Word::try_new(vec![
 ///     (1, None::<u16>, Sign::Negative),
 ///     (2, Some(5), Sign::Positive),
 ///     (3, Some(4), Sign::Negative),
 ///     (4, None::<u16>, Sign::Positive),
 /// ]);
 ///
-/// assert_matches!(new_word, Ok(_));
+/// assert_matches!(*new_word, Ok(_));
 /// ```
 ///
-/// 2. From a [`Vec<L>`] or `&[L]`, where `L` is a generic bounded by [`Into<Letter>`]. This
-///    approach uses the associated function [`Word::try_from`]:
+/// 2. Use [`Word::try_from_letters`] if you have a slice of elements which are [`Into<Letter>`].
 ///
 /// ```
 /// use braided::{Letter, Sign, Word};
 ///
-/// let letter1 = Letter::new(1, None::<u16>, Sign::Positive).unwrap();
-/// let letter2 = Letter::new(2, Some(5), Sign::Negative).unwrap();
-/// let word_from_letters = Word::try_from(vec![letter1, letter2]);
+/// let letter1 = Letter::try_new(1, None::<u16>, Sign::Positive).unwrap();
+/// let letter2 = Letter::try_new(2, Some(5), Sign::Negative).unwrap();
+/// let word_from_letters = Word::try_from_letters(&[letter1, letter2]);
 ///
 /// assert_eq!(
 ///     word_from_letters,
-///     Word::new(vec![(1, None::<u16>, Sign::Positive), (2, Some(5), Sign::Negative)]),
+///     Word::try_new(vec![(1, None::<u16>, Sign::Positive), (2, Some(5), Sign::Negative)]),
 /// );
 /// ```
 ///
-/// 3. Constructing a trivial (empty) word using [`Word::trivial`] (note that [`Default`] is also
-///    implemented for [`Word`]: it returns the trivial word):
+/// 3. Use [`Word::trivial`] or [`Word::default`] to construct a trivial word.
 ///
 /// ```
 /// use braided::Word;
@@ -170,20 +83,20 @@ pub enum WordValidationError {
 /// ```
 /// use braided::{Sign, Word};
 ///
-/// let word = Word::new([
+/// let word = Word::try_new([
 ///     (1, Some(3), Sign::Positive),
 ///     (2, None, Sign::Negative),
 ///     (1, Some(2), Sign::Positive),
 /// ])
-/// .unwrap();
-/// let expected_decomposition = Word::new([
+/// .clone_unwrap();
+/// let expected_decomposition = Word::try_new([
 ///     (1, None::<u16>, Sign::Negative),
 ///     (2, None, Sign::Positive),
 ///     (1, None, Sign::Positive),
 ///     (2, None, Sign::Negative),
 ///     (1, None, Sign::Positive),
 /// ])
-/// .unwrap();
+/// .clone_unwrap();
 ///
 /// assert_eq!(word.decompose(), expected_decomposition);
 /// ```
@@ -198,20 +111,20 @@ pub enum WordValidationError {
 /// ```
 /// use braided::{Sign, Word};
 ///
-/// let word = Word::new([
+/// let word = Word::try_new([
 ///     (2, None::<u16>, Sign::Positive),
 ///     (1, None, Sign::Positive),
 ///     (2, None, Sign::Negative),
 ///     (2, None, Sign::Negative),
 ///     (1, None, Sign::Positive),
 /// ])
-/// .unwrap();
-/// let expected_coalescence = Word::new([
+/// .clone_unwrap();
+/// let expected_coalescence = Word::try_new([
 ///     (1, Some(3), Sign::Positive),
 ///     (2, None, Sign::Negative),
 ///     (1, Some(2), Sign::Positive),
 /// ])
-/// .unwrap();
+/// .clone_unwrap();
 ///
 /// assert_eq!(word.coalesce(), expected_coalescence);
 /// ```
@@ -229,7 +142,7 @@ pub enum WordValidationError {
 ///     (2, None, Sign::Negative),
 ///     (1, Some(2), Sign::Positive),
 /// ];
-/// let word = Word::new(letter_data).unwrap();
+/// let word = Word::try_new(letter_data).clone_unwrap();
 ///
 /// for (actual, expected) in word.into_iter().zip(letter_data) {
 ///     assert_eq!(actual, expected);
@@ -242,14 +155,14 @@ pub enum WordValidationError {
 /// ```
 /// use braided::{Sign, Letter, Word};
 ///
-/// let letters = vec![
-///     Letter::new(1, Some(3), Sign::Positive).unwrap(),
-///     Letter::new(2, None::<u16>, Sign::Negative).unwrap(),
-///     Letter::new(1, Some(2), Sign::Positive).unwrap(),
+/// let letters = [
+///     Letter::try_new(1, Some(3), Sign::Positive).unwrap(),
+///     Letter::try_new(2, None::<u16>, Sign::Negative).unwrap(),
+///     Letter::try_new(1, Some(2), Sign::Positive).unwrap(),
 /// ];
-/// let word = Word::try_from(letters.clone()).unwrap();
+/// let word = Word::try_from_letters(&letters).clone_unwrap();
 ///
-/// assert_eq!(*word, *letters.as_slice());
+/// assert_eq!(*word, letters);
 /// ```
 ///
 /// 3. The impl of [`AsRef<[Letter]>`](AsRef) allows for more generic function definitions involving
@@ -261,17 +174,28 @@ pub enum WordValidationError {
 /// fn as_ref_tester<W: AsRef<[Letter]>>(w: W, v: &[Letter]) -> bool {
 ///     w.as_ref() == v
 /// }
-/// let letters = vec![
-///     Letter::new(1, Some(3), Sign::Positive).unwrap(),
-///     Letter::new(2, None::<u16>, Sign::Negative).unwrap(),
-///     Letter::new(1, Some(2), Sign::Positive).unwrap(),
+/// let letters = [
+///     Letter::try_new(1, Some(3), Sign::Positive).unwrap(),
+///     Letter::try_new(2, None::<u16>, Sign::Negative).unwrap(),
+///     Letter::try_new(1, Some(2), Sign::Positive).unwrap(),
 /// ];
-/// let word = Word::try_from(&letters[..]).unwrap();
+/// let word = Word::try_from_letters(&letters).clone_unwrap();
 ///
-/// assert!(as_ref_tester(word, &letters[..]));
+/// assert!(as_ref_tester(word, &letters));
 /// ```
 ///
 /// # Multiplication
+///
+/// <div class="warning">
+///
+/// All multiplication operations _not_ involving a [`Braid`](crate::Braid) return a [`WordResult`],
+/// which is a new-type wrapper around [`Result<Word, WordValidationError>`]. Use the dereference
+/// operator "*" for easy access to the inner value, and use the
+/// [`clone_unwrap`](crate::WordResult::clone_unwrap) and
+/// [`clone_unwrap_err`](crate::WordResult::clone_unwrap_err) instead of `unwrap` and `unwrap_err`,
+/// respectively.
+///
+/// </div>
 ///
 /// 1. Multiplying a [letter](Letter) and a [word](Word):
 ///
@@ -286,32 +210,33 @@ pub enum WordValidationError {
 /// ];
 ///
 /// // letter * word will concatenate the letter to the front of the word:
-/// if let Some((letter_data, word_data)) = data.split_first() {
-///     let letter = Letter::new(letter_data.0, letter_data.1, letter_data.2).unwrap();
-///     let word = Word::new(word_data.to_vec()).unwrap();
+/// let (letter_data, word_data) = data.split_first().unwrap();
+/// let letter = Letter::try_new(letter_data.0, letter_data.1, letter_data.2);
+/// let word = Word::try_new(word_data.to_vec());
 ///
-///     assert_eq!(letter * word, Word::new(data.clone()));
-/// }
+/// // Note that we can multiply a LetterResult with WordResult
+/// assert_eq!(letter * word, Word::try_new(data.clone()));
+///
 ///
 /// // word * letter will concatenate the letter to the end of the word:
-/// if let Some((letter_data, word_data)) = data.split_last() {
-///     let letter = Letter::new(letter_data.0, letter_data.1, letter_data.2).unwrap();
-///     let word = Word::new(word_data.to_vec()).unwrap();
+/// let (letter_data, word_data) = data.split_last().unwrap();
+/// let letter = Letter::try_new(letter_data.0, letter_data.1, letter_data.2);
+/// let word = Word::try_new(word_data.to_vec());
 ///
-///     assert_eq!(word * letter, Word::new(data));
-/// }
+/// assert_eq!(word * letter, Word::try_new(data.clone()));
+///
 ///
 /// // Cancellation is also performed automatically:
 ///
-/// let word = Word::new(vec![
+/// let word = Word::try_new(vec![
 ///     (1, None::<u16>, Sign::Positive),
 ///     (2, Some(5), Sign::Negative),
-/// ]).unwrap();
-/// let left_letter_inverse = Letter::new(1, None::<u16>, Sign::Negative).unwrap();
-/// let right_letter_inverse = Letter::new(2, Some(5), Sign::Positive).unwrap();
+/// ]);
+/// let left_letter_inverse = Letter::try_new(1, None::<u16>, Sign::Negative);
+/// let right_letter_inverse = Letter::try_new(2, Some(5), Sign::Positive);
 ///
-/// assert_eq!(left_letter_inverse * &word, Word::new(vec![(2, Some(5), Sign::Negative)]));
-/// assert_eq!(word * right_letter_inverse, Word::new(vec![(1, None::<u16>, Sign::Positive)]));
+/// assert_eq!(left_letter_inverse * &word, Word::try_new(vec![(2, Some(5), Sign::Negative)]));
+/// assert_eq!(word * right_letter_inverse, Word::try_new(vec![(1, None::<u16>, Sign::Positive)]));
 /// ```
 ///
 /// 2. Multiplying two [words](Word):
@@ -327,15 +252,17 @@ pub enum WordValidationError {
 /// ];
 ///
 /// let (left_word_data, right_word_data) = data.split_at(2);
-/// let left_word = Word::new(left_word_data.to_vec()).unwrap();
-/// let right_word = Word::new(right_word_data.to_vec()).unwrap();
+/// let left_word = Word::try_new(left_word_data.to_vec());
+/// let right_word = Word::try_new(right_word_data.to_vec());
 ///
-/// assert_eq!(&left_word * &right_word, Word::new(data));
+/// assert_eq!(&left_word * &right_word, Word::try_new(data));
 ///
 /// // Cancellation is automatically performed:
+/// let left_word_inverse = left_word.clone_unwrap().inverse();
+/// let right_word_inverse = right_word.clone_unwrap().inverse();
 ///
 /// assert_eq!(
-///     (right_word.inverse() * left_word.inverse()).unwrap() * (left_word * right_word).unwrap(),
+///     *(right_word_inverse * left_word_inverse * left_word * right_word),
 ///     Ok(Word::trivial()),
 /// )
 /// ```
@@ -348,12 +275,12 @@ pub enum WordValidationError {
 /// use braided::{Letter, Sign, Word};
 ///
 /// let letters = vec![
-///     Letter::new(1, None::<u16>, Sign::Negative).unwrap(),
-///     Letter::new(2, Some(5), Sign::Positive).unwrap(),
-///     Letter::new(3, Some(4), Sign::Negative).unwrap(),
-///     Letter::new(4, None::<u16>, Sign::Positive).unwrap(),
+///     Letter::try_new(1, None::<u16>, Sign::Negative).unwrap(),
+///     Letter::try_new(2, Some(5), Sign::Positive).unwrap(),
+///     Letter::try_new(3, Some(4), Sign::Negative).unwrap(),
+///     Letter::try_new(4, None::<u16>, Sign::Positive).unwrap(),
 /// ];
-/// let word = Word::try_from(letters.clone()).unwrap();
+/// let word = Word::try_from_letters(&letters[..]).clone_unwrap();
 ///
 /// assert_eq!(word.letters(), letters)
 /// ```
@@ -364,12 +291,12 @@ pub enum WordValidationError {
 /// use braided::{BraidIndex, Letter, Sign, Word};
 ///
 /// let letters = vec![
-///     Letter::new(1, None::<u16>, Sign::Negative).unwrap(),
-///     Letter::new(2, Some(5), Sign::Positive).unwrap(),
-///     Letter::new(3, Some(4), Sign::Negative).unwrap(),
-///     Letter::new(4, None::<u16>, Sign::Positive).unwrap(),
+///     Letter::try_new(1, None::<u16>, Sign::Negative).unwrap(),
+///     Letter::try_new(2, Some(5), Sign::Positive).unwrap(),
+///     Letter::try_new(3, Some(4), Sign::Negative).unwrap(),
+///     Letter::try_new(4, None::<u16>, Sign::Positive).unwrap(),
 /// ];
-/// let word = Word::try_from(letters.clone()).unwrap();
+/// let word = Word::try_from_letters(&letters).clone_unwrap();
 ///
 /// assert!(!word.is_trivial());
 ///
@@ -377,13 +304,13 @@ pub enum WordValidationError {
 ///
 /// assert_eq!(word.artin_length(), 8);
 ///
-/// assert_eq!(word.minimal_required_braid_index(), BraidIndex::new(5).unwrap());
+/// assert_eq!(word.minimal_required_braid_index(), BraidIndex::try_new(5).unwrap());
 ///
 /// assert_eq!(
 ///     word.inverse(),
-///     Word::try_from(
-///         letters.iter().rev().map(|l| l.inverse()).collect::<Vec<Letter>>()
-///     ).unwrap(),
+///     Word::try_from_letters(
+///         &letters.iter().rev().map(|l| l.inverse()).collect::<Vec<Letter>>()
+///     ).clone_unwrap(),
 /// );
 /// ```
 ///
@@ -395,7 +322,17 @@ pub enum WordValidationError {
 pub struct Word(Vec<Letter>);
 
 impl Word {
-    /// Constructs a new word from an iterable of low-level [`Letter`] data.
+    /// Attempts to construct a new [`Word`] from [letter](Letter) _data_.
+    ///
+    /// <div class="warning">
+    ///
+    /// The return type is [`WordResult`](crate::WordResult), which is a new-type wrapper around
+    /// [`Result<Word, WordValidationError>`]. Use the dereference operator "*" for easy access to
+    /// the inner value, and use the [`clone_unwrap`](crate::WordResult::clone_unwrap) and
+    /// [`clone_unwrap_err`](crate::WordResult::clone_unwrap_err) instead of `unwrap` and `unwrap_err`,
+    /// respectively.
+    ///
+    /// </div>
     ///
     /// # Examples
     ///
@@ -403,26 +340,21 @@ impl Word {
     /// use braided::{Sign, Word};
     /// use std::assert_matches;
     ///
-    /// let new_word = Word::new(vec![
+    /// let new_word = Word::try_new(vec![
     ///     (1, None::<u16>, Sign::Negative),
     ///     (2, Some(5), Sign::Positive),
     ///     (3, Some(4), Sign::Negative),
     ///     (4, None::<u16>, Sign::Positive),
     /// ]);
     ///
-    /// assert_matches!(new_word, Ok(_));
+    /// assert_matches!(*new_word, Ok(_));
     /// ```
     ///
     /// # Errors
     ///
-    /// This function returns an error in any of the following circumstances (see the documentation
-    /// for the associated error type [`WordValidationError`] for more details and examples):
-    ///
-    /// 1. The data given for a [letter](Letter) does not pass validation
-    ///    ([`WordValidationError::LetterValidation`]).
-    /// 2. The total [Artin length](Letter::artin_length) across all constructed [letters](Letter)
-    ///    exceeds [`u16::MAX`].
-    pub fn new<D, F, H>(letter_data: D) -> Result<Self, WordValidationError>
+    /// See the documentation for [`WordValidationError`] for details and examples on the error
+    /// cases for this function.
+    pub fn try_new<D, F, H>(letter_data: D) -> WordResult
     where
         D: IntoIterator<Item = (F, Option<H>, Sign)>,
         F: TryInto<u16>,
@@ -431,11 +363,74 @@ impl Word {
             + From<<H as TryInto<u16>>::Error>
             + From<std::convert::Infallible>,
     {
+        let mut total_len = 0usize;
         let mut letters = Vec::new();
         for (foot, head, sign) in letter_data {
-            letters.push(Letter::new(foot, head, sign)?)
+            match *Letter::try_new(foot, head, sign) {
+                Ok(letter) => {
+                    total_len += letter.artin_length() as usize;
+                    letters.push(letter);
+                }
+                Err(e) => return WordResult::from(WordValidationError::from(e)),
+            };
         }
-        Word::try_from(letters)
+        if total_len > u16::MAX as usize {
+            WordResult::from(WordValidationError::TooLong(total_len))
+        } else {
+            WordResult::from(Self(letters))
+        }
+    }
+    /// Attempts to construct a new [`Word`] given a slice of [letters](Letter).
+    ///
+    /// The elements of the slice only need to be [`Into<Letter>`].
+    ///
+    /// <div class="warning">
+    ///
+    /// The return type is [`WordResult`](crate::WordResult), which is a new-type wrapper around
+    /// [`Result<Word, WordValidationError>`]. Use the dereference operator "*" for easy access to
+    /// the inner value, and use the [`clone_unwrap`](crate::WordResult::clone_unwrap) and
+    /// [`clone_unwrap_err`](crate::WordResult::clone_unwrap_err) instead of `unwrap` and `unwrap_err`,
+    /// respectively.
+    ///
+    /// </div>
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use braided::{Letter, Sign, Word};
+    ///
+    /// let letter1 = Letter::try_new(1, None::<u16>, Sign::Positive).unwrap();
+    /// let letter2 = Letter::try_new(2, Some(5), Sign::Negative).unwrap();
+    /// let word_from_letters = Word::try_from_letters(&[letter1, letter2]);
+    ///
+    /// assert_eq!(
+    ///     word_from_letters,
+    ///     Word::try_new(vec![(1, None::<u16>, Sign::Positive), (2, Some(5), Sign::Negative)]),
+    /// );
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// See the documentation for [`WordValidationError`] for details and examples on the error
+    /// cases for this function.
+    pub fn try_from_letters<L>(letters: &[L]) -> WordResult
+    where
+        L: Into<Letter> + Clone + Copy,
+    {
+        let (total_len, letters) = letters
+            .iter()
+            .map(|l| (*l).into())
+            .map(|l: Letter| (l.artin_length() as usize, l))
+            .fold((0usize, Vec::<Letter>::new()), |mut acc, (al, l)| {
+                acc.0 += al;
+                acc.1.push(l);
+                acc
+            });
+        if total_len > u16::MAX as usize {
+            WordResult::from(WordValidationError::TooLong(total_len))
+        } else {
+            WordResult::from(Self(letters))
+        }
     }
     /// Returns a trivial (i.e., empty) [`Word`].
     ///
@@ -470,32 +465,29 @@ impl Word {
     /// ```
     /// use braided::{Sign, Word};
     ///
-    /// let word = Word::new([
+    /// let word = Word::try_new([
     ///     (1, Some(3), Sign::Positive),
     ///     (2, None, Sign::Negative),
     ///     (1, Some(2), Sign::Positive),
     /// ])
-    /// .unwrap();
-    /// let expected_decomposition = Word::new([
+    /// .clone_unwrap();
+    /// let expected_decomposition = Word::try_new([
     ///     (1, None::<u16>, Sign::Negative),
     ///     (2, None, Sign::Positive),
     ///     (1, None, Sign::Positive),
     ///     (2, None, Sign::Negative),
     ///     (1, None, Sign::Positive),
     /// ])
-    /// .unwrap();
+    /// .clone_unwrap();
     ///
     /// assert_eq!(word.decompose(), expected_decomposition);
     /// ```
     pub fn decompose(&self) -> Self {
-        let mut artin_generators: Vec<ArtinGenerator> = Vec::new();
-        for letter in self.iter() {
-            match letter {
-                Letter::Artin(artin_generator) => artin_generators.push(*artin_generator),
-                Letter::Band(band_generator) => artin_generators.extend(band_generator.decompose()),
-            }
+        let mut artin_letters: Vec<Letter> = Vec::new();
+        for letter in self.letters() {
+            artin_letters.extend(letter.decompose());
         }
-        Self::try_from(artin_generators).unwrap()
+        Self(artin_letters)
     }
     /// Coalesces every maximal span of [`Letter::Artin`] variants within a [`Word`] into an
     /// equivalent [`Letter::Band`].
@@ -512,20 +504,20 @@ impl Word {
     /// ```
     /// use braided::{Sign, Word};
     ///
-    /// let word = Word::new([
+    /// let word = Word::try_new([
     ///     (2, None::<u16>, Sign::Positive),
     ///     (1, None, Sign::Positive),
     ///     (2, None, Sign::Negative),
     ///     (2, None, Sign::Negative),
     ///     (1, None, Sign::Positive),
     /// ])
-    /// .unwrap();
-    /// let expected_coalescence = Word::new([
+    /// .clone_unwrap();
+    /// let expected_coalescence = Word::try_new([
     ///     (1, Some(3), Sign::Positive),
     ///     (2, None, Sign::Negative),
     ///     (1, Some(2), Sign::Positive),
     /// ])
-    /// .unwrap();
+    /// .clone_unwrap();
     ///
     /// assert_eq!(word.coalesce(), expected_coalescence);
     /// ```
@@ -550,15 +542,27 @@ impl Word {
                 let remaining_left = Word(self[0..pivot - radius].to_vec());
                 let window: Vec<ArtinGenerator> = self[pivot - radius..pivot + radius + 1]
                     .iter()
-                    .map(|l| (*l).try_into().unwrap())
+                    .map(|&l| {
+                        match l {
+                            Letter::Artin(artin) => artin,
+                            // The following line should never execute, since we assume input to
+                            // this fn is already decomposed
+                            Letter::Band(band) => {
+                                panic!("Unexpected letter {band:?} found in decomposed word.")
+                            }
+                        }
+                    })
                     .collect();
                 let remaining_right = Word(self[pivot + radius + 1..num_letters].to_vec());
-                if let Ok(band) = BandGenerator::coalesce(&window) {
+                if let Ok(band) = *BandGenerator::coalesce(&window) {
                     // We can safely unwrap the following products, since we're operating on parts
                     // of a word which has already been length-checked (at its construction)
-                    return ((remaining_left.coalesce_decomposed() * Letter::Band(band)).unwrap()
+                    return (remaining_left.coalesce_decomposed()
+                        * Letter::Band(band)
                         * remaining_right.coalesce_decomposed())
-                    .unwrap();
+                    .as_ref()
+                    .unwrap()
+                    .clone();
                 } else {
                     pivot += 1;
                 }
@@ -575,12 +579,12 @@ impl Word {
     /// use braided::{Letter, Sign, Word};
     ///
     /// let letters = vec![
-    ///     Letter::new(1, None::<u16>, Sign::Negative).unwrap(),
-    ///     Letter::new(2, Some(5), Sign::Positive).unwrap(),
-    ///     Letter::new(3, Some(4), Sign::Negative).unwrap(),
-    ///     Letter::new(4, None::<u16>, Sign::Positive).unwrap(),
+    ///     Letter::try_new(1, None::<u16>, Sign::Negative).unwrap(),
+    ///     Letter::try_new(2, Some(5), Sign::Positive).unwrap(),
+    ///     Letter::try_new(3, Some(4), Sign::Negative).unwrap(),
+    ///     Letter::try_new(4, None::<u16>, Sign::Positive).unwrap(),
     /// ];
-    /// let word = Word::try_from(letters.clone()).unwrap();
+    /// let word = Word::try_from_letters(&letters).clone_unwrap();
     ///
     /// assert_eq!(word.letters(), letters)
     /// ```
@@ -594,13 +598,13 @@ impl Word {
     /// ```
     /// use braided::{Letter, Sign, Word};
     ///
-    /// let letters = vec![
-    ///     Letter::new(1, None::<u16>, Sign::Negative).unwrap(),
-    ///     Letter::new(2, Some(5), Sign::Positive).unwrap(),
-    ///     Letter::new(3, Some(4), Sign::Negative).unwrap(),
-    ///     Letter::new(4, None::<u16>, Sign::Positive).unwrap(),
+    /// let letters = [
+    ///     Letter::try_new(1, None::<u16>, Sign::Negative).unwrap(),
+    ///     Letter::try_new(2, Some(5), Sign::Positive).unwrap(),
+    ///     Letter::try_new(3, Some(4), Sign::Negative).unwrap(),
+    ///     Letter::try_new(4, None::<u16>, Sign::Positive).unwrap(),
     /// ];
-    /// let word = Word::try_from(letters).unwrap();
+    /// let word = Word::try_from_letters(&letters).clone_unwrap();
     ///
     /// assert!(!word.is_trivial());
     /// ```
@@ -619,13 +623,13 @@ impl Word {
     /// ```
     /// use braided::{Letter, Sign, Word};
     ///
-    /// let letters = vec![
-    ///     Letter::new(1, None::<u16>, Sign::Negative).unwrap(),
-    ///     Letter::new(2, Some(5), Sign::Positive).unwrap(),
-    ///     Letter::new(3, Some(4), Sign::Negative).unwrap(),
-    ///     Letter::new(4, None::<u16>, Sign::Positive).unwrap(),
+    /// let letters = [
+    ///     Letter::try_new(1, None::<u16>, Sign::Negative).unwrap(),
+    ///     Letter::try_new(2, Some(5), Sign::Positive).unwrap(),
+    ///     Letter::try_new(3, Some(4), Sign::Negative).unwrap(),
+    ///     Letter::try_new(4, None::<u16>, Sign::Positive).unwrap(),
     /// ];
-    /// let word = Word::try_from(letters).unwrap();
+    /// let word = Word::try_from_letters(&letters).clone_unwrap();
     ///
     /// assert_eq!(word.length(), 4);
     /// ```
@@ -648,13 +652,13 @@ impl Word {
     /// ```
     /// use braided::{Letter, Sign, Word};
     ///
-    /// let letters = vec![
-    ///     Letter::new(1, None::<u16>, Sign::Negative).unwrap(),
-    ///     Letter::new(2, Some(5), Sign::Positive).unwrap(),
-    ///     Letter::new(3, Some(4), Sign::Negative).unwrap(),
-    ///     Letter::new(4, None::<u16>, Sign::Positive).unwrap(),
+    /// let letters = [
+    ///     Letter::try_new(1, None::<u16>, Sign::Negative).unwrap(),
+    ///     Letter::try_new(2, Some(5), Sign::Positive).unwrap(),
+    ///     Letter::try_new(3, Some(4), Sign::Negative).unwrap(),
+    ///     Letter::try_new(4, None::<u16>, Sign::Positive).unwrap(),
     /// ];
-    /// let word = Word::try_from(letters).unwrap();
+    /// let word = Word::try_from_letters(&letters).clone_unwrap();
     ///
     /// assert_eq!(word.artin_length(), 8);
     /// ```
@@ -672,21 +676,21 @@ impl Word {
     /// ```
     /// use braided::{BraidIndex, Letter, Sign, Word};
     ///
-    /// let letters = vec![
-    ///     Letter::new(1, None::<u16>, Sign::Negative).unwrap(),
-    ///     Letter::new(2, Some(5), Sign::Positive).unwrap(),
-    ///     Letter::new(3, Some(4), Sign::Negative).unwrap(),
-    ///     Letter::new(4, None::<u16>, Sign::Positive).unwrap(),
+    /// let letters = [
+    ///     Letter::try_new(1, None::<u16>, Sign::Negative).unwrap(),
+    ///     Letter::try_new(2, Some(5), Sign::Positive).unwrap(),
+    ///     Letter::try_new(3, Some(4), Sign::Negative).unwrap(),
+    ///     Letter::try_new(4, None::<u16>, Sign::Positive).unwrap(),
     /// ];
-    /// let word = Word::try_from(letters).unwrap();
+    /// let word = Word::try_from_letters(&letters).clone_unwrap();
     ///
-    /// assert_eq!(word.minimal_required_braid_index(), BraidIndex::new(5).unwrap());
+    /// assert_eq!(word.minimal_required_braid_index(), BraidIndex::try_new(5).unwrap());
     /// ```
     pub fn minimal_required_braid_index(&self) -> BraidIndex {
         self.iter()
             .map(|l| l.minimal_required_braid_index())
             .max()
-            .unwrap_or(BraidIndex::new(1).unwrap())
+            .unwrap_or(BraidIndex::try_new(1).unwrap())
     }
     /// Returns the multiplicative inverse of the [`Word`].
     ///
@@ -695,19 +699,19 @@ impl Word {
     /// ```
     /// use braided::{Letter, Sign, Word};
     ///
-    /// let letters = vec![
-    ///     Letter::new(1, None::<u16>, Sign::Negative).unwrap(),
-    ///     Letter::new(2, Some(5), Sign::Positive).unwrap(),
-    ///     Letter::new(3, Some(4), Sign::Negative).unwrap(),
-    ///     Letter::new(4, None::<u16>, Sign::Positive).unwrap(),
+    /// let letters = [
+    ///     Letter::try_new(1, None::<u16>, Sign::Negative).unwrap(),
+    ///     Letter::try_new(2, Some(5), Sign::Positive).unwrap(),
+    ///     Letter::try_new(3, Some(4), Sign::Negative).unwrap(),
+    ///     Letter::try_new(4, None::<u16>, Sign::Positive).unwrap(),
     /// ];
-    /// let word = Word::try_from(letters.clone()).unwrap();
+    /// let word = Word::try_from_letters(&letters).clone_unwrap();
     ///
     /// assert_eq!(
     ///     word.inverse(),
-    ///     Word::try_from(
-    ///         letters.iter().rev().map(|l| l.inverse()).collect::<Vec<Letter>>()
-    ///     ).unwrap(),
+    ///     Word::try_from_letters(
+    ///         &letters.iter().rev().map(|l| l.inverse()).collect::<Vec<Letter>>()
+    ///     ).clone_unwrap(),
     /// );
     /// ```
     pub fn inverse(&self) -> Self {
@@ -718,38 +722,6 @@ impl Word {
 impl Default for Word {
     fn default() -> Self {
         Word::trivial()
-    }
-}
-
-impl<L> TryFrom<Vec<L>> for Word
-where
-    L: Into<Letter>,
-{
-    type Error = WordValidationError;
-    fn try_from(value: Vec<L>) -> Result<Self, Self::Error> {
-        let (total_len, letters) = value
-            .into_iter()
-            .map(|l| l.into())
-            .map(|l| (l.artin_length() as u32, l))
-            .fold((0u32, Vec::<Letter>::new()), |mut acc, (al, l)| {
-                acc.0 += al;
-                acc.1.push(l);
-                acc
-            });
-        if total_len > u16::MAX as u32 {
-            Err(WordValidationError::TooLong(total_len))
-        } else {
-            Ok(Self(letters))
-        }
-    }
-}
-impl<L> TryFrom<&[L]> for Word
-where
-    L: Into<Letter> + std::clone::Clone,
-{
-    type Error = WordValidationError;
-    fn try_from(value: &[L]) -> Result<Self, Self::Error> {
-        Self::try_from(value.to_vec())
     }
 }
 
@@ -784,22 +756,18 @@ impl AsRef<[Letter]> for Word {
 #[cfg(test)]
 mod tests {
     use crate::{Letter, Sign, Word, WordValidationError};
-    use googletest::matchers::{anything, each, eq, err, is_false, is_true, ok, result_of_ref};
+    use googletest::matchers::{anything, eq, err, is_false, is_true, ok, result_of_ref};
     use googletest::{assert_that, expect_that, gtest};
 
     #[gtest]
-    fn construction_with_try_from_succeeds() {
+    fn construction_with_try_from_letters_succeeds() {
         let letters = vec![
-            Letter::new(1, None::<u16>, Sign::Positive).unwrap(),
-            Letter::new(2, Some(5), Sign::Negative).unwrap(),
+            Letter::try_new(1, None::<u16>, Sign::Positive).unwrap(),
+            Letter::try_new(2, Some(5), Sign::Negative).unwrap(),
         ];
-        let valid_words = [
-            Word::try_from(letters.clone()),
-            Word::try_from(&letters[..]),
-        ];
+        let valid_word = Word::try_from_letters(&letters);
 
-        expect_that!(valid_words, each(ok(anything())));
-        expect_that!(valid_words[0], eq(&valid_words[1]));
+        expect_that!(*valid_word, ok(anything()));
     }
 
     #[test]
@@ -808,14 +776,14 @@ mod tests {
             (1, None::<u16>, Sign::Positive),
             (2, Some(5), Sign::Negative),
         ];
-        let valid_word = Word::new(letter_data);
-        assert_that!(valid_word, ok(anything()));
+        let valid_word = Word::try_new(letter_data);
+        assert_that!(*valid_word, ok(anything()));
 
         let letters: Vec<Letter> = letter_data
             .iter()
-            .map(|(foot, head, sign)| Letter::new(*foot, *head, *sign).unwrap())
+            .map(|(foot, head, sign)| Letter::try_new(*foot, *head, *sign).unwrap())
             .collect();
-        assert_that!(valid_word, eq(&Word::try_from(letters)));
+        assert_that!(valid_word, eq(&Word::try_from_letters(&letters)));
     }
 
     #[test]
@@ -824,7 +792,7 @@ mod tests {
 
         assert_that!(
             trivial,
-            eq(&Word::new(Vec::<(u16, Option<u16>, _)>::new()).unwrap())
+            eq(&Word::try_new(Vec::<(u16, Option<u16>, _)>::new()).clone_unwrap())
         );
     }
 
@@ -835,40 +803,40 @@ mod tests {
 
     #[test]
     fn decompose_computes_as_expected() {
-        let word = Word::new([
+        let word = Word::try_new([
             (1, Some(3), Sign::Positive),
             (2, None, Sign::Negative),
             (1, Some(2), Sign::Positive),
         ])
-        .unwrap();
-        let expected_decomposition = Word::new([
+        .clone_unwrap();
+        let expected_decomposition = Word::try_new([
             (1, None::<u16>, Sign::Negative),
             (2, None, Sign::Positive),
             (1, None, Sign::Positive),
             (2, None, Sign::Negative),
             (1, None, Sign::Positive),
         ])
-        .unwrap();
+        .clone_unwrap();
 
         assert_that!(word.decompose(), eq(&expected_decomposition));
     }
 
     #[test]
     fn coalesce_computes_as_expected() {
-        let word = Word::new([
-            (2, None::<u16>, Sign::Positive),
+        let word = Word::try_new([
+            (2, Some(3), Sign::Positive),
             (1, None, Sign::Positive),
             (2, None, Sign::Negative),
-            (2, None, Sign::Negative),
+            (2, Some(3), Sign::Negative),
             (1, None, Sign::Positive),
         ])
-        .unwrap();
-        let expected_coalescence = Word::new([
+        .clone_unwrap();
+        let expected_coalescence = Word::try_new([
             (1, Some(3), Sign::Positive),
             (2, None, Sign::Negative),
             (1, Some(2), Sign::Positive),
         ])
-        .unwrap();
+        .clone_unwrap();
 
         assert_that!(word.coalesce(), eq(&expected_coalescence));
     }
@@ -876,23 +844,23 @@ mod tests {
     #[gtest]
     fn properties_compute_as_expected() {
         let letters = vec![
-            Letter::new(1, Some(3), Sign::Positive).unwrap(),
-            Letter::new(2, None::<u16>, Sign::Negative).unwrap(),
-            Letter::new(1, Some(2), Sign::Positive).unwrap(),
+            Letter::try_new(1, Some(3), Sign::Positive).unwrap(),
+            Letter::try_new(2, None::<u16>, Sign::Negative).unwrap(),
+            Letter::try_new(1, Some(2), Sign::Positive).unwrap(),
         ];
-        let word = Word::try_from(&letters[..]).unwrap();
+        let word = Word::try_from_letters(&letters).clone_unwrap();
 
         expect_that!(word.letters(), eq(&letters));
         expect_that!(
             word.inverse(),
-            eq(&Word::try_from(
-                letters
+            eq(&Word::try_from_letters(
+                &letters
                     .iter()
                     .rev()
                     .map(|&l| l.inverse())
                     .collect::<Vec<Letter>>()
             )
-            .unwrap())
+            .clone_unwrap())
         );
         expect_that!(word.is_trivial(), is_false());
         expect_that!(Word::trivial().is_trivial(), is_true());
@@ -913,12 +881,13 @@ mod tests {
 
     #[gtest]
     fn into_iterator_works_as_expected() {
-        let letter_data = [
+        let letter_data: [(u16, Option<u16>, Sign); 3] = [
             (1, Some(3), Sign::Positive),
             (2, None, Sign::Negative),
             (1, Some(2), Sign::Positive),
         ];
-        let word = Word::new(letter_data).unwrap();
+
+        let word = Word::try_new(letter_data).clone_unwrap();
 
         for (actual, expected) in word.into_iter().zip(letter_data) {
             expect_that!(actual, eq(expected));
@@ -928,11 +897,11 @@ mod tests {
     #[test]
     fn deref_yields_slice_of_letters() {
         let letters = [
-            Letter::new(1, Some(3), Sign::Positive).unwrap(),
-            Letter::new(2, None::<u16>, Sign::Negative).unwrap(),
-            Letter::new(1, Some(2), Sign::Positive).unwrap(),
+            Letter::try_new(1, Some(3), Sign::Positive).unwrap(),
+            Letter::try_new(2, None::<u16>, Sign::Negative).unwrap(),
+            Letter::try_new(1, Some(2), Sign::Positive).unwrap(),
         ];
-        let word = Word::try_from(&letters[..]).unwrap();
+        let word = Word::try_from_letters(&letters).clone_unwrap();
 
         assert_that!(*word, eq(&letters));
     }
@@ -943,11 +912,11 @@ mod tests {
             w.as_ref() == v
         }
         let letters = [
-            Letter::new(1, Some(3), Sign::Positive).unwrap(),
-            Letter::new(2, None::<u16>, Sign::Negative).unwrap(),
-            Letter::new(1, Some(2), Sign::Positive).unwrap(),
+            Letter::try_new(1, Some(3), Sign::Positive).unwrap(),
+            Letter::try_new(2, None::<u16>, Sign::Negative).unwrap(),
+            Letter::try_new(1, Some(2), Sign::Positive).unwrap(),
         ];
-        let word = Word::try_from(&letters[..]).unwrap();
+        let word = Word::try_from_letters(&letters).clone_unwrap();
 
         assert_that!(
             word,
@@ -959,54 +928,59 @@ mod tests {
     fn invalid_construction_with_new_fails() {
         let invalid_words = [
             (
-                Word::new(vec![
+                Word::try_new(vec![
                     (1, None::<u16>, Sign::Negative);
                     u16::MAX as usize + 1
                 ]),
-                WordValidationError::TooLong(u16::MAX as u32 + 1),
+                WordValidationError::TooLong(u16::MAX as usize + 1),
             ),
             (
-                Word::new([
+                Word::try_new([
                     (1, Some(3), Sign::Positive),
                     (2, None, Sign::Negative),
                     (4, Some(1), Sign::Positive),
                 ]),
-                WordValidationError::from(Letter::new(4, Some(1), Sign::Positive).err().unwrap()),
+                WordValidationError::from(
+                    Letter::try_new(4, Some(1), Sign::Positive).err().unwrap(),
+                ),
             ),
             (
-                Word::new([
+                Word::try_new([
                     (-1, Some(3), Sign::Positive),
                     (2, None, Sign::Negative),
                     (1, Some(2), Sign::Positive),
                 ]),
-                WordValidationError::from(Letter::new(-1, Some(3), Sign::Positive).err().unwrap()),
+                WordValidationError::from(
+                    Letter::try_new(-1, Some(3), Sign::Positive).err().unwrap(),
+                ),
             ),
         ];
 
         for (invalid_word, error) in invalid_words {
-            expect_that!(invalid_word, err(eq(&error)));
+            expect_that!(*invalid_word, err(eq(&error)));
         }
     }
 
     #[gtest]
-    fn invalid_construction_with_try_from_fails() {
+    fn invalid_construction_with_try_from_letters_fails() {
         let invalid_words = [
-            Word::try_from(vec![
-                Letter::new(1, None::<u16>, Sign::Negative).unwrap();
+            Word::try_from_letters(&vec![
+                Letter::try_new(1, None::<u16>, Sign::Negative)
+                    .unwrap();
                 u16::MAX as usize + 1
             ]),
-            Word::try_from(
+            Word::try_from_letters(
                 &[
-                    Letter::new(1, None::<u16>, Sign::Negative).unwrap(),
-                    Letter::new(1, Some(2u16.pow(15) + 1), Sign::Positive).unwrap(),
+                    Letter::try_new(1, None::<u16>, Sign::Negative).unwrap(),
+                    Letter::try_new(1, Some(2u16.pow(15) + 1), Sign::Positive).unwrap(),
                 ][..],
             ),
         ];
 
         for invalid_word in invalid_words {
             expect_that!(
-                invalid_word,
-                err(eq(&WordValidationError::TooLong(u16::MAX as u32 + 1)))
+                *invalid_word,
+                err(eq(&WordValidationError::TooLong(u16::MAX as usize + 1)))
             );
         }
     }
