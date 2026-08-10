@@ -4,6 +4,14 @@
 /// [`Letter::Artin`](crate::Letter::Artin) variant) or two positive integers and a sign (for the
 /// [`Letter::Band`](crate::Letter::Band) variant). See the examples below for details.
 ///
+/// <div class="warning">
+///
+/// The return type is [`LetterResult`](crate::LetterResult), which is a new-type wrapper around
+/// [`Result<Letter, LetterValidationError>`]. Use the dereference operator "*" for easy access to
+/// the inner value.
+///
+/// </div>
+///
 /// # Examples
 ///
 /// ```
@@ -13,20 +21,22 @@
 /// # fn main() {
 /// // A single integer and a sign is interpreted as an Artin generator:
 /// let artin = letter![1; +];
-/// assert_matches!(artin, Ok(Letter::Artin(_)));
-/// assert_eq!(artin, Letter::new(1, None::<u16>, Sign::Positive));
+/// assert_matches!(*artin, Ok(Letter::Artin(_)));
+/// assert_eq!(artin, Letter::try_new(1, None::<u16>, Sign::Positive));
 ///
-/// // Two integers and a sign is interpreted as a Band generator:
+/// // Two integers separated by "=>" and a sign is interpreted as a Band generator:
 /// let band = letter![2 => 4; -];
-/// assert_matches!(band, Ok(Letter::Band(_)));
-/// assert_eq!(band, Letter::new(2, Some(4), Sign::Negative));
+/// assert_matches!(*band, Ok(Letter::Band(_)));
+/// assert_eq!(band, Letter::try_new(2, Some(4), Sign::Negative));
 /// # }
 /// ```
 ///
 /// # Errors
 ///
-/// Under the hood, a call is made to the [`Letter::new`](crate::Letter::new) constructor, and
-/// will return errors under the same circumstances.
+/// Under the hood, a call is made to the [`Letter::try_new`](crate::Letter::try_new) constructor, and
+/// will return errors under the same circumstances. See [`LetterResult`](crate::LetterResult) and
+/// [`LetterValidationError`](crate::LetterValidationError) for more information on the return type
+/// and error type, respectively.
 ///
 /// ```
 /// use braided::{
@@ -39,19 +49,19 @@
 /// // Strand indices must be positive:
 /// let bad_letter_1 = letter![-1; +];
 /// assert_matches!(
-///     bad_letter_1,
+///     *bad_letter_1,
 ///     Err(LetterValidationError::ArtinValidation(ArtinValidationError::StrandValidation(_))),
 /// );
 /// let bad_letter_2 = letter![0 => 4; -];
 /// assert_matches!(
-///     bad_letter_2,
+///     *bad_letter_2,
 ///     Err(LetterValidationError::BandValidation(BandValidationError::StrandValidation(_))),
 /// );
 ///
 /// // Strand indices must also be within the [`u16`] range:
 /// let bad_letter_3 = letter![u16::MAX as u32 + 1; +];
 /// assert_matches!(
-///     bad_letter_3,
+///     *bad_letter_3,
 ///     Err(
 ///         LetterValidationError::ArtinValidation(
 ///             ArtinValidationError::StrandValidation(
@@ -64,7 +74,7 @@
 /// // Bands must be well-formed:
 /// let bad_letter_4 = letter![4 => 1; +];
 /// assert_matches!(
-///     bad_letter_4,
+///     *bad_letter_4,
 ///     Err(LetterValidationError::BandValidation(BandValidationError::FootOverHead {..})),
 /// )
 /// # }
@@ -72,16 +82,16 @@
 #[macro_export]
 macro_rules! letter {
     ($foot:expr; +) => {
-        $crate::Letter::new($foot, None::<u16>, $crate::Sign::Positive)
+        $crate::Letter::try_new($foot, None::<u16>, $crate::Sign::Positive)
     };
     ($foot:expr; -) => {
-        $crate::Letter::new($foot, None::<u16>, $crate::Sign::Negative)
+        $crate::Letter::try_new($foot, None::<u16>, $crate::Sign::Negative)
     };
     ($foot:expr => $head:expr; +) => {
-        $crate::Letter::new($foot, Some($head), $crate::Sign::Positive)
+        $crate::Letter::try_new($foot, Some($head), $crate::Sign::Positive)
     };
     ($foot:expr => $head:expr; -) => {
-        $crate::Letter::new($foot, Some($head), $crate::Sign::Negative)
+        $crate::Letter::try_new($foot, Some($head), $crate::Sign::Negative)
     };
 }
 
@@ -101,6 +111,16 @@ macro_rules! letter {
 /// [letter length](crate::Word::length) does not. More information on the fallibility of this
 /// macro can be found in the _**Errors**_ section below.
 ///
+/// <div class="warning">
+///
+/// The return type is [`WordResult`](crate::WordResult), which is a new-type wrapper around
+/// [`Result<Word, WordValidationError>`]. Use the dereference operator "*" for easy access to
+/// the inner value, and use the [`clone_unwrap`](crate::WordResult::clone_unwrap) and
+/// [`clone_unwrap_err`](crate::WordResult::clone_unwrap_err) instead of `unwrap` and `unwrap_err`,
+/// respectively.
+///
+/// </div>
+///
 /// # Examples
 ///
 /// ```
@@ -109,19 +129,19 @@ macro_rules! letter {
 /// # fn main() {
 /// // Passing nothing constructs the trivial word:
 /// let trivial = word![];
-/// assert_eq!(trivial, Ok(Word::trivial()));
+/// assert_eq!(*trivial, Ok(Word::trivial()));
 ///
 /// // Create a word from a single letter repeated several times:
 /// let positive_artin_cubed = word![[2; 3]];
-/// assert_eq!(positive_artin_cubed, Word::new(vec![(2, None::<u16>, Sign::Positive); 3]));
+/// assert_eq!(positive_artin_cubed, Word::try_new(vec![(2, None::<u16>, Sign::Positive); 3]));
 /// let negative_band_squared = word![[1 => 4; -2]];
-/// assert_eq!(negative_band_squared, Word::new(vec![(1, Some(4), Sign::Negative); 2]));
+/// assert_eq!(negative_band_squared, Word::try_new(vec![(1, Some(4), Sign::Negative); 2]));
 ///
 /// // Create a word from an arbitrary sequence of factors, using either generator variant:
 /// let wacky_word = word![[2 => 5; 7], [3; -2], [1 => 2; -3], [2; 9]];
 /// assert_eq!(
 ///     wacky_word,
-///     Word::new([
+///     Word::try_new([
 ///         vec![(2, Some(5), Sign::Positive); 7],
 ///         vec![(3, None, Sign::Negative); 2],
 ///         vec![(1, Some(2), Sign::Negative); 3],
@@ -133,9 +153,9 @@ macro_rules! letter {
 ///
 /// # Errors
 ///
-/// [`word!`](crate::word) will return a [`WordValidationError`](crate::WordValidationError) in any
-/// context where the associated [`Word::new`](crate::Word::new) function does. In particular, all
-/// of the following are errors:
+/// [`word!`](crate::word) will return a wrapped [`WordValidationError`](crate::WordValidationError)
+/// in any context where the associated [`Word::try_new`](crate::Word::try_new) function does. In
+/// particular, all of the following are errors:
 ///
 /// 1. Having an Artin length which exceeds [`u16::MAX`]
 ///    ([`WordValidationError::TooLong`](crate::WordValidationError::TooLong)).
@@ -148,9 +168,9 @@ macro_rules! letter {
 /// let long_word_bands = word![[1 => 3; (u16::MAX as u32).div_euclid(3) + 1]];
 /// let long_product = word![[1; u16::MAX as u32 -1], [3; 2]];
 ///
-/// assert_matches!(long_word_artin, Err(WordValidationError::TooLong(_)));
-/// assert_matches!(long_word_bands, Err(WordValidationError::TooLong(_)));
-/// assert_matches!(long_product, Err(WordValidationError::TooLong(_)));
+/// assert_matches!(*long_word_artin, Err(WordValidationError::TooLong(_)));
+/// assert_matches!(*long_word_bands, Err(WordValidationError::TooLong(_)));
+/// assert_matches!(*long_product, Err(WordValidationError::TooLong(_)));
 /// # }
 /// ```
 ///
@@ -165,9 +185,9 @@ macro_rules! letter {
 /// let malformed_in_middle = word![[1; 2], [4 => 1; -3], [0; -1]];
 /// let malformed_at_end = word![[1; 2], [1 => 4; -3], [0; -1]];
 ///
-/// assert_matches!(malformed_at_start, Err(WordValidationError::LetterValidation(_)));
-/// assert_matches!(malformed_in_middle, Err(WordValidationError::LetterValidation(_)));
-/// assert_matches!(malformed_at_end, Err(WordValidationError::LetterValidation(_)));
+/// assert_matches!(*malformed_at_start, Err(WordValidationError::LetterValidation(_)));
+/// assert_matches!(*malformed_in_middle, Err(WordValidationError::LetterValidation(_)));
+/// assert_matches!(*malformed_at_end, Err(WordValidationError::LetterValidation(_)));
 /// # }
 /// ```
 ///
@@ -179,20 +199,13 @@ macro_rules! letter {
 /// # #[macro_use] extern crate braided;
 /// # fn main() {
 /// let too_big_exponent = word![[1; u64::MAX]];
-/// assert_matches!(too_big_exponent, Err(WordValidationError::FromInt(_)));
+/// assert_matches!(*too_big_exponent, Err(WordValidationError::FromInt(_)));
 /// # }
 /// ```
 #[macro_export]
 macro_rules! word {
-    () => {
-        {
-            let trivial: Result<$crate::Word, $crate::WordValidationError> = Ok(
-                $crate::Word::trivial()
-            );
-            trivial
-        }
-    };
-    ([$foot:expr; $exponent:expr]) => {{
+    () => {$crate::WordResult::from($crate::Word::trivial())};
+    ([$foot:expr; $exponent:expr]) => {
         match TryInto::<i32>::try_into($exponent) {
             Ok(exponent) => {
                 let letter = if exponent < 0 {
@@ -200,17 +213,17 @@ macro_rules! word {
                 } else {
                     $crate::letter![$foot; +]
                 };
-                match letter {
-                    Ok(letter) => $crate::Word::try_from(
-                        vec![letter; exponent.unsigned_abs().try_into().unwrap()]
+                match *letter {
+                    Ok(letter) => $crate::Word::try_from_letters(
+                        &vec![letter; exponent.unsigned_abs().try_into().unwrap()]
                     ),
-                    Err(e) => Err($crate::WordValidationError::from(e)),
+                    Err(e) => $crate::WordResult::from($crate::WordValidationError::from(e)),
                 }
             },
-            Err(e) => Err($crate::WordValidationError::from(e))
+            Err(e) => $crate::WordResult::from($crate::WordValidationError::from(e))
         }
-    }};
-    ([$foot:expr => $head:expr; $exponent:expr]) => {{
+    };
+    ([$foot:expr => $head:expr; $exponent:expr]) => {
         match TryInto::<i32>::try_into($exponent) {
             Ok(exponent) => {
                 let letter = if exponent < 0 {
@@ -218,28 +231,28 @@ macro_rules! word {
                 } else {
                     $crate::letter![$foot => $head; +]
                 };
-                match letter {
-                    Ok(letter) => $crate::Word::try_from(
-                        vec![letter; exponent.unsigned_abs().try_into().unwrap()]
+                match *letter {
+                    Ok(letter) => $crate::Word::try_from_letters(
+                        &vec![letter; exponent.unsigned_abs().try_into().unwrap()]
                     ),
-                    Err(e) => Err($crate::WordValidationError::from(e)),
+                    Err(e) => $crate::WordResult::from($crate::WordValidationError::from(e)),
                 }
             },
-            Err(e) => Err($crate::WordValidationError::from(e)),
+            Err(e) => $crate::WordResult::from($crate::WordValidationError::from(e)),
         }
-    }};
+    };
     ([$foot:expr; $exponent:expr], $($tail:tt)*) => {{
-        match (word![[$foot; $exponent]], word![$($tail)*]) {
+        match (&*word![[$foot; $exponent]], &*word![$($tail)*]) {
             (Ok(w1), Ok(w2)) => w1 * w2,
-            (Err(e), _) => Err(e),
-            (_, Err(e)) => Err(e),
+            (Err(e), _) => $crate::WordResult::from(*e),
+            (_, Err(e)) => $crate::WordResult::from(*e),
         }
     }};
     ([$foot:expr => $head:expr; $exponent:expr], $($tail:tt)*) => {{
-        match (word![[$foot => $head; $exponent]], word![$($tail)*]) {
+        match (&*word![[$foot => $head; $exponent]], &*word![$($tail)*]) {
             (Ok(w1), Ok(w2)) => w1 * w2,
-            (Err(e), _) => Err(e),
-            (_, Err(e)) => Err(e),
+            (Err(e), _) => $crate::WordResult::from(*e),
+            (_, Err(e)) => $crate::WordResult::from(*e),
         }
     }};
 }
@@ -261,6 +274,16 @@ macro_rules! word {
 ///
 /// The macro will panic if neither the index nor the word are specified.
 ///
+/// <div class="warning">
+///
+/// The return type is [`BraidResult`](crate::BraidResult), which is a new-type wrapper around
+/// [`Result<Braid, BraidValidationError>`]. Use the dereference operator "*" for easy access to
+/// the inner value, and use the [`clone_unwrap`](crate::BraidResult::clone_unwrap) and
+/// [`clone_unwrap_err`](crate::BraidResult::clone_unwrap_err) instead of `unwrap` and `unwrap_err`,
+/// respectively.
+///
+/// </div>
+///
 /// # Examples
 ///
 /// ```
@@ -268,10 +291,10 @@ macro_rules! word {
 /// # #[macro_use] extern crate braided;
 /// # fn main() {
 /// let trivial_3_braid = braid![(3)];
-/// assert_eq!(trivial_3_braid, Braid::trivial(3));
+/// assert_eq!(trivial_3_braid, Braid::try_trivial(3));
 ///
 /// let braid_with_inferred_index = braid![(); [1 => 3; -2], [3; 3], [1; 4]];
-/// assert_eq!(braid_with_inferred_index, Braid::from_data(
+/// assert_eq!(braid_with_inferred_index, Braid::try_from_data(
 ///     None::<u16>,
 ///     [
 ///         vec![(1, Some(3), Sign::Negative); 2],
@@ -280,10 +303,10 @@ macro_rules! word {
 ///     ]
 ///     .concat()
 /// ));
-/// assert_eq!(*braid_with_inferred_index.unwrap().braid_index(), 4);
+/// assert_eq!(*braid_with_inferred_index.clone_unwrap().braid_index(), 4);
 ///
 /// let braid_with_explicit_index = braid![(10); [1 => 3; -2], [3; 3], [1; 4]];
-/// assert_eq!(braid_with_explicit_index, Braid::from_data(
+/// assert_eq!(braid_with_explicit_index, Braid::try_from_data(
 ///     Some(10),
 ///     [
 ///         vec![(1, Some(3), Sign::Negative); 2],
@@ -292,14 +315,14 @@ macro_rules! word {
 ///     ]
 ///     .concat()
 /// ));
-/// assert_eq!(*braid_with_explicit_index.unwrap().braid_index(), 10);
+/// assert_eq!(*braid_with_explicit_index.clone_unwrap().braid_index(), 10);
 /// # }
 /// ```
 ///
 /// # Errors
 ///
-/// The macro will return a [`BraidValidationError`](crate::BraidValidationError) in any of the
-/// following circumstances:
+/// The macro will return a wrapped [`BraidValidationError`](crate::BraidValidationError) in any of
+/// the following circumstances:
 ///
 /// 1. An explicitly provided index is smaller than is required by the given word
 ///    ([`BraidValidationError::IndexTooSmall`](crate::BraidValidationError::IndexTooSmall)).
@@ -311,7 +334,7 @@ macro_rules! word {
 /// # fn main() {
 /// let index_too_small = braid![(1); [1; 1]];
 ///
-/// assert_matches!(index_too_small, Err(BraidValidationError::IndexTooSmall { .. }));
+/// assert_matches!(*index_too_small, Err(BraidValidationError::IndexTooSmall { .. }));
 /// # }
 /// ```
 ///
@@ -327,9 +350,9 @@ macro_rules! word {
 /// let zero_index = braid![(0); [1; 1]];
 /// let big_index = braid![(u16::MAX as u32 + 1); [1; 1]];
 ///
-/// assert_matches!(negative_index, Err(BraidValidationError::IndexValidation(_)));
-/// assert_matches!(zero_index, Err(BraidValidationError::IndexValidation(_)));
-/// assert_matches!(big_index, Err(BraidValidationError::IndexValidation(_)));
+/// assert_matches!(*negative_index, Err(BraidValidationError::IndexValidation(_)));
+/// assert_matches!(*zero_index, Err(BraidValidationError::IndexValidation(_)));
+/// assert_matches!(*big_index, Err(BraidValidationError::IndexValidation(_)));
 /// # }
 /// ```
 ///
@@ -345,24 +368,24 @@ macro_rules! word {
 /// let invalid_letter = braid![(); [4 => 1; 2]];
 /// let invalid_exponent = braid![(); [1; u32::MAX]];
 ///
-/// assert_matches!(too_long, Err(BraidValidationError::WordValidation(_)));
-/// assert_matches!(invalid_letter, Err(BraidValidationError::WordValidation(_)));
-/// assert_matches!(invalid_exponent, Err(BraidValidationError::WordValidation(_)));
+/// assert_matches!(*too_long, Err(BraidValidationError::WordValidation(_)));
+/// assert_matches!(*invalid_letter, Err(BraidValidationError::WordValidation(_)));
+/// assert_matches!(*invalid_exponent, Err(BraidValidationError::WordValidation(_)));
 /// # }
 /// ```
 #[macro_export]
 macro_rules! braid {
-    (($index:expr) $(;)?) => {$crate::Braid::trivial($index)};
+    (($index:expr) $(;)?) => {$crate::Braid::try_trivial($index)};
     (($index:expr); $($tail:tt)*) => {
-        match $crate::word![$($tail)*] {
-            Ok(word) => $crate::Braid::new(Some($index), word),
-            Err(e) => Err($crate::BraidValidationError::from(e)),
+        match &*$crate::word![$($tail)*] {
+            Ok(word) => $crate::Braid::try_new($index, word.clone()),
+            Err(e) => $crate::BraidResult::from($crate::BraidValidationError::from(*e)),
         }
     };
     ((); $($tail:tt)*) => {
-        match $crate::word![$($tail)*] {
-            Ok(w) => Ok($crate::Braid::from(w)),
-            Err(e) => Err($crate::BraidValidationError::from(e)),
+        match &*$crate::word![$($tail)*] {
+            Ok(word) => $crate::BraidResult::from($crate::Braid::from(word.clone())),
+            Err(e) => $crate::BraidResult::from($crate::BraidValidationError::from(*e)),
         }
     };
 }
@@ -370,8 +393,8 @@ macro_rules! braid {
 #[cfg(test)]
 mod tests {
     use crate::{
-        ArtinGenerator, BandGenerator, Braid, BraidValidationError, Letter, LetterValidationError,
-        Sign, Word, WordValidationError,
+        ArtinGenerator, BandGenerator, Braid, BraidResult, BraidValidationError, Letter,
+        LetterResult, LetterValidationError, Sign, Word, WordResult, WordValidationError,
     };
     use googletest::matchers::{eq, err, ok};
     use googletest::{assert_that, expect_that, gtest};
@@ -386,26 +409,28 @@ mod tests {
             (letter![2; -], 2, None, Sign::Negative),
         ];
         for (letter, foot, head, sign) in letters {
-            expect_that!(letter, eq(Letter::new(foot, head, sign)))
+            expect_that!(letter, eq(Letter::try_new(foot, head, sign)))
         }
     }
     #[gtest]
     fn macro_letter_fails_to_construct_invalid_letters() {
-        let invalid_letters: [(Result<Letter, LetterValidationError>, LetterValidationError); 4] = [
+        let invalid_letters: [(LetterResult, LetterValidationError); 4] = [
             (
                 letter![-1; +],
-                LetterValidationError::from(ArtinGenerator::new(-1, Sign::Positive).err().unwrap()),
+                LetterValidationError::from(
+                    ArtinGenerator::try_new(-1, Sign::Positive).err().unwrap(),
+                ),
             ),
             (
                 letter![0 => 4; -],
                 LetterValidationError::from(
-                    BandGenerator::new(0, 4, Sign::Negative).err().unwrap(),
+                    BandGenerator::try_new(0, 4, Sign::Negative).err().unwrap(),
                 ),
             ),
             (
                 letter![(u16::MAX as usize) + 1; -],
                 LetterValidationError::from(
-                    ArtinGenerator::new(u16::MAX as u32 + 1, Sign::Negative)
+                    ArtinGenerator::try_new(u16::MAX as u32 + 1, Sign::Negative)
                         .err()
                         .unwrap(),
                 ),
@@ -413,13 +438,13 @@ mod tests {
             (
                 letter![4 => 1; +],
                 LetterValidationError::from(
-                    BandGenerator::new(4, 1, Sign::Positive).err().unwrap(),
+                    BandGenerator::try_new(4, 1, Sign::Positive).err().unwrap(),
                 ),
             ),
         ];
 
         for (invalid_letter, error) in invalid_letters {
-            expect_that!(invalid_letter, err(eq(error)))
+            expect_that!(*invalid_letter, err(eq(error)))
         }
     }
 
@@ -427,12 +452,11 @@ mod tests {
     #[test]
     fn macro_word_empty_produces_trivial_word() {
         let trivial = word![];
-        assert_that!(trivial, ok(eq(&Word::trivial())))
+        assert_that!(*trivial, ok(eq(&Word::trivial())))
     }
     #[gtest]
     fn macro_word_constructs_exponent_of_single_artin() {
-        let words: [(Result<Word, WordValidationError>, u16, i32); 2] =
-            [(word![[1; 3]], 1, 3), (word![[2; -4]], 2, -4)];
+        let words: [(WordResult, u16, i32); 2] = [(word![[1; 3]], 1, 3), (word![[2; -4]], 2, -4)];
         for (word, foot, exp) in words {
             let letter = if exp < 0 {
                 letter![foot; -].unwrap()
@@ -440,18 +464,19 @@ mod tests {
                 letter![foot; +].unwrap()
             };
             expect_that!(
-                word,
-                ok(eq(&Word::try_from(vec![
+                *word,
+                ok(eq(&Word::try_from_letters(&vec![
                     letter;
-                    exp.unsigned_abs() as usize
+                    exp.unsigned_abs()
+                        as usize
                 ])
-                .unwrap()))
+                .clone_unwrap()))
             )
         }
     }
     #[gtest]
     fn macro_word_constructs_exponent_of_single_band() {
-        let words: [(Result<Word, WordValidationError>, u16, u16, i32); 2] = [
+        let words: [(WordResult, u16, u16, i32); 2] = [
             (word![[1 => 4; 3]], 1, 4, 3),
             (word![[2 => 7; -4]], 2, 7, -4),
         ];
@@ -462,12 +487,13 @@ mod tests {
                 letter![foot => head; +].unwrap()
             };
             expect_that!(
-                word,
-                ok(eq(&Word::try_from(vec![
+                *word,
+                ok(eq(&Word::try_from_letters(&vec![
                     letter;
-                    exp.unsigned_abs() as usize
+                    exp.unsigned_abs()
+                        as usize
                 ])
-                .unwrap()))
+                .clone_unwrap()))
             )
         }
     }
@@ -475,9 +501,9 @@ mod tests {
     fn macro_word_constructs_word_when_leading_letter_is_artin() {
         let word_with_positive_leading_artin = word![[1; 2], [2 => 4; -1], [3 => 4; -3], [2; 3]];
         expect_that!(
-            word_with_positive_leading_artin,
-            ok(eq(&Word::try_from(
-                [
+            *word_with_positive_leading_artin,
+            ok(eq(&Word::try_from_letters(
+                &[
                     vec![letter![1; +].unwrap(); 2],
                     vec![letter![2 => 4; -].unwrap(); 1],
                     vec![letter![3 => 4; -].unwrap(); 3],
@@ -485,13 +511,13 @@ mod tests {
                 ]
                 .concat()
             )
-            .unwrap()))
+            .clone_unwrap()))
         );
         let word_with_negative_leading_artin = word![[1; -2], [2 => 4; -1], [3 => 4; -3], [2; 3]];
         expect_that!(
-            word_with_negative_leading_artin,
-            ok(eq(&Word::try_from(
-                [
+            *word_with_negative_leading_artin,
+            ok(eq(&Word::try_from_letters(
+                &[
                     vec![letter![1; -].unwrap(); 2],
                     vec![letter![2 => 4; -].unwrap(); 1],
                     vec![letter![3 => 4; -].unwrap(); 3],
@@ -499,16 +525,16 @@ mod tests {
                 ]
                 .concat()
             )
-            .unwrap()))
+            .clone_unwrap()))
         );
     }
     #[gtest]
     fn macro_word_constructs_word_when_leading_letter_is_band() {
         let word_with_positive_leading_band = word![[2 => 4; 1], [1; 2], [3 => 4; -3], [2; 3]];
         expect_that!(
-            word_with_positive_leading_band,
-            ok(eq(&Word::try_from(
-                [
+            *word_with_positive_leading_band,
+            ok(eq(&Word::try_from_letters(
+                &[
                     vec![letter![2 => 4; +].unwrap(); 1],
                     vec![letter![1; +].unwrap(); 2],
                     vec![letter![3 => 4; -].unwrap(); 3],
@@ -516,13 +542,13 @@ mod tests {
                 ]
                 .concat()
             )
-            .unwrap()))
+            .clone_unwrap()))
         );
         let word_with_negative_leading_band = word![[2 => 4; -1], [1; 2], [3 => 4; -3], [2; 3]];
         expect_that!(
-            word_with_negative_leading_band,
-            ok(eq(&Word::try_from(
-                [
+            *word_with_negative_leading_band,
+            ok(eq(&Word::try_from_letters(
+                &[
                     vec![letter![2 => 4; -].unwrap(); 1],
                     vec![letter![1; +].unwrap(); 2],
                     vec![letter![3 => 4; -].unwrap(); 3],
@@ -530,15 +556,15 @@ mod tests {
                 ]
                 .concat()
             )
-            .unwrap()))
+            .clone_unwrap()))
         )
     }
     #[gtest]
     fn macro_word_fails_to_construct_invalid_words() {
-        let invalid_words: [(Result<Word, WordValidationError>, WordValidationError); 6] = [
+        let invalid_words: [(WordResult, WordValidationError); 6] = [
             (
                 word![[-1; 1], [1; 2], [2 => 5; -3]],
-                Word::new(
+                Word::try_new(
                     [
                         vec![(-1, None, Sign::Positive); 1],
                         vec![(1, None, Sign::Positive); 2],
@@ -546,12 +572,11 @@ mod tests {
                     ]
                     .concat(),
                 )
-                .err()
-                .unwrap(),
+                .clone_unwrap_err(),
             ),
             (
                 word![[1; 2], [0 => 4; -2], [2 => 5; -3]],
-                Word::new(
+                Word::try_new(
                     [
                         vec![(1, None, Sign::Positive); 2],
                         vec![(0, Some(4), Sign::Negative); 2],
@@ -559,12 +584,11 @@ mod tests {
                     ]
                     .concat(),
                 )
-                .err()
-                .unwrap(),
+                .clone_unwrap_err(),
             ),
             (
                 word![[1; 2], [2 => 5; -3], [u16::MAX as u32 + 1; 2]],
-                Word::new(
+                Word::try_new(
                     [
                         vec![(1, None, Sign::Positive); 2],
                         vec![(2, Some(5), Sign::Negative); 3],
@@ -572,12 +596,11 @@ mod tests {
                     ]
                     .concat(),
                 )
-                .err()
-                .unwrap(),
+                .clone_unwrap_err(),
             ),
             (
                 word![[4 => 1; 3], [1; 2], [2 => 5; -3]],
-                Word::new(
+                Word::try_new(
                     [
                         vec![(4, Some(1), Sign::Positive); 3],
                         vec![(1, None, Sign::Positive); 2],
@@ -585,30 +608,27 @@ mod tests {
                     ]
                     .concat(),
                 )
-                .err()
-                .unwrap(),
+                .clone_unwrap_err(),
             ),
             (
                 word![[1; u16::MAX as u32 + 1]],
-                Word::try_from(vec![letter![1; +].unwrap(); u16::MAX as usize + 1])
-                    .err()
-                    .unwrap(),
+                Word::try_from_letters(&vec![letter![1; +].unwrap(); u16::MAX as usize + 1])
+                    .clone_unwrap_err(),
             ),
             (
                 word![[1 => 3; (u16::MAX as u32).div_euclid(3)], [3; -1]],
-                Word::try_from(
-                    [
+                Word::try_from_letters(
+                    &[
                         vec![letter![1 => 3; +].unwrap(); (u16::MAX as usize).div_euclid(3)],
                         vec![letter![3; -].unwrap(); 1],
                     ]
                     .concat(),
                 )
-                .err()
-                .unwrap(),
+                .clone_unwrap_err(),
             ),
         ];
         for (invalid_word, error) in invalid_words {
-            expect_that!(invalid_word, err(eq(&error)))
+            expect_that!(*invalid_word, err(eq(&error)))
         }
     }
 
@@ -616,63 +636,64 @@ mod tests {
     #[test]
     fn macro_braid_constructs_trivial_braid_of_given_index() {
         let braid = braid![(10)];
-        assert_that!(braid, ok(eq(&Braid::trivial(10).unwrap())))
+        assert_that!(*braid, ok(eq(&Braid::try_trivial(10).clone_unwrap())))
     }
     #[test]
     fn macro_braid_constructs_nontrivial_braid_of_given_index() {
         let braid = braid![(10); [2 => 4; -1], [1; 2], [3 => 4; -3], [2; 3]];
         assert_that!(
-            braid,
-            ok(eq(&Braid::from_data(
+            *braid,
+            ok(eq(&Braid::try_from_data(
                 Some(10),
-                word![[2 => 4; -1], [1; 2], [3 => 4; -3], [2; 3]].unwrap()
+                word![[2 => 4; -1], [1; 2], [3 => 4; -3], [2; 3]].clone_unwrap()
             )
-            .unwrap()))
+            .clone_unwrap()))
         )
     }
     #[test]
     fn macro_braid_constructs_nontrivial_braid_of_inferred_index() {
         let braid = braid![(); [2 => 4; -1], [1; 2], [3 => 4; -3], [2; 3]];
         assert_that!(
-            braid,
+            *braid,
             ok(eq(&Braid::from(
-                word![[2 => 4; -1], [1; 2], [3 => 4; -3], [2; 3]].unwrap()
+                word![[2 => 4; -1], [1; 2], [3 => 4; -3], [2; 3]].clone_unwrap()
             )))
         )
     }
     #[gtest]
     fn macro_braid_fails_to_construct_invalid_braids() {
-        let invalid_braids: [(Result<Braid, BraidValidationError>, BraidValidationError); 10] = [
+        let invalid_braids: [(BraidResult, BraidValidationError); 10] = [
             (
                 braid![(1); [1; 1]],
-                Braid::from_data(Some(1), word![[1; 1]].unwrap())
-                    .err()
-                    .unwrap(),
+                Braid::try_from_data(Some(1), word![[1; 1]].clone_unwrap()).clone_unwrap_err(),
             ),
             (
                 braid![(-1); [1 => 3; 2], [2; -4], [3 => 4; 3]],
-                Braid::from_data(Some(-1), word![[1 => 3; 2], [2; -4], [3 => 4; 3]].unwrap())
-                    .err()
-                    .unwrap(),
+                Braid::try_from_data(
+                    Some(-1),
+                    word![[1 => 3; 2], [2; -4], [3 => 4; 3]].clone_unwrap(),
+                )
+                .clone_unwrap_err(),
             ),
             (
                 braid![(0);[1 => 3; 2], [2; -4], [3 => 4; 3]],
-                Braid::from_data(Some(0), word![[1 => 3; 2], [2; -4], [3 => 4; 3]].unwrap())
-                    .err()
-                    .unwrap(),
+                Braid::try_from_data(
+                    Some(0),
+                    word![[1 => 3; 2], [2; -4], [3 => 4; 3]].clone_unwrap(),
+                )
+                .clone_unwrap_err(),
             ),
             (
                 braid![(u16::MAX as u32 + 1);[1 => 3; 2], [2; -4], [3 => 4; 3]],
-                Braid::from_data(
+                Braid::try_from_data(
                     Some(u16::MAX as u32 + 1),
-                    word![[1 => 3; 2], [2; -4], [3 => 4; 3]].unwrap(),
+                    word![[1 => 3; 2], [2; -4], [3 => 4; 3]].clone_unwrap(),
                 )
-                .err()
-                .unwrap(),
+                .clone_unwrap_err(),
             ),
             (
                 braid![();[-1; 1], [1; 2], [2 => 5; -3]],
-                Braid::from_data(
+                Braid::try_from_data(
                     None::<u16>,
                     [
                         vec![(-1, None, Sign::Positive); 1],
@@ -681,12 +702,11 @@ mod tests {
                     ]
                     .concat(),
                 )
-                .err()
-                .unwrap(),
+                .clone_unwrap_err(),
             ),
             (
                 braid![();[1; 2], [0 => 4; -2], [2 => 5; -3]],
-                Braid::from_data(
+                Braid::try_from_data(
                     None::<u16>,
                     [
                         vec![(1, None, Sign::Positive); 2],
@@ -695,12 +715,11 @@ mod tests {
                     ]
                     .concat(),
                 )
-                .err()
-                .unwrap(),
+                .clone_unwrap_err(),
             ),
             (
                 braid![();[1; 2], [2 => 5; -3], [u16::MAX as u32 + 1; 2]],
-                Braid::from_data(
+                Braid::try_from_data(
                     None::<u16>,
                     [
                         vec![(1, None, Sign::Positive); 2],
@@ -709,12 +728,11 @@ mod tests {
                     ]
                     .concat(),
                 )
-                .err()
-                .unwrap(),
+                .clone_unwrap_err(),
             ),
             (
                 braid![();[4 => 1; 3], [1; 2], [2 => 5; -3]],
-                Braid::from_data(
+                Braid::try_from_data(
                     None::<u16>,
                     [
                         vec![(4, Some(1), Sign::Positive); 3],
@@ -723,12 +741,11 @@ mod tests {
                     ]
                     .concat(),
                 )
-                .err()
-                .unwrap(),
+                .clone_unwrap_err(),
             ),
             (
                 braid![();[1; u16::MAX as u32 + 1]],
-                Braid::from_data(
+                Braid::try_from_data(
                     None::<u16>,
                     [vec![
                         (1, None::<u16>, Sign::Positive);
@@ -736,21 +753,19 @@ mod tests {
                     ]]
                     .concat(),
                 )
-                .err()
-                .unwrap(),
+                .clone_unwrap_err(),
             ),
             (
                 braid![();[1 => 3; u16::MAX as u32 - 1], [3; -2]],
-                Braid::from_data(
+                Braid::try_from_data(
                     None::<u16>,
                     [vec![(1, Some(3), Sign::Positive); u16::MAX as usize - 1]].concat(),
                 )
-                .err()
-                .unwrap(),
+                .clone_unwrap_err(),
             ),
         ];
         for (invalid_braid, error) in invalid_braids {
-            expect_that!(invalid_braid, err(eq(&error)));
+            expect_that!(*invalid_braid, err(eq(&error)));
         }
     }
 }

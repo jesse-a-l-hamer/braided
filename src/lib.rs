@@ -27,16 +27,16 @@
 //! // Use the letter! macro to define individual letters of a braid word:
 //!
 //! // Artin letters are generators in the standard (i.e., "Artin") presentation of the braid group:
-//! let artin_letter = letter![1; +].unwrap(); // crossing of strand 1 under strand 2
-//! let other_artin_letter = letter![2; -].unwrap(); // crossing of strand 2 over strand 3
+//! let artin_letter = letter![1; +]; // crossing of strand 1 under strand 2
+//! let other_artin_letter = letter![2; -]; // crossing of strand 2 over strand 3
 //!
 //! // Band letters are generalized Artin generators, representing crossings of arbitrary strands:
-//! let band_letter = letter![2 => 3; -].unwrap(); // same as `other_artin_letter`
-//! let other_band_letter = letter![1 => 3; +].unwrap(); // crossing of strand 1 under strand 3
+//! let band_letter = letter![2 => 3; -]; // same as `other_artin_letter`
+//! let other_band_letter = letter![1 => 3; +]; // crossing of strand 1 under strand 3
 //!
 //! // Letters can be multiplied to form words: formal sequences of letters
-//! let artin_word = (artin_letter * other_artin_letter).unwrap();
-//! let band_word = (band_letter * other_band_letter).unwrap();
+//! let artin_word = artin_letter * other_artin_letter;
+//! let band_word = band_letter * other_band_letter;
 //!
 //! // Two words can also be multiplied; mixing generator sets is fine
 //! let combined_word = artin_word * band_word;
@@ -45,24 +45,26 @@
 //! assert_eq!(combined_word, word![[1; 1], [2; -2], [1 => 3; 1]]);
 //!
 //! // Multiplication automatically cancels adjacent pairs of opposite-sign letters:
+//! // (Note that the multiplication is associative!)
 //! assert_eq!(
-//!     (artin_letter * band_letter).unwrap() * letter![2; +].unwrap(), // word * letter is valid
+//!     artin_letter * band_letter * letter![2; +], // word * letter is valid
 //!     word![[1; 1]], // multiplication always produces a word, even if the result is one letter
 //! );
 //!
 //! // Words can be formally inverted, and the multiplication detects this:
-//! let some_word = word![[1; 2], [2 => 5; -7], [3; 3], [1 => 4; 2]].unwrap();
+//! let some_word = word![[1; 2], [2 => 5; -7], [3; 3], [1 => 4; 2]].clone_unwrap();
+//! assert_eq!(&some_word * some_word.inverse(), word![]); // the product is trivial
 //! assert_eq!(some_word.inverse() * some_word, word![]); // the product is trivial
 //!
 //! // A braid consists of a braid index and a word:
-//! let my_9_braid = braid![(9); [1; 2], [2 => 5; -7], [3; 3], [1 => 4; 2]].unwrap();
+//! let my_9_braid = braid![(9); [1; 2], [2 => 5; -7], [3; 3], [1 => 4; 2]];
 //!
 //! // The index can also be inferred from the given word:
-//! let my_other_9_braid = braid![(); [1 => 8; 3], [2 => 9; -4]].unwrap();
+//! let my_other_9_braid = braid![(); [1 => 8; 3], [2 => 9; -4]];
 //!
 //! // Two braids can be multiplied...
 //! assert_eq!(
-//!     my_9_braid.clone() * my_other_9_braid,
+//!     &my_9_braid * my_other_9_braid,
 //!     braid![(); [1; 2], [2 => 5; -7], [3; 3], [1 => 4; 2], [1 => 8; 3], [2 => 9; -4]]
 //! );
 //!
@@ -70,12 +72,17 @@
 //! use braided::{BraidValidationError, BraidIndex};
 //!
 //! assert_eq!(
-//!     my_9_braid * braid![(); [1; 1]].unwrap(),
+//!     *(my_9_braid * braid![(); [1; 1]]), // See note below about the deref operator here
 //!     Err(BraidValidationError::UnequalIndices {
-//!             left: BraidIndex::new(9).unwrap(),
-//!             right: BraidIndex::new(2).unwrap(),
+//!             left: BraidIndex::try_new(9).unwrap(),
+//!             right: BraidIndex::try_new(2).unwrap(),
 //!     }),
 //! );
+//!
+//! // In order for the multiplication operation to be as ergonomic as possible, the return type is
+//! // actually a newtype `BraidResult` wrapping a `Result<Braid, BraidValidationError>`. The
+//! // `std::ops::Deref` trait is implemented on `BraidResult`, allowing for easy access to the
+//! // wrapped inner `Result<_, _>`.
 //! # }
 //! ```
 //!
@@ -100,7 +107,9 @@
 //! Let's break down what's happening in the previous statement. The macro [braid!] attempts to
 //! construct a [`Braid`] struct, which is the central object of the library. I say "attempts", as
 //! this process is fallible: for more extensive documentation on the myriad ways in which
-//! constructing a braid can go wrong, see the documentation for [`BraidValidationError`].
+//! constructing a braid can go wrong, see the documentation for [`BraidValidationError`]. See also
+//! [`BraidResult`] for the actual return type which wraps a
+//! [`Result<Braid, BraidValidationError>`].
 //!
 //! The first line of input to [`braid!`] defines the [braid index](BraidIndex) of the braid, which
 //! may be thought of as the number of strands of which the braid is comprised. In this case, we
@@ -120,9 +129,24 @@
 //! #
 //! use braided::BraidIndex;
 //!
-//! assert_eq!(cool_braid.unwrap().braid_index(), BraidIndex::new(3).unwrap());
+//! assert_eq!(cool_braid.clone_unwrap().braid_index(), BraidIndex::try_new(3).unwrap());
 //! # }
 //! ```
+//!
+//! <div class="warning">
+//!
+//! You may have noticed that in the previous codeblock we call `cool_braid.clone_unwrap` instead of
+//! `cool_braid.unwrap`. This is because the actual type of `cool_braid` is [`BraidResult`] instead
+//! of [`Result<Braid, BraidValidationError>`]. [`BraidResult`] is a wrapper around
+//! [`Result<Braid, BraidValidationError>`] which implements [`std::ops::Deref`], but because
+//! [`Braid`] is not [`Copy`], calling `.unwrap()` directly becomes cumbersome. This is why we have
+//! the [`BraidResult::clone_unwrap`] method, which essentially clones the inner
+//! [`Result<Braid, BraidValidationError>`] value before unwrapping it. Similarly, we can use
+//! [`BraidResult::clone_unwrap_err`] to unwrap a contained [`Err`] variant.
+//!
+//! See also [`WordResult`], which implements similar functionality, but for [words](Word).
+//!
+//! </div>
 //!
 //! In addition to a [braid index](BraidIndex), a [braid](Braid) also contains a [_word_](Word),
 //! which is what describes the "weaving" pattern of the braid. This is what the remaining three
@@ -208,7 +232,7 @@
 //! #     [2; -1],
 //! # ];
 //! #
-//! assert_eq!(cool_braid.unwrap().letters(), vec![
+//! assert_eq!(cool_braid.clone_unwrap().letters(), vec![
 //!     letter![1; +].unwrap(), // Letter construction is fallible too, so we must unwrap
 //!     letter![1; +].unwrap(),
 //!     letter![1; +].unwrap(),
@@ -279,11 +303,11 @@
 //!
 //! // Note that both braids have braid index 9, even though the word of each does not make use of
 //! // all 9 strands; the word only enforces a minimality constraint on the braid.
-//! let braid1 = braid![(9); [2 => 5; 3], [1; -2], [4; 3], [2 => 4; -7]].unwrap();
-//! let braid2 = braid![(9); [1; 3], [1 => 3; -4], [2 => 3; 1]].unwrap();
+//! let braid1 = braid![(9); [2 => 5; 3], [1; -2], [4; 3], [2 => 4; -7]];
+//! let braid2 = braid![(9); [1; 3], [1 => 3; -4], [2 => 3; 1]];
 //!
 //! assert_eq!(
-//!     braid1.clone() * braid2.clone(), // multiplication consumes the operands, so we must clone
+//!     &braid1 * &braid2, // Multiplication consumes operands unless you explicitly borrow
 //!     braid![(9); [2 => 5; 3], [1; -2], [4; 3], [2 => 4; -7], [1; 3], [1 => 3; -4], [2 => 3; 1]],
 //! );
 //!
@@ -304,15 +328,15 @@
 //! # fn main() {
 //! use braided::braid;
 //!
-//! let some_3_braid = braid![(); [1; 1], [2 => 3; -2]].unwrap();
+//! let some_3_braid = braid![(); [1; 1], [2 => 3; -2]];
 //!
 //! assert_eq!(
-//!     braid![(3); [1; -1]].unwrap() * some_3_braid.clone(),
+//!     braid![(3); [1; -1]] * &some_3_braid,
 //!     braid![(); [2 => 3; -2]],
 //! );
 //!
 //! assert_eq!(
-//!     some_3_braid * braid![(); [2; 1]].unwrap(), // Height-1 band letters can be treated as Artin
+//!     some_3_braid * braid![(); [2; 1]], // Height-1 band letters can be treated as Artin
 //!     braid![(); [1; 1], [2 => 3; -1]],
 //! );
 //! # }
@@ -329,14 +353,14 @@
 //! # fn main() {
 //! use braided::braid;
 //!
-//! let trivial_9_braid = braid![(9)].unwrap();
+//! let trivial_9_braid = braid![(9)].clone_unwrap();
 //!
 //! assert!(trivial_9_braid.is_trivial());
 //!
-//! let some_9_braid = braid![(9); [1 => 8; 1], [2 => 9; -1]].unwrap();
+//! let some_9_braid = braid![(9); [1 => 8; 1], [2 => 9; -1]];
 //!
-//! assert_eq!(trivial_9_braid.clone() * some_9_braid.clone(), Ok(some_9_braid.clone()));
-//! assert_eq!(some_9_braid.clone() * trivial_9_braid.clone(), Ok(some_9_braid));
+//! assert_eq!(&trivial_9_braid * &some_9_braid, some_9_braid);
+//! assert_eq!(&some_9_braid * &trivial_9_braid, some_9_braid);
 //! # }
 //! ```
 //!
@@ -349,11 +373,14 @@
 //! # fn main() {
 //! use braided::braid;
 //!
-//! let braid = braid![(); [1 => 3; 4], [2 => 5; -3], [4; -7], [3; 1]].unwrap();
+//! let braid = braid![(); [1 => 3; 4], [2 => 5; -3], [4; -7], [3; 1]].clone_unwrap();
 //!
-//! assert_eq!(braid.inverse(), braid![(); [3; -1], [4; 7], [2 => 5; 3], [1 => 3; -4]].unwrap());
+//! assert_eq!(
+//!     braid.inverse(),
+//!     braid![(); [3; -1], [4; 7], [2 => 5; 3], [1 => 3; -4]].clone_unwrap()
+//! );
 //!
-//! assert_eq!(braid.clone() * braid.inverse(), braid![(5)]);
+//! assert_eq!(&braid * braid.inverse(), braid![(5)]);
 //! assert_eq!(braid.inverse() * braid, braid![(5)]);
 //! # }
 //! ```
@@ -390,14 +417,14 @@
 //!   - [x] [`letter!`]
 //!   - [x] [`word!`]
 //!   - [x] [`braid!`]
-//! - [ ] Multiplication
-//!   - [x] impl [`std::ops::Mul`] for [`Letter`], [`Word`], and [`Braid`]
+//! - [x] Multiplication
+//!   - [x] impl [`std::ops::Mul`] for [`Letter`], [`Word`], [`Braid`], and their borrowed variants.
 //!   - [x] implement auto-cancellation for multiplication
-//!   - [ ] impl [`std::ops::Mul`] for [`Result<Letter, _>`], [`Result<Word, _>`],
-//!     and [`Result<Braid, _>`]
+//!   - [x] impl [`std::ops::Mul`] for [`LetterResult`], [`WordResult`],[`BraidResult`], and their
+//!     borrowed variants.
 //! - [ ] A `BraidMove` trait that encodes the notion of a geometric/algebraic manipulation
 //!   transforming one braid into another in some controlled way.
-//! - [ ] Concrete moves which implement `BraidMove`:
+//! - [ ] Concrete types implementing `BraidMove`:
 //!   - [ ] Far commutativity
 //!   - [ ] Braid relations
 //!   - [ ] Band slides
@@ -407,26 +434,36 @@
 //!   - [ ] Strand cycling (i.e., moving the top strand to the bottom by "wrapping around the back
 //!     of the sphere"; could also be called a "sphere move")
 //!   - [ ] Others?
-//! - [ ] An `Isotopy` type that contains a sequence of moves.
+//! - [ ] An `Isotopy` type that represents a sequence of moves transforming one braid into another.
 //! - [ ] Implementation of algorithms for producing various "normal forms" which enable solutions
 //!   to algebraic problems, such as the "word" problem or "conjugacy" problem in braid groups.
 //! - [ ] Maybe a few other things that I'm forgetting at the moment... this list is subject to
 //!   _growing_, but I don't anticipate that much will be removed.
 
 mod braid;
+mod error;
 mod generators;
 mod index;
 mod letter;
+mod multiplication;
+mod result;
 mod sign;
 mod strand;
 mod word;
 
 mod macros;
 
-pub use braid::{Braid, BraidValidationError};
-pub use generators::{ArtinGenerator, ArtinValidationError, BandGenerator, BandValidationError};
-pub use index::{BraidIndex, IndexValidationError};
-pub use letter::{Letter, LetterValidationError};
+pub use braid::Braid;
+pub use error::{
+    ArtinValidationError, BandValidationError, BraidValidationError, IndexValidationError,
+    LetterValidationError, StrandValidationError, WordValidationError,
+};
+pub use generators::{ArtinGenerator, BandGenerator};
+pub use index::BraidIndex;
+pub use letter::Letter;
+pub use result::{
+    ArtinResult, BandResult, BraidResult, IndexResult, LetterResult, StrandResult, WordResult,
+};
 pub use sign::Sign;
-pub use strand::{Strand, StrandValidationError};
-pub use word::{Word, WordValidationError};
+pub use strand::Strand;
+pub use word::Word;
