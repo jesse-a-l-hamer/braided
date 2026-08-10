@@ -599,6 +599,5 @@ mod tests {
         expect_that!(*result, ok(eq(&valids.6)));
         *result = Err(invalids.6);
         expect_that!(*result, err(eq(&invalids.6)));
-
     }
 }
