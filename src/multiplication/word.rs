@@ -288,9 +288,9 @@ impl std::ops::Mul for &WordResult {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Letter, Sign, Word, WordValidationError, letter, word};
-    use googletest::matchers::{eq, err, ok};
-    use googletest::{assert_that, expect_that, gtest};
+    use crate::{Letter, Sign, Word};
+    use googletest::matchers::{eq, ok};
+    use googletest::{expect_that, gtest};
 
     #[gtest]
     fn trivial_word_is_multiplicative_identity_for_letters_and_words() {
