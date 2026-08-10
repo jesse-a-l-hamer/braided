@@ -543,8 +543,11 @@ impl Word {
                     .map(|&l| {
                         match l {
                             Letter::Artin(artin) => artin,
-                            // unwrapping below is safe, since we have already decomposed the word
-                            Letter::Band(band) => ArtinGenerator::try_from_band(band).unwrap(),
+                            // The following line should never execute, since we assume input to
+                            // this fn is already decomposed
+                            Letter::Band(band) => {
+                                panic!("Unexpected letter {band:?} found in decomposed word.")
+                            }
                         }
                     })
                     .collect();
@@ -819,10 +822,10 @@ mod tests {
     #[test]
     fn coalesce_computes_as_expected() {
         let word = Word::try_new([
-            (2, None::<u16>, Sign::Positive),
+            (2, Some(3), Sign::Positive),
             (1, None, Sign::Positive),
             (2, None, Sign::Negative),
-            (2, None, Sign::Negative),
+            (2, Some(3), Sign::Negative),
             (1, None, Sign::Positive),
         ])
         .clone_unwrap();
