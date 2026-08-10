@@ -4,18 +4,146 @@ use crate::{
     StrandValidationError, Word, WordValidationError,
 };
 
+/// Newtype wrapper around [`Result<ArtinGenerator, ArtinValidationError>`] returned from fallible
+/// [`ArtinGenerator`] construction.
+///
+/// Use the [`std::ops::Deref`] operator (`*`) for easy access to the inner result type (e.g., in
+/// `match` expressions)
+///
+/// # Examples
+///
+/// ```
+/// use braided::{ArtinGenerator, Sign};
+/// use std::assert_matches;
+///
+/// let valid_result = ArtinGenerator::try_new(1, Sign::Positive);
+/// let invalid_result = ArtinGenerator::try_new(0, Sign::Positive);
+///
+/// assert_matches!(*valid_result, Ok(_));
+/// assert_matches!(*invalid_result, Err(_));
+/// ```
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct ArtinResult(Result<ArtinGenerator, ArtinValidationError>);
+/// Newtype wrapper around [`Result<BandGenerator, BandValidationError>`] returned from fallible
+/// [`BandGenerator`] construction.
+///
+/// Use the [`std::ops::Deref`] operator (`*`) for easy access to the inner result type (e.g., in
+/// `match` expressions)
+///
+/// # Examples
+///
+/// ```
+/// use braided::{BandGenerator, Sign};
+/// use std::assert_matches;
+///
+/// let valid_result = BandGenerator::try_new(1, 3, Sign::Positive);
+/// let invalid_result = BandGenerator::try_new(0, 3, Sign::Positive);
+///
+/// assert_matches!(*valid_result, Ok(_));
+/// assert_matches!(*invalid_result, Err(_));
+/// ```
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct BandResult(Result<BandGenerator, BandValidationError>);
+/// Newtype wrapper around [`Result<Braid, BraidValidationError>`] returned from fallible [`Braid`]
+/// construction.
+///
+/// Use the [`std::ops::Deref`] operator (`*`) for easy access to the inner result type (e.g., in
+/// `match` expressions)
+///
+/// # Examples
+///
+/// ```
+/// use braided::{Braid, Sign};
+/// use std::assert_matches;
+///
+/// let valid_result = Braid::try_from_data(None::<u16>, vec![(1, None::<u16>, Sign::Positive)]);
+/// let invalid_result = Braid::try_from_data(Some(1), vec![(1, None::<u16>, Sign::Positive)]);
+///
+/// assert_matches!(*valid_result, Ok(_));
+/// assert_matches!(*invalid_result, Err(_));
+/// ```
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct BraidResult(Result<Braid, BraidValidationError>);
+/// Newtype wrapper around [`Result<BraidIndex, IndexValidationError>`] returned from fallible
+/// [`BraidIndex`] construction.
+///
+/// Use the [`std::ops::Deref`] operator (`*`) for easy access to the inner result type (e.g., in
+/// `match` expressions)
+///
+/// # Examples
+///
+/// ```
+/// use braided::BraidIndex;
+/// use std::assert_matches;
+///
+/// let valid_result = BraidIndex::try_new(1);
+/// let invalid_result = BraidIndex::try_new(0);
+///
+/// assert_matches!(*valid_result, Ok(_));
+/// assert_matches!(*invalid_result, Err(_));
+/// ```
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct IndexResult(Result<BraidIndex, IndexValidationError>);
+/// Newtype wrapper around [`Result<Letter, LetterValidationError>`] returned from fallible [`Letter`]
+/// construction.
+///
+/// Use the [`std::ops::Deref`] operator (`*`) for easy access to the inner result type (e.g., in
+/// `match` expressions)
+///
+/// # Examples
+///
+/// ```
+/// use braided::{Letter, Sign};
+/// use std::assert_matches;
+///
+/// let valid_result = Letter::try_new(1, Some(3), Sign::Positive);
+/// let invalid_result = Letter::try_new(0, Some(3), Sign::Positive);
+///
+/// assert_matches!(*valid_result, Ok(_));
+/// assert_matches!(*invalid_result, Err(_));
+/// ```
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct LetterResult(Result<Letter, LetterValidationError>);
+/// Newtype wrapper around [`Result<Strand, StrandValidationError>`] returned from fallible [`Strand`]
+/// construction.
+///
+/// Use the [`std::ops::Deref`] operator (`*`) for easy access to the inner result type (e.g., in
+/// `match` expressions)
+///
+/// # Examples
+///
+/// ```
+/// use braided::Strand;
+/// use std::assert_matches;
+///
+/// let valid_result = Strand::try_new(1);
+/// let invalid_result = Strand::try_new(0);
+///
+/// assert_matches!(*valid_result, Ok(_));
+/// assert_matches!(*invalid_result, Err(_));
+/// ```
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct StrandResult(Result<Strand, StrandValidationError>);
+/// Newtype wrapper around [`Result<Word, WordValidationError>`] returned from fallible [`Word`]
+/// construction.
+///
+/// Use the [`std::ops::Deref`] operator (`*`) for easy access to the inner result type (e.g., in
+/// `match` expressions)
+///
+/// # Examples
+///
+/// ```
+/// use braided::{Sign, Word};
+/// use std::assert_matches;
+///
+/// let valid_result = Word::try_new(vec![(1, None::<u16>, Sign::Positive)]);
+/// let invalid_result = Word::try_new(
+///     vec![(1, None::<u16>, Sign::Positive); u16::MAX as usize + 1]
+/// );
+///
+/// assert_matches!(*valid_result, Ok(_));
+/// assert_matches!(*invalid_result, Err(_));
+/// ```
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct WordResult(Result<Word, WordValidationError>);
 
@@ -74,9 +202,46 @@ impl std::ops::DerefMut for BandResult {
 }
 
 impl BraidResult {
+    /// Clones the inner result object and unwraps the [`Ok(Braid)`](Braid).
+    ///
+    /// Panics if the wrapped result is an [`Err(BraidValidationError)`](BraidValidationError) variant.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use::braided::{Braid, Sign};
+    ///
+    /// let braid = Braid::try_from_data(
+    ///     None::<u16>,
+    ///     vec![(1, None::<u16>, Sign::Negative), (2, Some(5), Sign::Positive)],
+    /// ).clone_unwrap();
+    ///
+    /// assert_eq!(braid.writhe(), 0);
+    /// ```
     pub fn clone_unwrap(&self) -> Braid {
         <Result<Braid, BraidValidationError> as Clone>::clone(self).unwrap()
     }
+    /// Clones the inner result object and unwraps the
+    /// [`Err(BraidValidationError)`](BraidValidationError).
+    ///
+    /// Panics if the wrapped result is an [`Ok(Braid)`](Braid) variant.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use::braided::{Braid, BraidIndex, Sign, BraidValidationError};
+    /// use::std::assert_matches;
+    ///
+    /// let invalid_braid = Braid::try_from_data(
+    ///     Some(4),
+    ///     vec![(1, None::<u16>, Sign::Negative), (2, Some(5), Sign::Positive)],
+    /// ).clone_unwrap_err();
+    ///
+    /// assert_eq!(invalid_braid, BraidValidationError::IndexTooSmall {
+    ///     index:BraidIndex::try_new(4).unwrap(),
+    ///     minimal_required_index: BraidIndex::try_new(5).unwrap()
+    /// });
+    /// ```
     pub fn clone_unwrap_err(&self) -> BraidValidationError {
         <Result<Braid, BraidValidationError> as Clone>::clone(self).unwrap_err()
     }
@@ -190,9 +355,41 @@ impl std::ops::DerefMut for StrandResult {
 }
 
 impl WordResult {
+    /// Clones the inner result object and unwraps the [`Ok(Word)`](Word).
+    ///
+    /// Panics if the wrapped result is an [`Err(WordValidationError)`](WordValidationError) variant.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use::braided::{Sign, Word};
+    ///
+    /// let word = Word::try_new(
+    ///     vec![(1, None::<u16>, Sign::Negative), (2, Some(5), Sign::Positive)],
+    /// ).clone_unwrap();
+    ///
+    /// assert_eq!(word.artin_length(), 6);
+    /// ```
     pub fn clone_unwrap(&self) -> Word {
         <Result<Word, WordValidationError> as Clone>::clone(self).unwrap()
     }
+    /// Clones the inner result object and unwraps the
+    /// [`Err(WordValidationError)`](WordValidationError).
+    ///
+    /// Panics if the wrapped result is an [`Ok(Word)`](Word) variant.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use::braided::{Sign, Word, WordValidationError};
+    /// use::std::assert_matches;
+    ///
+    /// let invalid_word = Word::try_new(
+    ///     vec![(1, None::<u16>, Sign::Negative), (5, Some(1), Sign::Positive)],
+    /// ).clone_unwrap_err();
+    ///
+    /// assert_matches!(invalid_word, WordValidationError::LetterValidation(_));
+    /// ```
     pub fn clone_unwrap_err(&self) -> WordValidationError {
         <Result<Word, WordValidationError> as Clone>::clone(self).unwrap_err()
     }
