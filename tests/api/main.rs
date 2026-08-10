@@ -1,4 +1,5 @@
-//! Integration tests to check the public-facing construction & multiplication APIs
+//! Integration tests to check the public-facing APIs.
 
 mod construction;
+mod generators;
 mod multiplication;
