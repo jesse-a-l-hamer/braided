@@ -6,14 +6,130 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [0.2.0](https://github.com/jesse-a-l-hamer/braided/compare/v0.1.2...v0.2.0) - 2026-08-10
+
+This release brings improvements to the ergonomics of the multiplication system. In particular,
+syntax like the following is now supported:
+
+```rust
+use braided::{letter, word, braid};
+
+let my_product = letter![1; -] * word![[2 => 4; 3]]; * braid![(); [2; -1], [1 => 5; 4]];
+let my_other_product = &my_product * braid![(5); [3; 7]];
+
+assert_eq!(my_product.clone_unwrap().writhe(), 5);
+```
+
+Notice the following:
+
+- The definition of `my_product` did not require any unwrapping of intermediate objects. Indeed, the
+  multiplication operation now _looks_ properly associative.
+- The definition of `my_other_product` used a _borrow_ of `my_product`, which we were then able to
+  reuse in the assertion statement below.
+- To access the inner `Braid` wrapped by `my_product`, we called `.clone_unwrap()` instead of
+  `.unwrap()`.
+
+These features are partially supported by the introduction of a collection of newtype structs which
+wrap `Result<_, _>` values:
+
+- `ArtinResult` -> wraps `Result<ArtinGenerator, ArtinValidationError>`
+- `BandResult` -> wraps `Result<BandGenerator, BandValidationError>`
+- `BraidResult` -> wraps `Result<Braid, BraidValidationError>`
+- `IndexResult` -> wraps `Result<BraidIndex, IndexValidationError>`
+- `LetterResult` -> wraps `Result<Letter, LetterValidationError>`
+- `StrandResult` -> wraps `Result<Strand, StrandValidationError>`
+- `WordResult` -> wraps `Result<Word, WordValidationError>`
+
+In particular, all fallible operations (including multiplication) which previously returned a raw
+`Result<_, _>` now return the corresponding newtype. These newtypes implement the `std::ops::Deref`
+trait, so that the wrapped `Result<_, _>` can be accessed by dereferencing. In many cases the
+compiler is able to seamlessly expose methods of the underlying `Result<_, _>` value, such as
+`unwrap`. Of notable exception, however, are the `BraidResult` and `WordResult` types, whose wrapped
+results do _not_ implement `Copy`. This is why we called `my_product.clone_unwrap()` in the example
+above: `BraidResult::clone_unwrap()` (and `WordResult::clone_unwrap()`) allow one to easily unwrap
+the inner `Braid` (`Word`) when the wrapped result variant is `Ok(_)`, at the cost of cloning the
+wrapped result.
+
+**This version introduces the following breaking changes:**
+
+- Multiplication now returns a `WordResult` if no arguments are `Braid` or `BraidResult`, and
+  returns a `BraidResult` otherwise.
+- `BraidIndex`:
+  - `BraidIndex::new`
+    - renamed to `BraidIndex::try_new`
+    - now returns `IndexResult`
+- `Strand`:
+  - `Strand::new`
+    - renamed to `Strand::try_new`
+    - now returns `StrandResult`
+- `BandGenerator`
+  - `BandGenerator::new`
+    - renamed to `BandGenerator::try_new`
+    - now returns `BandResult`
+- `ArtinGenerator`
+  `ArtinGenerator::new`
+  - renamed to `ArtinGenerator::try_new`
+  - now returns `ArtinResult`
+  - All implementations of `TryFrom` have been removed. Use `ArtinGenerator::try_from_band` and
+    `ArtinGenerator::try_from_letter` instead (both return `ArtinResult`).
+- `Word`:
+  - `Word::new`
+    - renamed to `Word::try_new`
+    - now returns `WordResult`
+  - All implementations of `TryFrom` have been removed. Use `Word::try_from_letters` instead
+    (returns a `WordResult`).
+- `Braid`:
+  - `Braid::new`
+    - renamed to `Braid::try_new`
+    - now returns `BraidResult`
+    - the `braid_index` is now _required_
+  - `Braid::from_data`
+    - renamed to `Braid::try_from_data`
+    - now returns `BraidResult`
+  - `Braid::trivial`
+    - renamed to `Braid::try_trivial`
+    - now returns `BraidResult`
+  - All implementations of `TryFrom` have been removed. Use `Braid::try_from_letters` instead
+    (returns a `BraidResult`). This function also accepts an optional `braid_index` argument, with
+    similar semantics as `Braid::try_from_data`.
+- `Letter`:
+  - `Letter::new`
+    - renamed to `Letter::try_new`
+    - now returns a `LetterResult`
+
+### Added
+
+- _(multiplication::{braid, letter, word})_ impl `Mul` for all combinations of `Letter`,
+  `LetterResult`, `Word`, `WordResult`, `Braid`, `BraidResult`, and their borrowed variants.
+  borrowed types.
+
+### Other
+
+- various documentation changes/cleanups
+- _(word)_ change line in `Word::coalesce_decomposed` to better communicate unreachability
+- _(braid)_ add missing `try_from_letters` error case
+- _(multiplication)_ add unit tests covering all cases with error operands
+- _(result)_ write unit tests for `*Result` types
+- _(result)_ document all `*Result` types
+- _(braid)_ [**breaking**] `Braid::try_new` now requires an explicit index and `Braid::try_from_letters`
+  accepts an optional index
+- _(macros)_ use `*Result::clone_unwrap()` and `*Result::clone_unwrap_err()` where appropriate
+- _(braid)_ [**breaking**] rename `Braid::from_data` to `Braid::try_from_data`
+- _(multiplication::braid)_ add unit tests to check multiplication with result types
+- _(multiplication::word)_ add unit tests to check multiplication with result types
+- _(multiplication::letter)_ add unit tests to check multiplication with result types
+- _(multiplication)_ add `result` module with `Result<_, _>`-wrapping newtypes
+- _(lib, braid, word)_ replace unnecessary clones with borrows in multiplication doctests
+- _(braid, letter, word)_ factored out all impls of `Mul` into dedicated `multiplication` module
+
 ## [0.1.2](https://github.com/jesse-a-l-hamer/braided/compare/v0.1.1...v0.1.2) - 2026-08-08
 
 ### Other
 
-- *(Cargo.toml)* exclude .github/ from packaged files
-- *(gitignore)* delete lcov.info file and add its name to .gitignore
-- *(gitignore)* remove existing coverage/ directory and add coverage/ to gitignore
-- *(PULL_REQUEST_TEMPLATE)* add "Other" option to "Type of Change" checklist
+- _(Cargo.toml)_ exclude .github/ from packaged files
+- _(gitignore)_ delete lcov.info file and add its name to .gitignore
+- _(gitignore)_ remove existing coverage/ directory and add coverage/ to gitignore
+- _(PULL_REQUEST_TEMPLATE)_ add "Other" option to "Type of Change" checklist
 
 ## [0.1.1](https://github.com/jesse-a-l-hamer/braided/compare/v0.1.0...v0.1.1) - 2026-08-08
 
@@ -49,143 +165,142 @@ This is the first release of the project! I consider this an MVP for a library a
 - All public items documented.
 - Crate root documented.
 
-
 ### Added
 
-- *(word)* panic on seemingly unreachable code path in Mul impls for Word & Letter
-- *(braid)* impl `TryFrom<Vec<L>>` and `TryFrom<&[L]>` on `Braid` where `L: TryInto<Letter>`
-- *(word)* impl `Default` for `Word` as `Word::trivial`
-- *(generators::artin)* remove needless `ArtinValidationError::Infallible` variant
-- *(letter)* implement `Letter::is_artin`
-- *(lib)* re-export `index::IndexValidationError` and `strand::StrandValidationError`
-- *(braid)* derive `Clone` for `Braid` struct
-- *(braid)* implement `Braid::minimal_required_braid_index` method
-- *(license)* add MIT license and update Cargo.toml
-- *(braid)* reworked braid macro to accept mixed generators
-- *(braid)* first draft implmentation of constructor macro
+- _(word)_ panic on seemingly unreachable code path in Mul impls for Word & Letter
+- _(braid)_ impl `TryFrom<Vec<L>>` and `TryFrom<&[L]>` on `Braid` where `L: TryInto<Letter>`
+- _(word)_ impl `Default` for `Word` as `Word::trivial`
+- _(generators::artin)_ remove needless `ArtinValidationError::Infallible` variant
+- _(letter)_ implement `Letter::is_artin`
+- _(lib)_ re-export `index::IndexValidationError` and `strand::StrandValidationError`
+- _(braid)_ derive `Clone` for `Braid` struct
+- _(braid)_ implement `Braid::minimal_required_braid_index` method
+- _(license)_ add MIT license and update Cargo.toml
+- _(braid)_ reworked braid macro to accept mixed generators
+- _(braid)_ first draft implmentation of constructor macro
 - add readme
-- *(generators::artin)* export artin macro and improve hygiene
-- *(generators::{artin,band})* define constructor macros
-- *(generators::conversion)* untested implementation of artin_to_band
-- *(generators::band)* implement `BandGenerator::from_artin` constructor
-- *(strand)* impl Add
+- _(generators::artin)_ export artin macro and improve hygiene
+- _(generators::{artin,band})_ define constructor macros
+- _(generators::conversion)_ untested implementation of artin_to_band
+- _(generators::band)_ implement `BandGenerator::from_artin` constructor
+- _(strand)_ impl Add
 - implemented logic to convert between band/artin generators
 - initial commit; basic structure and minimal functionality laid out
 
 ### Fixed
 
-- *(macros)* fix macro `word!` so that all branches (including trivial) return a result
-- *(word)* multiplying two long words which cancel to a short one now returns Ok instead of Err
-- *(letter)* bug in equality comparison `Letter::Band == Letter::Artin`
-- *(braid)* fix use of `u16::max` instead of `u16::MAX`
-- *(word)* replaced broken recursive word multiplication algorithm with much simpler and faster one
-- *(word)* fix bug in Word multiplication impls where error message was reporting incorrect length
-- *(generators::band)* imposed maximum band height to prevent construction of bands with Artin length exceeding `u16::MAX`
-- *(macros)* change needlessly large `i64` to `i32` for `TryInto` of `$exponent` in `word!`
-- *(strand)* properly implemented `AsRef<u16>` for Strand
-- *(macros)* [**breaking**] fix various type checking issues; macros now functional
-- *(lib)* fixed bad paths in `artin!` and `band!` macros, allowing us to remove pub modifier on generators module
-- *(lib)* make generators module public and re-export error types
-- *(macros)* fix bad hygiene in `braid!` macro
-- *(README)* fix broken link in acknowledgements
-- *(README)* update default badge URLs
-- *(generators::conversion)* replaced old artin_to_band algorith with much simpler (and more functional) one
-- *(generators::band)* fix/simplify band! constructor macro
+- _(macros)_ fix macro `word!` so that all branches (including trivial) return a result
+- _(word)_ multiplying two long words which cancel to a short one now returns Ok instead of Err
+- _(letter)_ bug in equality comparison `Letter::Band == Letter::Artin`
+- _(braid)_ fix use of `u16::max` instead of `u16::MAX`
+- _(word)_ replaced broken recursive word multiplication algorithm with much simpler and faster one
+- _(word)_ fix bug in Word multiplication impls where error message was reporting incorrect length
+- _(generators::band)_ imposed maximum band height to prevent construction of bands with Artin length exceeding `u16::MAX`
+- _(macros)_ change needlessly large `i64` to `i32` for `TryInto` of `$exponent` in `word!`
+- _(strand)_ properly implemented `AsRef<u16>` for Strand
+- _(macros)_ [**breaking**] fix various type checking issues; macros now functional
+- _(lib)_ fixed bad paths in `artin!` and `band!` macros, allowing us to remove pub modifier on generators module
+- _(lib)_ make generators module public and re-export error types
+- _(macros)_ fix bad hygiene in `braid!` macro
+- _(README)_ fix broken link in acknowledgements
+- _(README)_ update default badge URLs
+- _(generators::conversion)_ replaced old artin_to_band algorith with much simpler (and more functional) one
+- _(generators::band)_ fix/simplify band! constructor macro
 
 ### Other
 
-- *(CHANGELOG)* prune rough draft to make way for release-plz output
-- *(coverage)* update report
+- _(CHANGELOG)_ prune rough draft to make way for release-plz output
+- _(coverage)_ update report
 - fix broken links and weird spacing issues
-- *(README)* add "Quick Start" and roadmap sections to README
-- *(lib)* add front-page library docs
+- _(README)_ add "Quick Start" and roadmap sections to README
+- _(lib)_ add front-page library docs
 - add todos to implement Mul for result types
-- *(braid)* write doctests
-- *(word)* write doctests
-- *(braid)* document `BraidValidationError` and `Braid` except for doctests
-- *(word)* documented `Word` and `WordValidationError`, except for doctests
-- *(coverage)* update report
-- *(braid)* implement unit test suite
-- *(braid)* [**breaking**] rename `Braid::index()` to `Braid::braid_index()` to avoid collision with container fn
-- *(coverage)* update report
-- *(word)* implement unit test suite
-- *(braid)* remove useless bindings in Mul impls for Braid
-- *(word)* removed redundant pass through iterator in `impl TryFrom<Vec<L>> for Word`
-- *(braid,word)* revert `TryFrom` impls back to using `Into<Letter>`
-- *(word)* change bound on L in `TryFrom` impls to `TryInto<Letter>` from `Into<Letter>`
-- *(letter)* docmuent `LetterValidationError` and `Letter`
-- *(coverage)* update report
-- *(letter)* implement unit test suite
+- _(braid)_ write doctests
+- _(word)_ write doctests
+- _(braid)_ document `BraidValidationError` and `Braid` except for doctests
+- _(word)_ documented `Word` and `WordValidationError`, except for doctests
+- _(coverage)_ update report
+- _(braid)_ implement unit test suite
+- _(braid)_ [**breaking**] rename `Braid::index()` to `Braid::braid_index()` to avoid collision with container fn
+- _(coverage)_ update report
+- _(word)_ implement unit test suite
+- _(braid)_ remove useless bindings in Mul impls for Braid
+- _(word)_ removed redundant pass through iterator in `impl TryFrom<Vec<L>> for Word`
+- _(braid,word)_ revert `TryFrom` impls back to using `Into<Letter>`
+- _(word)_ change bound on L in `TryFrom` impls to `TryInto<Letter>` from `Into<Letter>`
+- _(letter)_ docmuent `LetterValidationError` and `Letter`
+- _(coverage)_ update report
+- _(letter)_ implement unit test suite
 - derive `Clone, Copy` on all error types
-- *(letter)* derive `Copy` trait on `Letter`
-- *(letter,word)* move impl of `Mul<Word>` for `Letter` into `word` module
-- *(braid,letter,word)* removed unnecessary `Infallible` error variants and trait bounds
-- *(generators::band)* document `BandGenerator`
-- *(generators::band)* documented `BandValidationError`
-- *(coverage)* update report
-- *(generators::band)* implement unit test suite
-- *(coverage)* update report
-- *(generators::artin)* documented `ArtinGenerator`
-- *(generators::artin)* documented `ArtinValidationError`
-- *(generators::artin)* implement unit test suite
-- *(coverage)* update report
-- *(index)* documented `BraidIndex` and `IndexValidationError`
-- *(coverage)* update report
-- *(strand)* documented `Strand` and `StrandValidationError`
-- *(strand)* implement unit test suite
-- *(macros)* add documentation for `braid!`
-- *(macros)* remove unnecessary/wasteful coercions to `isize`
-- *(macros)* add documentation for `word!`
-- *(coverage)* update report
-- *(macros)* add documentation for `letter!` macro
-- *(unit/macros)* implement unit test suite for all three macros
-- *(coverage)* update report
+- _(letter)_ derive `Copy` trait on `Letter`
+- _(letter,word)_ move impl of `Mul<Word>` for `Letter` into `word` module
+- _(braid,letter,word)_ removed unnecessary `Infallible` error variants and trait bounds
+- _(generators::band)_ document `BandGenerator`
+- _(generators::band)_ documented `BandValidationError`
+- _(coverage)_ update report
+- _(generators::band)_ implement unit test suite
+- _(coverage)_ update report
+- _(generators::artin)_ documented `ArtinGenerator`
+- _(generators::artin)_ documented `ArtinValidationError`
+- _(generators::artin)_ implement unit test suite
+- _(coverage)_ update report
+- _(index)_ documented `BraidIndex` and `IndexValidationError`
+- _(coverage)_ update report
+- _(strand)_ documented `Strand` and `StrandValidationError`
+- _(strand)_ implement unit test suite
+- _(macros)_ add documentation for `braid!`
+- _(macros)_ remove unnecessary/wasteful coercions to `isize`
+- _(macros)_ add documentation for `word!`
+- _(coverage)_ update report
+- _(macros)_ add documentation for `letter!` macro
+- _(unit/macros)_ implement unit test suite for all three macros
+- _(coverage)_ update report
 - [**breaking**] complete overhaul of generator and constructor interfaces
 - [**breaking**] refactor error types to remove opaque `anyhow::Error` variants
-- *(sign)* add documentation for `Sign` and its variants
-- *(lib)* re-export `generators::artin_to_band` and `generators::band_to_artin`
-- *(generators::macros)* add documentation for `band!` macro
-- *(macros,generators::macros)* rename "power" -> "exp" in `artin!`, `band!`, and `braid!` macros
-- *(generators::macros)* add documentation for `artin!` macro
-- *(macros)* add documentation for `braid!` macro
-- *(lib)* add front-page documentation
-- *(README)* fix sign error in quickstart example
-- *(generators::{artin,band})* move `artin!` and `band!` macros into `generators::macros` module
-- *(generators::band)* remove existing docstrings
-- *(generators::artin)* remove existing docstrings
-- *(braid)* move `braid!` macro into `macros` module
-- *(braid)* remove existing docstrings
-- *(braid)* sort imports
-- *(README)* fix missing `.unwrap()` calls in quick start
+- _(sign)_ add documentation for `Sign` and its variants
+- _(lib)_ re-export `generators::artin_to_band` and `generators::band_to_artin`
+- _(generators::macros)_ add documentation for `band!` macro
+- _(macros,generators::macros)_ rename "power" -> "exp" in `artin!`, `band!`, and `braid!` macros
+- _(generators::macros)_ add documentation for `artin!` macro
+- _(macros)_ add documentation for `braid!` macro
+- _(lib)_ add front-page documentation
+- _(README)_ fix sign error in quickstart example
+- _(generators::{artin,band})_ move `artin!` and `band!` macros into `generators::macros` module
+- _(generators::band)_ remove existing docstrings
+- _(generators::artin)_ remove existing docstrings
+- _(braid)_ move `braid!` macro into `macros` module
+- _(braid)_ remove existing docstrings
+- _(braid)_ sort imports
+- _(README)_ fix missing `.unwrap()` calls in quick start
 - Set package-ecosystem to 'cargo' in dependabot config
 - add pull request template
 - add issue templates
-- *(coverage)* add coverage report
+- _(coverage)_ add coverage report
 - add GitHub actions CI workflow and security audit workflow
-- *(README)* add Luca Palmieri to acknowledgements
-- *(gitignore)* stop ignoring Cargo.lock
-- *(Cargo.toml)* update cargo toml with repository info
-- *(gitignore)* flesh out .gitignore
-- *(CHANGELOG)* add CHANGELOG.md and corresponding section of README
-- *(README.md)* add quick start
-- *(CONTRIBUTING)* add basic instructions
-- *(README)* Add disclaimer and shields
-- *(braid)* rename `Braid::word` to `Braid::band_word` and `Braid::length` to `Braid::band_length`
-- *(braid)* [**breaking**] rename `Braid::new` to `Braid::from_bands`
-- *(generators::band)* [**breaking**] refactor band macro to match on `[$foot => $head; $power]`
-- *(generators::band)* [**breaking**] remove sign-only match variants from band macro
-- *(generators::artin)* [**breaking**] remove sign-only match variants from artin macro
-- *(braid)* wrote unit test stubs
-- *(braid,generators)* replace several impls of `Neg` with a more appropriate `inverse` method
-- *(braid)* [**breaking**] constructors now expect raw u16 instead of BraidIndex
-- *(generators::conversion)* write unit tests for converters
+- _(README)_ add Luca Palmieri to acknowledgements
+- _(gitignore)_ stop ignoring Cargo.lock
+- _(Cargo.toml)_ update cargo toml with repository info
+- _(gitignore)_ flesh out .gitignore
+- _(CHANGELOG)_ add CHANGELOG.md and corresponding section of README
+- _(README.md)_ add quick start
+- _(CONTRIBUTING)_ add basic instructions
+- _(README)_ Add disclaimer and shields
+- _(braid)_ rename `Braid::word` to `Braid::band_word` and `Braid::length` to `Braid::band_length`
+- _(braid)_ [**breaking**] rename `Braid::new` to `Braid::from_bands`
+- _(generators::band)_ [**breaking**] refactor band macro to match on `[$foot => $head; $power]`
+- _(generators::band)_ [**breaking**] remove sign-only match variants from band macro
+- _(generators::artin)_ [**breaking**] remove sign-only match variants from artin macro
+- _(braid)_ wrote unit test stubs
+- _(braid,generators)_ replace several impls of `Neg` with a more appropriate `inverse` method
+- _(braid)_ [**breaking**] constructors now expect raw u16 instead of BraidIndex
+- _(generators::conversion)_ write unit tests for converters
 - update Cargo.toml package metadata
-- *(generators::band)* write unit test suite for `BandGenerator`
-- *(generators::artin)* update several tests to not assume outcome of result
-- *(generators::artin)* add unit tests for artin generators
-- *(braid,generators)* initialize remaining unit test modules
-- *(index)* add unit tests
-- *(strand)* add unit tests
-- *(sign)* add unit test
-- *(dev-dependencies)* add googletest
-- *(generators::{artin, band})* [**breaking**] refactor constructors to be more ergonomic
+- _(generators::band)_ write unit test suite for `BandGenerator`
+- _(generators::artin)_ update several tests to not assume outcome of result
+- _(generators::artin)_ add unit tests for artin generators
+- _(braid,generators)_ initialize remaining unit test modules
+- _(index)_ add unit tests
+- _(strand)_ add unit tests
+- _(sign)_ add unit test
+- _(dev-dependencies)_ add googletest
+- _(generators::{artin, band})_ [**breaking**] refactor constructors to be more ergonomic
