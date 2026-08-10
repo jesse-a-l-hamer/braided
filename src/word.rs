@@ -231,7 +231,7 @@ use crate::{
 /// let word = Word::try_new(vec![
 ///     (1, None::<u16>, Sign::Positive),
 ///     (2, Some(5), Sign::Negative),
-/// ]).clone_unwrap();
+/// ]);
 /// let left_letter_inverse = Letter::try_new(1, None::<u16>, Sign::Negative);
 /// let right_letter_inverse = Letter::try_new(2, Some(5), Sign::Positive);
 ///
@@ -252,15 +252,17 @@ use crate::{
 /// ];
 ///
 /// let (left_word_data, right_word_data) = data.split_at(2);
-/// let left_word = Word::try_new(left_word_data.to_vec()).clone_unwrap();
-/// let right_word = Word::try_new(right_word_data.to_vec()).clone_unwrap();
+/// let left_word = Word::try_new(left_word_data.to_vec());
+/// let right_word = Word::try_new(right_word_data.to_vec());
 ///
 /// assert_eq!(&left_word * &right_word, Word::try_new(data));
 ///
 /// // Cancellation is automatically performed:
+/// let left_word_inverse = left_word.clone_unwrap().inverse();
+/// let right_word_inverse = right_word.clone_unwrap().inverse();
 ///
 /// assert_eq!(
-///     *(right_word.inverse() * left_word.inverse() * left_word * right_word),
+///     *(right_word_inverse * left_word_inverse * left_word * right_word),
 ///     Ok(Word::trivial()),
 /// )
 /// ```

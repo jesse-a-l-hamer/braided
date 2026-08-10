@@ -52,7 +52,7 @@
 //! );
 //!
 //! // Words can be formally inverted, and the multiplication detects this:
-//! let some_word = word![[1; 2], [2 => 5; -7], [3; 3], [1 => 4; 2]];
+//! let some_word = word![[1; 2], [2 => 5; -7], [3; 3], [1 => 4; 2]].clone_unwrap();
 //! assert_eq!(&some_word * some_word.inverse(), word![]); // the product is trivial
 //! assert_eq!(some_word.inverse() * some_word, word![]); // the product is trivial
 //!

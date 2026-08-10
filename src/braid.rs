@@ -173,7 +173,7 @@ use crate::{
 ///     None::<u16>,
 ///     [
 ///         (2, None::<u16>, Sign::Positive),
-///         (1, None, Sign::Positive),
+///         (1, Some(2), Sign::Positive),
 ///         (2, None, Sign::Negative),
 ///         (2, None, Sign::Negative),
 ///         (1, None, Sign::Positive),
@@ -184,7 +184,7 @@ use crate::{
 ///     None::<u16>,
 ///     [
 ///         (1, Some(3), Sign::Positive),
-///         (2, None, Sign::Negative),
+///         (2, Some(3), Sign::Negative),
 ///         (1, Some(2), Sign::Positive),
 ///     ],
 /// )
@@ -317,13 +317,6 @@ use crate::{
 /// and an [inverse](Braid::inverse) with respect to the multiplication exists for every
 /// [braid](Braid).
 ///
-/// There are many different _relations_ among [braids](Braid) (i.e., equations involving the
-/// [braid](Braid) multiplication) which take different forms depending on the generating set (e.g.,
-/// _far commutativity_ and the _braid relations_, to name the two sets of relations that hold in
-/// the standard Artin presentation of the group). Of primary importance on the roadmap of
-/// `braided` is the implementation of mechanisms to detect and apply as many of these relations as
-/// possible. However, only the bare multiplication operation has been implemented as of this writing.
-///
 /// The multiplication of two [braids](Braid) amounts to a simple concatenation of their
 /// [words](Word). By default, the product is simplified as much as possible, meaning that as many
 /// cancelling pairs of [letters](Letter) are removed as possible. However, note that the
@@ -349,7 +342,7 @@ use crate::{
 ///     Letter::try_new(2, None::<u16>, Sign::Negative).unwrap(),
 ///     Letter::try_new(2, Some(8), Sign::Positive).unwrap(),
 /// ];
-/// let braid = Braid::try_from_letters(None::<u16>, &letters).clone_unwrap();
+/// let braid = Braid::try_from_letters(None::<u16>, &letters);
 ///
 /// // One may multiply a braid and a letter:
 /// let other_letter = Letter::try_new(3, Some(7), Sign::Negative).unwrap();
@@ -362,14 +355,14 @@ use crate::{
 /// let some_word = Word::try_from_letters(&[
 ///     Letter::try_new(3, None::<u16>, Sign::Negative).unwrap(),
 ///     Letter::try_new(2, Some(7), Sign::Negative).unwrap(),
-/// ]).clone_unwrap();
+/// ]);
 /// assert_eq!(
 ///     &some_word * &braid,
-///     Braid::try_new(8, (&some_word * braid.word()).clone_unwrap()),
+///     Braid::try_new(8, (&some_word * braid.clone_unwrap().word()).clone_unwrap()),
 /// );
 ///
-/// // Or two braids, as long as their braid indexes are equal:
-/// let other_braid = Braid::try_new(8, some_word);
+/// // Or two braids, as long as their braid indices are equal:
+/// let other_braid = Braid::try_new(8, some_word.clone_unwrap());
 ///
 /// assert_eq!(
 ///     braid * other_braid,
