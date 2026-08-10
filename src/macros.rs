@@ -241,20 +241,12 @@ macro_rules! word {
             Err(e) => $crate::WordResult::from($crate::WordValidationError::from(e)),
         }
     };
-    ([$foot:expr; $exponent:expr], $($tail:tt)*) => {{
-        match (&*word![[$foot; $exponent]], &*word![$($tail)*]) {
-            (Ok(w1), Ok(w2)) => w1 * w2,
-            (Err(e), _) => $crate::WordResult::from(*e),
-            (_, Err(e)) => $crate::WordResult::from(*e),
-        }
-    }};
-    ([$foot:expr => $head:expr; $exponent:expr], $($tail:tt)*) => {{
-        match (&*word![[$foot => $head; $exponent]], &*word![$($tail)*]) {
-            (Ok(w1), Ok(w2)) => w1 * w2,
-            (Err(e), _) => $crate::WordResult::from(*e),
-            (_, Err(e)) => $crate::WordResult::from(*e),
-        }
-    }};
+    ([$foot:expr; $exponent:expr], $($tail:tt)*) => {
+        $crate::word![[$foot; $exponent]] * $crate::word![$($tail)*]
+    };
+    ([$foot:expr => $head:expr; $exponent:expr], $($tail:tt)*) => {
+        $crate::word![[$foot => $head; $exponent]] * $crate::word![$($tail)*]
+    };
 }
 
 /// Constructs a [`Braid`](crate::Braid) given an optional [index](crate::BraidIndex) and a
