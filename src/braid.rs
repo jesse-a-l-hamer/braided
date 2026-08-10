@@ -454,7 +454,7 @@ impl Braid {
     /// letters. Otherwise the [`Some`] value is fallibly converted into a [`u16`] and set as the
     /// [`BraidIndex`].
     ///
-    /// The [letters](Letter) only need to satisfy [Into<Letter>].
+    /// The [letters](Letter) only need to satisfy [`Into<Letter>`].
     ///
     /// <div class="warning">
     ///

@@ -174,7 +174,7 @@ pub enum ArtinValidationError {
 /// assert_matches!(*empty_input, Err(BandValidationError::FromArtin(_)))
 /// ```
 ///
-/// 2. The input slice contains an even number of [Artin generators](ArtinGenerator):
+/// 2. The input slice contains an even number of [Artin generators](crate::ArtinGenerator):
 ///
 /// ```
 /// use braided::{ArtinGenerator, BandGenerator, BandValidationError, Sign};
@@ -201,7 +201,7 @@ pub enum ArtinValidationError {
 /// assert_matches!(*too_long_input, Err(BandValidationError::FromArtin(_)))
 /// ```
 ///
-/// 4. The coalescing algorithm failed because some [Artin generator](ArtinGenerator) is not
+/// 4. The coalescing algorithm failed because some [Artin generator](crate::ArtinGenerator) is not
 ///    contiguous with the partially constructed band:
 ///
 /// ```
@@ -220,8 +220,8 @@ pub enum ArtinValidationError {
 /// assert_matches!(*non_contiguous_generator, Err(BandValidationError::FromArtin(_)))
 /// ```
 ///
-/// 5. The coalescing algorithm failed because set of [Artin generators](ArtinGenerator) left of the
-///    crossing generator fails to mirror those to its right:
+/// 5. The coalescing algorithm failed because set of [Artin generators](crate::ArtinGenerator) left
+///    of the crossing generator fails to mirror those to its right:
 ///
 /// ```
 /// use braided::{ArtinGenerator, BandGenerator, BandValidationError, Sign};
