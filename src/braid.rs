@@ -1291,6 +1291,14 @@ mod tests {
         let invalid_braids: Vec<(BraidResult, BraidValidationError, &'static str)> = vec![
             (
                 Braid::try_from_letters(
+                    Some(-1),
+                    &[Letter::try_new(1, None::<u16>, Sign::Positive).unwrap(); 2],
+                ),
+                BraidValidationError::from(BraidIndex::try_new(-1).unwrap_err()),
+                "Index validation failure - bad index",
+            ),
+            (
+                Braid::try_from_letters(
                     Some(1),
                     &[Letter::try_new(1, None::<u16>, Sign::Positive).unwrap(); 2],
                 ),
