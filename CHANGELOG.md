@@ -6,6 +6,51 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [0.2.0](https://github.com/jesse-a-l-hamer/braided/compare/v0.1.2...v0.2.0) - 2026-08-10
+
+### Added
+
+- *(multiplication::braid)* implement `Mul` for `&BraidResult`
+- *(multiplication::word)* implement `Mul` for `&WordResult`
+- *(result)* new `ResultWrapper` trait implemented for each `*Result` type to make accessing inner values easier
+- *(multiplication::braid)* impl `Mul` for all combinations of borrowed and moved `Letter`, `Word`, `Braid`
+- *(multiplication::word)* impl Mul for all combinations of borrowed/moved Letter and Word
+
+### Other
+
+- *(result)* formatting
+- *(braid,error)* fix broken links
+- *(README)* quick start fixes and roadmap updates
+- *(braid,word)* remove unnecessary clones in some doctests involving multiplication
+- *(lib)* fixup front page docs
+- *(word)* change line in `Word::coalesce_decomposed` to better communicate unreachability
+- *(braid)* add missing `try_from_letters` error case
+- *(multiplication)* add unit tests covering all cases with error operands
+- *(result)* write unit tests for `*Result` structs
+- *(result)* document all `*Result` types
+- *(error)* fixup existing docs
+- *(index)* fixup existing docs
+- *(strand)* fixup existing docs
+- *(artin)* fixup existing docs
+- *(band)* fixup existing docs
+- *(letter)* fixup existing docs
+- *(word)* fixup existing docs
+- *(braid)* fixup existing docs
+- *(braid)* [**breaking**] `Braid::try_new` now requires an explicit index and `Braid::try_from_letters` accepts an optional index
+- *(macros)* fixup existing docs
+- *(macros)* use `*Result::clone_unwrap()` and `*Result::clone_unwrap_err()` where appropriate
+- *(braid)* [**breaking**] rename `Braid::from_data` to `Braid::try_from_data`
+- *(result)* [**breaking**] replace `ResultWrapper` trait with `clone_unwrap` and `clone_unwrap_err` methods on `WordResult` and `BraidResult`
+- *(macros, multiplication)* fixed macro calls broken due to new result types; all unit tests passing
+- checkpoint commit - all fallible constructors now return a special `*Result` newtype struct
+- *(multiplication::braid)* add unit tests to check multiplication with result types
+- *(multiplication::word)* add unit tests to check multiplication with result types
+- *(multiplication::letter)* add unit tests to check multiplication with result types
+- *(multiplication)* add `result` module with `Result<_, _>` newtypes
+- *(lib, braid, word)* replace unnecessary clones with borrows in multiplication doctests
+- *(README)* Add link to "Less Quick Start" section of docs within README
+- *(braid, letter, word)* factored out all impls of `Mul` into dedicated `multiplication` module
+
 ## [0.1.2](https://github.com/jesse-a-l-hamer/braided/compare/v0.1.1...v0.1.2) - 2026-08-08
 
 ### Other
