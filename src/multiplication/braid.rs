@@ -386,13 +386,165 @@ impl std::ops::Mul<BraidResult> for BraidResult {
     }
 }
 
+impl std::ops::Mul<Braid> for &WordResult {
+    type Output = BraidResult;
+    fn mul(self, rhs: Braid) -> Self::Output {
+        (*self).clone() * rhs
+    }
+}
+impl std::ops::Mul<&WordResult> for Braid {
+    type Output = BraidResult;
+    fn mul(self, rhs: &WordResult) -> Self::Output {
+        self * (*rhs).clone()
+    }
+}
+impl std::ops::Mul<&Braid> for &WordResult {
+    type Output = BraidResult;
+    fn mul(self, rhs: &Braid) -> Self::Output {
+        (*self).clone() * rhs
+    }
+}
+impl std::ops::Mul<&WordResult> for &Braid {
+    type Output = BraidResult;
+    fn mul(self, rhs: &WordResult) -> Self::Output {
+        self * (*rhs).clone()
+    }
+}
+impl std::ops::Mul<BraidResult> for &WordResult {
+    type Output = BraidResult;
+    fn mul(self, rhs: BraidResult) -> Self::Output {
+        (*self).clone() * rhs
+    }
+}
+impl std::ops::Mul<&WordResult> for BraidResult {
+    type Output = BraidResult;
+    fn mul(self, rhs: &WordResult) -> Self::Output {
+        self * (*rhs).clone()
+    }
+}
+
+impl std::ops::Mul<Letter> for &BraidResult {
+    type Output = BraidResult;
+    fn mul(self, rhs: Letter) -> Self::Output {
+        (*self).clone() * rhs
+    }
+}
+impl std::ops::Mul<&BraidResult> for Letter {
+    type Output = BraidResult;
+    fn mul(self, rhs: &BraidResult) -> Self::Output {
+        self * (*rhs).clone()
+    }
+}
+impl std::ops::Mul<LetterResult> for &BraidResult {
+    type Output = BraidResult;
+    fn mul(self, rhs: LetterResult) -> Self::Output {
+        (*self).clone() * rhs
+    }
+}
+impl std::ops::Mul<&BraidResult> for LetterResult {
+    type Output = BraidResult;
+    fn mul(self, rhs: &BraidResult) -> Self::Output {
+        self * (*rhs).clone()
+    }
+}
+impl std::ops::Mul<Word> for &BraidResult {
+    type Output = BraidResult;
+    fn mul(self, rhs: Word) -> Self::Output {
+        (*self).clone() * rhs
+    }
+}
+impl std::ops::Mul<&BraidResult> for Word {
+    type Output = BraidResult;
+    fn mul(self, rhs: &BraidResult) -> Self::Output {
+        self * (*rhs).clone()
+    }
+}
+impl std::ops::Mul<&Word> for &BraidResult {
+    type Output = BraidResult;
+    fn mul(self, rhs: &Word) -> Self::Output {
+        (*self).clone() * rhs
+    }
+}
+impl std::ops::Mul<&BraidResult> for &Word {
+    type Output = BraidResult;
+    fn mul(self, rhs: &BraidResult) -> Self::Output {
+        self * (*rhs).clone()
+    }
+}
+impl std::ops::Mul<WordResult> for &BraidResult {
+    type Output = BraidResult;
+    fn mul(self, rhs: WordResult) -> Self::Output {
+        (*self).clone() * rhs
+    }
+}
+impl std::ops::Mul<&BraidResult> for WordResult {
+    type Output = BraidResult;
+    fn mul(self, rhs: &BraidResult) -> Self::Output {
+        self * (*rhs).clone()
+    }
+}
+impl std::ops::Mul<&WordResult> for &BraidResult {
+    type Output = BraidResult;
+    fn mul(self, rhs: &WordResult) -> Self::Output {
+        (*self).clone() * rhs
+    }
+}
+impl std::ops::Mul<&BraidResult> for &WordResult {
+    type Output = BraidResult;
+    fn mul(self, rhs: &BraidResult) -> Self::Output {
+        self * (*rhs).clone()
+    }
+}
+impl std::ops::Mul<Braid> for &BraidResult {
+    type Output = BraidResult;
+    fn mul(self, rhs: Braid) -> Self::Output {
+        (*self).clone() * rhs
+    }
+}
+impl std::ops::Mul<&BraidResult> for Braid {
+    type Output = BraidResult;
+    fn mul(self, rhs: &BraidResult) -> Self::Output {
+        self * (*rhs).clone()
+    }
+}
+impl std::ops::Mul<&Braid> for &BraidResult {
+    type Output = BraidResult;
+    fn mul(self, rhs: &Braid) -> Self::Output {
+        (*self).clone() * rhs
+    }
+}
+impl std::ops::Mul<&BraidResult> for &Braid {
+    type Output = BraidResult;
+    fn mul(self, rhs: &BraidResult) -> Self::Output {
+        self * (*rhs).clone()
+    }
+}
+impl std::ops::Mul<BraidResult> for &BraidResult {
+    type Output = BraidResult;
+    fn mul(self, rhs: BraidResult) -> Self::Output {
+        (*self).clone() * rhs
+    }
+}
+impl std::ops::Mul<&BraidResult> for BraidResult {
+    type Output = BraidResult;
+    fn mul(self, rhs: &BraidResult) -> Self::Output {
+        self * (*rhs).clone()
+    }
+}
+impl std::ops::Mul for &BraidResult {
+    type Output = BraidResult;
+    fn mul(self, rhs: Self) -> Self::Output {
+        (*self).clone() * (*rhs).clone()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{
         Braid, BraidIndex, BraidResult, BraidValidationError, Letter, Sign, Word,
         WordValidationError, braid, letter, word,
     };
-    use googletest::matchers::{eq, err};
+    use googletest::matchers::{eq, err, ok};
     use googletest::{assert_that, expect_that, gtest};
 
     #[gtest]
@@ -980,7 +1132,76 @@ mod tests {
     }
 
     #[gtest]
-    fn can_multiply_with_borrowed_braid_result() {}
+    fn can_multiply_with_borrowed_word_result() {
+        let braid = braid![(); [1; 1]].clone_unwrap();
+        let braid_result = braid![(); [1; 1]];
+
+        let borrowed_word_result = &word![[1; 1]];
+
+        let product = braid![(); [1; 2]].clone_unwrap();
+
+        expect_that!(*(borrowed_word_result * braid.clone()), ok(eq(&product)));
+        expect_that!(*(braid.clone() * borrowed_word_result), ok(eq(&product)));
+        expect_that!(*(borrowed_word_result * &braid), ok(eq(&product)));
+        expect_that!(*(&braid * borrowed_word_result), ok(eq(&product)));
+        expect_that!(
+            *(borrowed_word_result * braid_result.clone()),
+            ok(eq(&product))
+        );
+        expect_that!(
+            *(braid_result.clone() * borrowed_word_result),
+            ok(eq(&product))
+        );
+    }
+
+    #[gtest]
+    fn can_multiply_with_borrowed_braid_result() {
+        let letter = letter![1; +].unwrap();
+        let letter_result = letter![1; +];
+        let word = word![[1; 1]].clone_unwrap();
+        let word_result = word![[1; 1]];
+        let braid = braid![(); [1; 1]].clone_unwrap();
+        let braid_result = braid![(); [1; 1]];
+
+        let borrowed_braid_result = &braid_result;
+
+        let product = braid![(); [1; 2]].clone_unwrap();
+
+        expect_that!(*(borrowed_braid_result * letter), ok(eq(&product)));
+        expect_that!(*(letter * borrowed_braid_result), ok(eq(&product)));
+        expect_that!(*(borrowed_braid_result * letter_result), ok(eq(&product)));
+        expect_that!(*(letter_result * borrowed_braid_result), ok(eq(&product)));
+        expect_that!(*(borrowed_braid_result * word.clone()), ok(eq(&product)));
+        expect_that!(*(word.clone() * borrowed_braid_result), ok(eq(&product)));
+        expect_that!(*(borrowed_braid_result * &word), ok(eq(&product)));
+        expect_that!(*(&word * borrowed_braid_result), ok(eq(&product)));
+        expect_that!(
+            *(borrowed_braid_result * word_result.clone()),
+            ok(eq(&product))
+        );
+        expect_that!(
+            *(word_result.clone() * borrowed_braid_result),
+            ok(eq(&product))
+        );
+        expect_that!(*(borrowed_braid_result * &word_result), ok(eq(&product)));
+        expect_that!(*(&word_result * borrowed_braid_result), ok(eq(&product)));
+        expect_that!(*(borrowed_braid_result * braid.clone()), ok(eq(&product)));
+        expect_that!(*(braid.clone() * borrowed_braid_result), ok(eq(&product)));
+        expect_that!(*(borrowed_braid_result * &braid), ok(eq(&product)));
+        expect_that!(*(&braid * borrowed_braid_result), ok(eq(&product)));
+        expect_that!(
+            *(borrowed_braid_result * braid_result.clone()),
+            ok(eq(&product))
+        );
+        expect_that!(
+            *(braid_result.clone() * borrowed_braid_result),
+            ok(eq(&product))
+        );
+        expect_that!(
+            *(borrowed_braid_result * borrowed_braid_result),
+            ok(eq(&product))
+        );
+    }
 
     #[gtest]
     fn multiplication_with_error_operand_propagates_error() {
@@ -1001,6 +1222,7 @@ mod tests {
         let braid = braid![(3); [1; -2], [2; -3]].clone_unwrap();
         let valid_braid_result = braid![(3); [1 => 3; -2], [2; 4]];
 
+        // LETTER RESULT
         expect_that!(
             *(invalid_letter_result * braid.clone()),
             err(eq(&letter_error))
@@ -1024,6 +1246,7 @@ mod tests {
             err(eq(&letter_error))
         );
 
+        // WORD RESULT
         expect_that!(
             *(invalid_word_result.clone() * braid.clone()),
             err(eq(&word_error))
@@ -1053,6 +1276,31 @@ mod tests {
             err(eq(&word_error))
         );
 
+        // BORROWED WORD RESULT
+        expect_that!(
+            *(&invalid_word_result * braid.clone()),
+            err(eq(&word_error))
+        );
+        expect_that!(
+            *(braid.clone() * &invalid_word_result),
+            err(eq(&word_error))
+        );
+        expect_that!(*(&invalid_word_result * &braid), err(eq(&word_error)));
+        expect_that!(*(&braid * &invalid_word_result), err(eq(&word_error)));
+        expect_that!(
+            *(&invalid_word_result * valid_braid_result.clone()),
+            err(eq(&word_error))
+        );
+        expect_that!(
+            *(valid_braid_result.clone() * &invalid_word_result),
+            err(eq(&word_error))
+        );
+        expect_that!(
+            *(&invalid_word_result * invalid_braid_result.clone()),
+            err(eq(&word_error))
+        );
+
+        // BRAID RESULT
         expect_that!(
             *(invalid_braid_result.clone() * letter),
             err(eq(&braid_error))
@@ -1093,7 +1341,6 @@ mod tests {
             *(valid_word_result.clone() * invalid_braid_result.clone()),
             err(eq(&braid_error))
         );
-
         expect_that!(
             *(invalid_braid_result.clone() * braid.clone()),
             err(eq(&braid_error))
@@ -1128,6 +1375,70 @@ mod tests {
         );
         expect_that!(
             *(invalid_braid_result.clone() * braid![(0); [1; 1]]),
+            err(eq(&braid_error))
+        );
+
+        // BORROWED BRAID RESULT
+        expect_that!(*(&invalid_braid_result * letter), err(eq(&braid_error)));
+        expect_that!(*(letter * &invalid_braid_result), err(eq(&braid_error)));
+        expect_that!(
+            *(&invalid_braid_result * valid_letter_result),
+            err(eq(&braid_error))
+        );
+        expect_that!(
+            *(valid_letter_result * &invalid_braid_result),
+            err(eq(&braid_error))
+        );
+        expect_that!(
+            *(&invalid_braid_result * word.clone()),
+            err(eq(&braid_error))
+        );
+        expect_that!(
+            *(word.clone() * &invalid_braid_result),
+            err(eq(&braid_error))
+        );
+        expect_that!(*(&invalid_braid_result * &word), err(eq(&braid_error)));
+        expect_that!(*(&word * &invalid_braid_result), err(eq(&braid_error)));
+        expect_that!(
+            *(&invalid_braid_result * valid_word_result.clone()),
+            err(eq(&braid_error))
+        );
+        expect_that!(
+            *(valid_word_result.clone() * &invalid_braid_result),
+            err(eq(&braid_error))
+        );
+        expect_that!(
+            *(&invalid_braid_result * braid.clone()),
+            err(eq(&braid_error))
+        );
+        expect_that!(
+            *(braid.clone() * &invalid_braid_result),
+            err(eq(&braid_error))
+        );
+        expect_that!(*(&invalid_braid_result * &braid), err(eq(&braid_error)));
+        expect_that!(*(&braid * &invalid_braid_result), err(eq(&braid_error)));
+        expect_that!(
+            *(&invalid_braid_result * valid_braid_result.clone()),
+            err(eq(&braid_error))
+        );
+        expect_that!(
+            *(valid_braid_result.clone() * &invalid_braid_result),
+            err(eq(&braid_error))
+        );
+        expect_that!(
+            *(&invalid_braid_result * invalid_letter_result),
+            err(eq(&braid_error))
+        );
+        expect_that!(
+            *(&invalid_braid_result * invalid_word_result.clone()),
+            err(eq(&braid_error))
+        );
+        expect_that!(
+            *(&invalid_braid_result * braid![(0); [1; 1]]),
+            err(eq(&braid_error))
+        );
+        expect_that!(
+            *(&invalid_braid_result * &braid![(0); [1; 1]]),
             err(eq(&braid_error))
         );
     }
