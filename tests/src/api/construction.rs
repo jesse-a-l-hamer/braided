@@ -1,5 +1,6 @@
 //! Integration tests to check macro-based construction interface.
 
+use crate::telemetry::start_tracing;
 use braided::{
     ArtinGenerator, BandGenerator, Braid, BraidResult, BraidValidationError, Letter, LetterResult,
     LetterValidationError, Sign, Word, WordResult, WordValidationError, braid, letter, word,
@@ -10,6 +11,7 @@ use googletest::{assert_that, expect_that, gtest};
 // letter!
 #[gtest]
 fn macro_letter_constructs_valid_letters() {
+    start_tracing();
     let letters = [
         (letter![1 => 3; +], 1, Some(3), Sign::Positive),
         (letter![2 => 5; -], 2, Some(5), Sign::Negative),
@@ -22,6 +24,7 @@ fn macro_letter_constructs_valid_letters() {
 }
 #[gtest]
 fn macro_letter_fails_to_construct_invalid_letters() {
+    start_tracing();
     let invalid_letters: [(LetterResult, LetterValidationError); 4] = [
         (
             letter![-1; +],
@@ -57,11 +60,13 @@ fn macro_letter_fails_to_construct_invalid_letters() {
 // word!
 #[test]
 fn macro_word_empty_produces_trivial_word() {
+    start_tracing();
     let trivial = word![];
     assert_that!(*trivial, ok(eq(&Word::trivial())))
 }
 #[gtest]
 fn macro_word_constructs_exponent_of_single_artin() {
+    start_tracing();
     let words: [(WordResult, u16, i32); 2] = [(word![[1; 3]], 1, 3), (word![[2; -4]], 2, -4)];
     for (word, foot, exp) in words {
         let letter = if exp < 0 {
@@ -82,6 +87,7 @@ fn macro_word_constructs_exponent_of_single_artin() {
 }
 #[gtest]
 fn macro_word_constructs_exponent_of_single_band() {
+    start_tracing();
     let words: [(WordResult, u16, u16, i32); 2] = [
         (word![[1 => 4; 3]], 1, 4, 3),
         (word![[2 => 7; -4]], 2, 7, -4),
@@ -105,6 +111,7 @@ fn macro_word_constructs_exponent_of_single_band() {
 }
 #[gtest]
 fn macro_word_constructs_word_when_leading_letter_is_artin() {
+    start_tracing();
     let word_with_positive_leading_artin = word![[1; 2], [2 => 4; -1], [3 => 4; -3], [2; 3]];
     expect_that!(
         *word_with_positive_leading_artin,
@@ -136,6 +143,7 @@ fn macro_word_constructs_word_when_leading_letter_is_artin() {
 }
 #[gtest]
 fn macro_word_constructs_word_when_leading_letter_is_band() {
+    start_tracing();
     let word_with_positive_leading_band = word![[2 => 4; 1], [1; 2], [3 => 4; -3], [2; 3]];
     expect_that!(
         *word_with_positive_leading_band,
@@ -167,6 +175,7 @@ fn macro_word_constructs_word_when_leading_letter_is_band() {
 }
 #[gtest]
 fn macro_word_fails_to_construct_invalid_words() {
+    start_tracing();
     let invalid_words: [(WordResult, WordValidationError); 6] = [
         (
             word![[-1; 1], [1; 2], [2 => 5; -3]],
@@ -241,11 +250,13 @@ fn macro_word_fails_to_construct_invalid_words() {
 // braid!
 #[test]
 fn macro_braid_constructs_trivial_braid_of_given_index() {
+    start_tracing();
     let braid = braid![(10)];
     assert_that!(*braid, ok(eq(&Braid::try_trivial(10).clone_unwrap())))
 }
 #[test]
 fn macro_braid_constructs_nontrivial_braid_of_given_index() {
+    start_tracing();
     let braid = braid![(10); [2 => 4; -1], [1; 2], [3 => 4; -3], [2; 3]];
     assert_that!(
         *braid,
@@ -258,6 +269,7 @@ fn macro_braid_constructs_nontrivial_braid_of_given_index() {
 }
 #[test]
 fn macro_braid_constructs_nontrivial_braid_of_inferred_index() {
+    start_tracing();
     let braid = braid![(); [2 => 4; -1], [1; 2], [3 => 4; -3], [2; 3]];
     assert_that!(
         *braid,
@@ -268,6 +280,7 @@ fn macro_braid_constructs_nontrivial_braid_of_inferred_index() {
 }
 #[gtest]
 fn macro_braid_fails_to_construct_invalid_braids() {
+    start_tracing();
     let invalid_braids: [(BraidResult, BraidValidationError); 10] = [
         (
             braid![(1); [1; 1]],

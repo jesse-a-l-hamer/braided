@@ -1,5 +1,6 @@
 //! Integration tests to ensure algebraic operations cancel as expected.
 
+use crate::telemetry::start_tracing;
 use googletest::matchers::eq;
 use googletest::{expect_that, gtest};
 
@@ -7,6 +8,7 @@ use braided::{braid, letter, word};
 
 #[gtest]
 fn multiplication_of_letter_and_letter_cancels_as_expected() {
+    start_tracing();
     let test_cases = [
         (letter![1; +], letter![1 => 2; -], word![]),
         (letter![1; -], letter![1 => 2; +], word![]),
@@ -21,6 +23,7 @@ fn multiplication_of_letter_and_letter_cancels_as_expected() {
 
 #[gtest]
 fn multiplication_of_letter_and_word_cancels_as_expected() {
+    start_tracing();
     let test_cases = [
         (
             letter![1; +],
@@ -51,6 +54,7 @@ fn multiplication_of_letter_and_word_cancels_as_expected() {
 
 #[gtest]
 fn multiplication_of_word_and_letter_cancels_as_expected() {
+    start_tracing();
     let test_cases = [
         (
             word![[2; 3], [1; -2]],
@@ -81,6 +85,7 @@ fn multiplication_of_word_and_letter_cancels_as_expected() {
 
 #[gtest]
 fn multiplication_of_letter_and_braid_cancels_as_expected() {
+    start_tracing();
     let test_cases = [
         (
             letter![1; +],
@@ -111,6 +116,7 @@ fn multiplication_of_letter_and_braid_cancels_as_expected() {
 
 #[gtest]
 fn multiplication_of_braid_and_letter_cancels_as_expected() {
+    start_tracing();
     let test_cases = [
         (
             braid![(); [2; 3], [1; -2]],
@@ -141,6 +147,7 @@ fn multiplication_of_braid_and_letter_cancels_as_expected() {
 
 #[gtest]
 fn multiplication_of_word_and_word_cancels_as_expected() {
+    start_tracing();
     let test_cases = [
         (
             word![[1; 3], [2; -4]],
@@ -166,6 +173,7 @@ fn multiplication_of_word_and_word_cancels_as_expected() {
 
 #[gtest]
 fn multiplication_of_word_and_braid_cancels_as_expected() {
+    start_tracing();
     let test_cases = [
         (
             word![[1; 3], [2; -4]],
@@ -191,6 +199,7 @@ fn multiplication_of_word_and_braid_cancels_as_expected() {
 
 #[gtest]
 fn multiplication_of_braid_and_word_cancels_as_expected() {
+    start_tracing();
     let test_cases = [
         (
             braid![(); [1; 3], [2; -4]],
@@ -216,6 +225,7 @@ fn multiplication_of_braid_and_word_cancels_as_expected() {
 
 #[gtest]
 fn multiplication_of_braid_and_braid_cancels_as_expected() {
+    start_tracing();
     let test_cases = [
         (
             braid![(); [1; 3], [2; -4]],

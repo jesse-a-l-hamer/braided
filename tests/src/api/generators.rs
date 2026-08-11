@@ -1,6 +1,7 @@
 //! Integration tests to ensure that the `Letter` interface upholds generator interoperability
 //! guarantees.
 
+use crate::telemetry::start_tracing;
 use googletest::matchers::{eq, is_true};
 use googletest::{expect_that, gtest};
 
@@ -15,6 +16,7 @@ fn equal_letter_pairs() -> [(Letter, Letter); 2] {
 
 #[gtest]
 fn equality_of_letters_does_not_depend_on_generator_type() {
+    start_tracing();
     let equal_pairs = equal_letter_pairs();
 
     for (left, right) in equal_pairs {
@@ -24,6 +26,7 @@ fn equality_of_letters_does_not_depend_on_generator_type() {
 
 #[gtest]
 fn decompose_does_not_depend_on_generator_type() {
+    start_tracing();
     let equal_pairs = equal_letter_pairs();
 
     for (left, right) in equal_pairs {
@@ -33,6 +36,7 @@ fn decompose_does_not_depend_on_generator_type() {
 
 #[gtest]
 fn computation_of_sign_does_not_depend_on_generator_type() {
+    start_tracing();
     let equal_pairs = equal_letter_pairs();
 
     for (left, right) in equal_pairs {
@@ -42,6 +46,7 @@ fn computation_of_sign_does_not_depend_on_generator_type() {
 
 #[gtest]
 fn computation_of_foot_does_not_depend_on_generator_type() {
+    start_tracing();
     let equal_pairs = equal_letter_pairs();
 
     for (left, right) in equal_pairs {
@@ -51,6 +56,7 @@ fn computation_of_foot_does_not_depend_on_generator_type() {
 
 #[gtest]
 fn computation_of_head_does_not_depend_on_generator_type() {
+    start_tracing();
     let equal_pairs = equal_letter_pairs();
 
     for (left, right) in equal_pairs {
@@ -60,6 +66,7 @@ fn computation_of_head_does_not_depend_on_generator_type() {
 
 #[gtest]
 fn computation_of_inverse_does_not_depend_on_generator_type() {
+    start_tracing();
     let equal_pairs = equal_letter_pairs();
 
     for (left, right) in equal_pairs {
@@ -69,6 +76,7 @@ fn computation_of_inverse_does_not_depend_on_generator_type() {
 
 #[gtest]
 fn computation_of_is_artin_does_not_depend_on_generator_type() {
+    start_tracing();
     let equal_pairs = equal_letter_pairs();
 
     for (left, right) in equal_pairs {
@@ -78,6 +86,7 @@ fn computation_of_is_artin_does_not_depend_on_generator_type() {
 
 #[gtest]
 fn computation_of_height_does_not_depend_on_generator_type() {
+    start_tracing();
     let equal_pairs = equal_letter_pairs();
 
     for (left, right) in equal_pairs {
@@ -87,6 +96,7 @@ fn computation_of_height_does_not_depend_on_generator_type() {
 
 #[gtest]
 fn computation_of_artin_length_does_not_depend_on_generator_type() {
+    start_tracing();
     let equal_pairs = equal_letter_pairs();
 
     for (left, right) in equal_pairs {
@@ -96,6 +106,7 @@ fn computation_of_artin_length_does_not_depend_on_generator_type() {
 
 #[gtest]
 fn computation_of_minimal_required_braid_index_does_not_depend_on_generator_type() {
+    start_tracing();
     let equal_pairs = equal_letter_pairs();
 
     for (left, right) in equal_pairs {
