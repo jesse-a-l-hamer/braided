@@ -134,7 +134,7 @@ impl BraidIndex {
     /// ```
     pub fn try_new<N>(index: N) -> IndexResult
     where
-        N: TryInto<u16>,
+        N: TryInto<u16> + std::fmt::Debug,
         IndexValidationError: From<<N as TryInto<u16>>::Error>,
     {
         let index = match index.try_into() {

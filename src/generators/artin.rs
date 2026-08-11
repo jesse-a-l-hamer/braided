@@ -146,7 +146,7 @@ impl ArtinGenerator {
     /// one attempts to use [`u16::MAX`] as the foot strand index.
     pub fn try_new<F>(foot: F, sign: Sign) -> ArtinResult
     where
-        F: TryInto<u16>,
+        F: TryInto<u16> + std::fmt::Debug,
         StrandValidationError: From<<F as TryInto<u16>>::Error> + From<std::convert::Infallible>,
     {
         let foot = match *Strand::try_new(foot) {

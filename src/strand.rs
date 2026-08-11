@@ -159,7 +159,7 @@ impl Strand {
     /// ```
     pub fn try_new<K>(index: K) -> StrandResult
     where
-        K: TryInto<u16>,
+        K: TryInto<u16> + std::fmt::Debug,
         StrandValidationError: From<<K as TryInto<u16>>::Error> + From<std::convert::Infallible>,
     {
         let index = match index.try_into() {

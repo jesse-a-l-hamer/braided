@@ -250,8 +250,8 @@ impl Letter {
     /// the possible error cases.
     pub fn try_new<F, H>(foot: F, head: Option<H>, sign: Sign) -> LetterResult
     where
-        F: TryInto<u16>,
-        H: TryInto<u16>,
+        F: TryInto<u16> + std::fmt::Debug,
+        H: TryInto<u16> + std::fmt::Debug,
         StrandValidationError: From<<F as TryInto<u16>>::Error>
             + From<<H as TryInto<u16>>::Error>
             + From<std::convert::Infallible>,

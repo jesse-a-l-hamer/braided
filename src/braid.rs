@@ -429,7 +429,7 @@ impl Braid {
     /// information.
     pub fn try_new<N>(index: N, word: Word) -> BraidResult
     where
-        N: TryInto<u16>,
+        N: TryInto<u16> + std::fmt::Debug,
         IndexValidationError: From<<N as TryInto<u16>>::Error>,
     {
         let minimal_required_index = word.minimal_required_braid_index();
@@ -492,7 +492,7 @@ impl Braid {
     /// information.
     pub fn try_from_letters<N, L>(index: Option<N>, letters: &[L]) -> BraidResult
     where
-        N: TryInto<u16>,
+        N: TryInto<u16> + std::fmt::Debug,
         IndexValidationError: From<<N as TryInto<u16>>::Error>,
         L: Into<Letter> + Clone + Copy,
     {
@@ -565,11 +565,11 @@ impl Braid {
     /// information.
     pub fn try_from_data<N, D, F, H>(index: Option<N>, word_data: D) -> BraidResult
     where
-        N: TryInto<u16>,
+        N: TryInto<u16> + std::fmt::Debug,
         IndexValidationError: From<<N as TryInto<u16>>::Error> + From<std::convert::Infallible>,
         D: IntoIterator<Item = (F, Option<H>, Sign)>,
-        F: TryInto<u16>,
-        H: TryInto<u16>,
+        F: TryInto<u16> + std::fmt::Debug,
+        H: TryInto<u16> + std::fmt::Debug,
         StrandValidationError: From<<F as TryInto<u16>>::Error>
             + From<<H as TryInto<u16>>::Error>
             + From<std::convert::Infallible>,
@@ -619,7 +619,7 @@ impl Braid {
     /// information.
     pub fn try_trivial<N>(index: N) -> BraidResult
     where
-        N: TryInto<u16>,
+        N: TryInto<u16> + std::fmt::Debug,
         IndexValidationError: From<<N as TryInto<u16>>::Error>,
     {
         Self::try_from_data(Some(index), Vec::<(u16, Option<u16>, Sign)>::new())
