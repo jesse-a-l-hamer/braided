@@ -35,7 +35,7 @@ pub enum Sign {
 impl std::ops::Neg for Sign {
     type Output = Self;
 
-    #[tracing::instrument(level="trace")]
+    #[tracing::instrument(level = "trace")]
     fn neg(self) -> Self::Output {
         match self {
             Self::Positive => Self::Negative,
