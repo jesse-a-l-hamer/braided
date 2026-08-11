@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [0.2.1](https://github.com/jesse-a-l-hamer/braided/compare/v0.2.0...v0.2.1) - 2026-08-11
+
 This release does not offer any new features, but implements a few key ingredients for
 the long term health of the repo. Major additions include:
 
@@ -49,6 +51,33 @@ the long term health of the repo. Major additions include:
     - By height of coalescing band within word.
     - By number of coalescing bands within word.
   - More benchmarks will be added as more complex algorithms are added to the library.
+
+### Added
+
+- _(api::generators)_ implement integration tests to check invariance with respect to generator type
+- _(api::multiplication)_ move multiplication unit tests into integration test suite
+- _(api::construction)_ move macros unit tests into integration test suite
+- _(algebraic_properties::group_axioms)_ implement integration tests to ensure group axioms hold for braid multiplication
+- _(algebraic_properties::coalescence)_ implement integration tests to check band coalescence relation
+- _(algebraic_properties::decomposition)_ implement integration tests to check band decomposition relations
+- _(algebraic_properties::cancellation)_ implement integration tests to check that cancellation properties work as expected
+- annotate every fn with `tracing::instrument` attribute
+- _(tests)_ add telemetry to integration tests
+- _(benches)_ implement first 6 benchmarks
+
+### Fixed
+
+- _(changelog)_ fix small typo in changelog v0.2.0 codeblock
+
+### Other
+
+- _(dependencies)_ add `tracing` crate
+- _(dev-dependencies)_ add `criterion` crate
+- _(dev-dependencies)_ add `tracing-subscriber`
+- _(tests)_ refactored integration tests to enable shared top-level modules for helpers and telemetry
+- _(braid,word)_ add `std::fmt::Debug` bound to `IntoIterator<...>` generics on certain `Word` and `Braid` constructors
+- add `std::fmt::Debug` bounds to any `TryInto<u16>` generics in fn signatures
+- _(macros)_ refactor recursive branches of `word!` macro to make use of more robust multiplication
 
 ## [0.2.0](https://github.com/jesse-a-l-hamer/braided/compare/v0.1.2...v0.2.0) - 2026-08-10
 
