@@ -17,7 +17,7 @@ exclude = [
 
 [[bench]]
 harness = false
-name = "coalescence_by_band_length"
+name = "coalescence_by_band_height"
 
 [[bench]]
 harness = false
