@@ -371,6 +371,7 @@ impl BandGenerator {
     ///
     /// Please see the documentation for [`BandValidationError`] for more details on possible
     /// failure causes.
+    #[tracing::instrument(level = "info")]
     pub fn try_new<F, H>(foot: F, head: H, sign: Sign) -> BandResult
     where
         F: TryInto<u16> + std::fmt::Debug,
@@ -470,6 +471,7 @@ impl BandGenerator {
     ///
     /// Please see the documentation for [`BandValidationError`] for more details on possible
     /// failure causes.
+    #[tracing::instrument(level = "info")]
     pub fn coalesce(band_parts: &[ArtinGenerator]) -> BandResult {
         let num_parts = band_parts.len();
 
@@ -496,14 +498,25 @@ impl BandGenerator {
         let mut lower_right_staircase = Vec::new();
 
         let (left_parts, right_parts) = band_parts.split_at(num_parts.div_euclid(2));
-        let crossing = right_parts.first().unwrap();
-        let right_parts = &right_parts[1..];
+        let (crossing, right_parts) = right_parts.split_first().unwrap();
+
+        tracing::trace!(
+            ?left_parts,
+            ?crossing,
+            ?right_parts,
+            "Beginning staircase algorithm."
+        );
 
         for (left_part, right_part) in left_parts.iter().rev().zip(right_parts.iter()) {
             // Add new parts to staircases, and check for "contiguity" and "mirroring"
             match left_part.sign() {
                 Sign::Positive => {
                     let previous_step = upper_left_staircase.last().unwrap_or(crossing);
+                    tracing::debug!(
+                        ?left_part,
+                        "Attempting to add step to upper-left staircase with previous step {:?}",
+                        previous_step
+                    );
                     if left_part.foot() == (previous_step.foot() + 1).unwrap() {
                         upper_left_staircase.push(*left_part);
                     } else {
@@ -518,6 +531,11 @@ impl BandGenerator {
                 }
                 Sign::Negative => {
                     let previous_step = lower_left_staircase.last().unwrap_or(crossing);
+                    tracing::debug!(
+                        ?left_part,
+                        "Attempting to add step to lower-left staircase with previous step {:?}",
+                        previous_step
+                    );
                     if (left_part.foot() + 1).unwrap() == previous_step.foot() {
                         lower_left_staircase.push(*left_part);
                     } else {
@@ -534,6 +552,11 @@ impl BandGenerator {
             match right_part.sign() {
                 Sign::Positive => {
                     let previous_step = lower_right_staircase.last().unwrap_or(crossing);
+                    tracing::debug!(
+                        ?right_part,
+                        "Attempting to add step to lower-right staircase with previous step {:?}",
+                        previous_step
+                    );
                     if (right_part.foot() + 1).unwrap() == previous_step.foot() {
                         lower_right_staircase.push(*right_part);
                     } else {
@@ -548,6 +571,11 @@ impl BandGenerator {
                 }
                 Sign::Negative => {
                     let previous_step = upper_right_staircase.last().unwrap_or(crossing);
+                    tracing::debug!(
+                        ?right_part,
+                        "Attempting to add step to upper-right staircase with previous step {:?}",
+                        previous_step
+                    );
                     if right_part.foot() == (previous_step.foot() + 1).unwrap() {
                         upper_right_staircase.push(*right_part);
                     } else {
@@ -563,6 +591,14 @@ impl BandGenerator {
             };
         }
 
+        tracing::debug!("Successfully built staircases.");
+        tracing::trace!(
+            ?lower_left_staircase,
+            ?upper_left_staircase,
+            ?lower_right_staircase,
+            ?upper_right_staircase
+        );
+
         // If one set of staircases is imbalanced, then both are.
         if let difference = lower_left_staircase
             .len()
@@ -573,6 +609,8 @@ impl BandGenerator {
                 FromArtinError::ImbalancedStaircases(difference),
             ));
         }
+
+        tracing::debug!("Staircases passed balance check.");
 
         let foot = lower_left_staircase.last().unwrap_or(crossing).foot();
         let head = (upper_left_staircase.last().unwrap_or(crossing).foot() + 1).unwrap();
@@ -592,6 +630,7 @@ impl BandGenerator {
     ///
     /// assert_eq!(band.foot(), Strand::try_new(2).unwrap());
     /// ```
+    #[tracing::instrument(level = "debug")]
     pub fn foot(&self) -> Strand {
         self.foot
     }
@@ -606,6 +645,7 @@ impl BandGenerator {
     ///
     /// assert_eq!(band.head(), Strand::try_new(5).unwrap());
     /// ```
+    #[tracing::instrument(level = "debug")]
     pub fn head(&self) -> Strand {
         self.head
     }
@@ -620,6 +660,7 @@ impl BandGenerator {
     ///
     /// assert_eq!(band.sign(), Sign::Negative);
     /// ```
+    #[tracing::instrument(level = "debug")]
     pub fn sign(&self) -> Sign {
         self.sign
     }
@@ -638,6 +679,7 @@ impl BandGenerator {
     ///     BandGenerator::try_new(2, 5, Sign::Positive).unwrap(),
     /// );
     /// ```
+    #[tracing::instrument(level = "info")]
     pub fn inverse(&self) -> Self {
         Self {
             foot: self.foot,
@@ -659,6 +701,7 @@ impl BandGenerator {
     ///     5 - 2,
     /// );
     /// ```
+    #[tracing::instrument(level = "info")]
     pub fn height(&self) -> u16 {
         (self.head - self.foot).unwrap().into()
     }
@@ -675,6 +718,7 @@ impl BandGenerator {
     /// assert!(artin_band.is_artin());
     /// assert!(!non_artin_band.is_artin());
     /// ```
+    #[tracing::instrument(level = "info")]
     pub fn is_artin(&self) -> bool {
         self.height() == 1
     }
@@ -692,6 +736,7 @@ impl BandGenerator {
     ///     BraidIndex::try_new(5).unwrap(),
     /// );
     /// ```
+    #[tracing::instrument(level = "info")]
     pub fn minimal_required_braid_index(&self) -> BraidIndex {
         BraidIndex::try_new(self.head).unwrap()
     }
@@ -709,6 +754,7 @@ impl BandGenerator {
     ///     2 * (5 - 2) - 1,
     /// );
     /// ```
+    #[tracing::instrument(level = "info")]
     pub fn artin_length(&self) -> u16 {
         if self.height() == MAX_BAND_HEIGHT {
             u16::MAX
@@ -782,6 +828,7 @@ impl BandGenerator {
     ///     assert_eq!(test_band.unwrap().decompose(), decomposed);
     /// }
     /// ```
+    #[tracing::instrument(level = "info")]
     pub fn decompose(&self) -> Vec<ArtinGenerator> {
         // Band decomposition is infallible, so it's safe to unwrap any intermediate results
         let crossing = ArtinGenerator::try_new((self.head() - 1).unwrap(), self.sign()).unwrap();
@@ -797,6 +844,7 @@ impl BandGenerator {
 }
 
 impl From<ArtinGenerator> for BandGenerator {
+    #[tracing::instrument(level = "debug")]
     fn from(value: ArtinGenerator) -> Self {
         Self {
             foot: value.foot(),
@@ -806,6 +854,7 @@ impl From<ArtinGenerator> for BandGenerator {
     }
 }
 impl From<Letter> for BandGenerator {
+    #[tracing::instrument(level = "debug")]
     fn from(value: Letter) -> Self {
         match value {
             Letter::Artin(artin) => Self::from(artin),

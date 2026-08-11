@@ -132,6 +132,7 @@ impl BraidIndex {
     ///
     /// assert_matches!(*BraidIndex::try_new(Strand::try_new(1).unwrap()), Ok(_));
     /// ```
+    #[tracing::instrument(level="info")]
     pub fn try_new<N>(index: N) -> IndexResult
     where
         N: TryInto<u16> + std::fmt::Debug,
@@ -150,11 +151,13 @@ impl BraidIndex {
 }
 
 impl From<Strand> for BraidIndex {
+    #[tracing::instrument(level="debug")]
     fn from(value: Strand) -> Self {
         Self(value.into())
     }
 }
 impl From<BraidIndex> for u16 {
+    #[tracing::instrument(level="debug")]
     fn from(value: BraidIndex) -> Self {
         value.0
     }
@@ -163,11 +166,13 @@ impl From<BraidIndex> for u16 {
 impl std::ops::Deref for BraidIndex {
     type Target = u16;
 
+    #[tracing::instrument(level="debug")]
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 impl AsRef<u16> for BraidIndex {
+    #[tracing::instrument(level="debug")]
     fn as_ref(&self) -> &u16 {
         self
     }

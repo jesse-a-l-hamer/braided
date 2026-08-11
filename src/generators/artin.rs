@@ -144,6 +144,7 @@ impl ArtinGenerator {
     ///
     /// Retusn [`ArtinValidationError`] if the underlying foot [`Strand`] fails construction, or if
     /// one attempts to use [`u16::MAX`] as the foot strand index.
+    #[tracing::instrument(level="info")]
     pub fn try_new<F>(foot: F, sign: Sign) -> ArtinResult
     where
         F: TryInto<u16> + std::fmt::Debug,
@@ -186,6 +187,7 @@ impl ArtinGenerator {
     /// # Errors
     ///
     /// Fails if the given [band](BandGenerator) does not satisfy [BandGenerator::is_artin].
+    #[tracing::instrument(level="info")]
     pub fn try_from_band(band: BandGenerator) -> ArtinResult {
         if band.is_artin() {
             ArtinResult::from(Self {
@@ -227,6 +229,7 @@ impl ArtinGenerator {
     /// # Errors
     ///
     /// Fails if the given [band letter](Letter::Band) does not satisfy [Letter::is_artin].
+    #[tracing::instrument(level="info")]
     pub fn try_from_letter(letter: Letter) -> ArtinResult {
         match letter {
             Letter::Artin(artin) => ArtinResult::from(artin),
@@ -245,6 +248,7 @@ impl ArtinGenerator {
     ///
     /// assert_eq!(artin_generator.foot(), Strand::try_new(1).unwrap());
     /// ```
+    #[tracing::instrument(level="debug")]
     pub fn foot(&self) -> Strand {
         self.foot
     }
@@ -259,6 +263,7 @@ impl ArtinGenerator {
     ///
     /// assert_eq!(artin_generator.sign(), Sign::Positive);
     /// ```
+    #[tracing::instrument(level="debug")]
     pub fn sign(&self) -> Sign {
         self.sign
     }
@@ -274,6 +279,7 @@ impl ArtinGenerator {
     ///
     /// assert_eq!(artin_generator.head(), Strand::try_new(2).unwrap());
     /// ```
+    #[tracing::instrument(level="debug")]
     pub fn head(&self) -> Strand {
         (self.foot + 1).unwrap()
     }
@@ -288,6 +294,7 @@ impl ArtinGenerator {
     ///
     /// assert_eq!(artin_generator.inverse(), ArtinGenerator::try_new(1, Sign::Negative).unwrap());
     /// ```
+    #[tracing::instrument(level="info")]
     pub fn inverse(&self) -> Self {
         Self {
             foot: self.foot,
@@ -308,6 +315,7 @@ impl ArtinGenerator {
     ///
     /// assert_eq!(artin_generator.minimal_required_braid_index(), BraidIndex::try_new(2).unwrap());
     /// ```
+    #[tracing::instrument(level="info")]
     pub fn minimal_required_braid_index(&self) -> BraidIndex {
         BraidIndex::try_new(self.head()).unwrap()
     }

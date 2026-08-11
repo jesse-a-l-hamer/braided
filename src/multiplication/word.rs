@@ -2,7 +2,9 @@ use crate::{Letter, LetterResult, Word, WordResult, WordValidationError};
 
 impl std::ops::Mul<Letter> for Word {
     type Output = WordResult;
+    #[tracing::instrument(level = "info")]
     fn mul(self, rhs: Letter) -> Self::Output {
+        tracing::debug!("Attempting to multiply {:?} x {:?}", self, rhs);
         if let Some((lhs_last, lhs_initial)) = self.split_last() {
             match &*(*lhs_last * rhs) {
                 Ok(tail) => Self::try_from_letters(&[lhs_initial, tail].concat()),
@@ -24,7 +26,9 @@ impl std::ops::Mul<Letter> for Word {
 }
 impl std::ops::Mul<Word> for Letter {
     type Output = WordResult;
+    #[tracing::instrument(level = "info")]
     fn mul(self, rhs: Word) -> Self::Output {
+        tracing::debug!("Attempting to multiply {:?} x {:?}", self, rhs);
         if let Some((rhs_first, rhs_tail)) = rhs.split_first() {
             match &*(self * *rhs_first) {
                 Ok(initial) => Word::try_from_letters(&[initial, rhs_tail].concat()),
@@ -47,7 +51,9 @@ impl std::ops::Mul<Word> for Letter {
 #[allow(clippy::suspicious_arithmetic_impl)]
 impl std::ops::Mul for Word {
     type Output = WordResult;
+    #[tracing::instrument(level = "info")]
     fn mul(self, rhs: Self) -> Self::Output {
+        tracing::debug!("Attempting to multiply {:?} x {:?}", self, rhs);
         let radius =
             match self
                 .iter()
@@ -69,30 +75,35 @@ impl std::ops::Mul for Word {
 
 impl std::ops::Mul<Letter> for &Word {
     type Output = WordResult;
+    #[tracing::instrument(level = "info")]
     fn mul(self, rhs: Letter) -> Self::Output {
         self.clone() * rhs
     }
 }
 impl std::ops::Mul<&Word> for Letter {
     type Output = WordResult;
+    #[tracing::instrument(level = "info")]
     fn mul(self, rhs: &Word) -> Self::Output {
         self * rhs.clone()
     }
 }
 impl std::ops::Mul<Word> for &Word {
     type Output = WordResult;
+    #[tracing::instrument(level = "info")]
     fn mul(self, rhs: Word) -> Self::Output {
         self.clone() * rhs
     }
 }
 impl std::ops::Mul<&Word> for Word {
     type Output = WordResult;
+    #[tracing::instrument(level = "info")]
     fn mul(self, rhs: &Word) -> Self::Output {
         self * rhs.clone()
     }
 }
 impl std::ops::Mul for &Word {
     type Output = WordResult;
+    #[tracing::instrument(level = "info")]
     fn mul(self, rhs: Self) -> Self::Output {
         self.clone() * rhs.clone()
     }
@@ -100,6 +111,7 @@ impl std::ops::Mul for &Word {
 
 impl std::ops::Mul<LetterResult> for Word {
     type Output = WordResult;
+    #[tracing::instrument(level = "info")]
     fn mul(self, rhs: LetterResult) -> Self::Output {
         match *rhs {
             Ok(rhs) => self * rhs,
@@ -109,6 +121,7 @@ impl std::ops::Mul<LetterResult> for Word {
 }
 impl std::ops::Mul<LetterResult> for &Word {
     type Output = WordResult;
+    #[tracing::instrument(level = "info")]
     fn mul(self, rhs: LetterResult) -> Self::Output {
         match *rhs {
             Ok(rhs) => self * rhs,
@@ -118,6 +131,7 @@ impl std::ops::Mul<LetterResult> for &Word {
 }
 impl std::ops::Mul<Word> for LetterResult {
     type Output = WordResult;
+    #[tracing::instrument(level = "info")]
     fn mul(self, rhs: Word) -> Self::Output {
         match *self {
             Ok(lhs) => lhs * rhs,
@@ -127,6 +141,7 @@ impl std::ops::Mul<Word> for LetterResult {
 }
 impl std::ops::Mul<&Word> for LetterResult {
     type Output = WordResult;
+    #[tracing::instrument(level = "info")]
     fn mul(self, rhs: &Word) -> Self::Output {
         match *self {
             Ok(lhs) => lhs * rhs,
@@ -136,6 +151,7 @@ impl std::ops::Mul<&Word> for LetterResult {
 }
 impl std::ops::Mul<Letter> for WordResult {
     type Output = WordResult;
+    #[tracing::instrument(level = "info")]
     fn mul(self, rhs: Letter) -> Self::Output {
         match &*self {
             Ok(lhs) => lhs * rhs,
@@ -145,6 +161,7 @@ impl std::ops::Mul<Letter> for WordResult {
 }
 impl std::ops::Mul<WordResult> for Letter {
     type Output = WordResult;
+    #[tracing::instrument(level = "info")]
     fn mul(self, rhs: WordResult) -> Self::Output {
         match &*rhs {
             Ok(rhs) => self * rhs,
@@ -154,6 +171,7 @@ impl std::ops::Mul<WordResult> for Letter {
 }
 impl std::ops::Mul<WordResult> for Word {
     type Output = WordResult;
+    #[tracing::instrument(level = "info")]
     fn mul(self, rhs: WordResult) -> Self::Output {
         match &*rhs {
             Ok(rhs) => self * rhs,
@@ -163,6 +181,7 @@ impl std::ops::Mul<WordResult> for Word {
 }
 impl std::ops::Mul<WordResult> for &Word {
     type Output = WordResult;
+    #[tracing::instrument(level = "info")]
     fn mul(self, rhs: WordResult) -> Self::Output {
         match &*rhs {
             Ok(rhs) => self * rhs,
@@ -172,6 +191,7 @@ impl std::ops::Mul<WordResult> for &Word {
 }
 impl std::ops::Mul<Word> for WordResult {
     type Output = WordResult;
+    #[tracing::instrument(level = "info")]
     fn mul(self, rhs: Word) -> Self::Output {
         match &*self {
             Ok(lhs) => lhs * rhs,
@@ -181,6 +201,7 @@ impl std::ops::Mul<Word> for WordResult {
 }
 impl std::ops::Mul<&Word> for WordResult {
     type Output = WordResult;
+    #[tracing::instrument(level = "info")]
     fn mul(self, rhs: &Word) -> Self::Output {
         match &*self {
             Ok(lhs) => lhs * rhs,
@@ -190,6 +211,7 @@ impl std::ops::Mul<&Word> for WordResult {
 }
 impl std::ops::Mul<LetterResult> for WordResult {
     type Output = WordResult;
+    #[tracing::instrument(level = "info")]
     fn mul(self, rhs: LetterResult) -> Self::Output {
         match (&*self, *rhs) {
             (Ok(lhs), Ok(rhs)) => lhs * rhs,
@@ -200,6 +222,7 @@ impl std::ops::Mul<LetterResult> for WordResult {
 }
 impl std::ops::Mul<WordResult> for LetterResult {
     type Output = WordResult;
+    #[tracing::instrument(level = "info")]
     fn mul(self, rhs: WordResult) -> Self::Output {
         match (*self, &*rhs) {
             (Ok(lhs), Ok(rhs)) => lhs * rhs,
@@ -210,6 +233,7 @@ impl std::ops::Mul<WordResult> for LetterResult {
 }
 impl std::ops::Mul for WordResult {
     type Output = WordResult;
+    #[tracing::instrument(level = "info")]
     fn mul(self, rhs: Self) -> Self::Output {
         match (&*self, &*rhs) {
             (Ok(lhs), Ok(rhs)) => lhs * rhs,
@@ -221,66 +245,77 @@ impl std::ops::Mul for WordResult {
 
 impl std::ops::Mul<Letter> for &WordResult {
     type Output = WordResult;
+    #[tracing::instrument(level = "info")]
     fn mul(self, rhs: Letter) -> Self::Output {
         (*self).clone() * rhs
     }
 }
 impl std::ops::Mul<&WordResult> for Letter {
     type Output = WordResult;
+    #[tracing::instrument(level = "info")]
     fn mul(self, rhs: &WordResult) -> Self::Output {
         self * (*rhs).clone()
     }
 }
 impl std::ops::Mul<LetterResult> for &WordResult {
     type Output = WordResult;
+    #[tracing::instrument(level = "info")]
     fn mul(self, rhs: LetterResult) -> Self::Output {
         (*self).clone() * rhs
     }
 }
 impl std::ops::Mul<&WordResult> for LetterResult {
     type Output = WordResult;
+    #[tracing::instrument(level = "info")]
     fn mul(self, rhs: &WordResult) -> Self::Output {
         self * (*rhs).clone()
     }
 }
 impl std::ops::Mul<Word> for &WordResult {
     type Output = WordResult;
+    #[tracing::instrument(level = "info")]
     fn mul(self, rhs: Word) -> Self::Output {
         (*self).clone() * rhs
     }
 }
 impl std::ops::Mul<&WordResult> for Word {
     type Output = WordResult;
+    #[tracing::instrument(level = "info")]
     fn mul(self, rhs: &WordResult) -> Self::Output {
         self * (*rhs).clone()
     }
 }
 impl std::ops::Mul<&Word> for &WordResult {
     type Output = WordResult;
+    #[tracing::instrument(level = "info")]
     fn mul(self, rhs: &Word) -> Self::Output {
         (*self).clone() * rhs
     }
 }
 impl std::ops::Mul<&WordResult> for &Word {
     type Output = WordResult;
+    #[tracing::instrument(level = "info")]
     fn mul(self, rhs: &WordResult) -> Self::Output {
         self * (*rhs).clone()
     }
 }
 impl std::ops::Mul<WordResult> for &WordResult {
     type Output = WordResult;
+    #[tracing::instrument(level = "info")]
     fn mul(self, rhs: WordResult) -> Self::Output {
         (*self).clone() * rhs
     }
 }
 impl std::ops::Mul<&WordResult> for WordResult {
     type Output = WordResult;
+    #[tracing::instrument(level = "info")]
     fn mul(self, rhs: &WordResult) -> Self::Output {
         self * (*rhs).clone()
     }
 }
 impl std::ops::Mul for &WordResult {
     type Output = WordResult;
+    #[tracing::instrument(level = "info")]
     fn mul(self, rhs: Self) -> Self::Output {
         (*self).clone() * (*rhs).clone()
     }
