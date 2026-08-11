@@ -17,6 +17,7 @@ exclude = [
 
 [dependencies]
 thiserror = "2.0.19"
+tracing = {version = "0.1.44", features = ["log"]}
 
 [dev-dependencies]
 googletest = "0.14.3"
