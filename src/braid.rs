@@ -427,9 +427,10 @@ impl Braid {
     ///
     /// See the documentation for the associated error type [`BraidValidationError`] for more
     /// information.
+    #[tracing::instrument(level = "info")]
     pub fn try_new<N>(index: N, word: Word) -> BraidResult
     where
-        N: TryInto<u16>,
+        N: TryInto<u16> + std::fmt::Debug,
         IndexValidationError: From<<N as TryInto<u16>>::Error>,
     {
         let minimal_required_index = word.minimal_required_braid_index();
@@ -490,11 +491,12 @@ impl Braid {
     ///
     /// See the documentation for the associated error type [`BraidValidationError`] for more
     /// information.
+    #[tracing::instrument(level = "info")]
     pub fn try_from_letters<N, L>(index: Option<N>, letters: &[L]) -> BraidResult
     where
-        N: TryInto<u16>,
+        N: TryInto<u16> + std::fmt::Debug,
         IndexValidationError: From<<N as TryInto<u16>>::Error>,
-        L: Into<Letter> + Clone + Copy,
+        L: Into<Letter> + Clone + Copy + std::fmt::Debug,
     {
         let word_result = Word::try_from_letters(letters);
         let word = match &*word_result {
@@ -563,13 +565,14 @@ impl Braid {
     ///
     /// See the documentation for the associated error type [`BraidValidationError`] for more
     /// information.
+    #[tracing::instrument(level = "info")]
     pub fn try_from_data<N, D, F, H>(index: Option<N>, word_data: D) -> BraidResult
     where
-        N: TryInto<u16>,
+        N: TryInto<u16> + std::fmt::Debug,
         IndexValidationError: From<<N as TryInto<u16>>::Error> + From<std::convert::Infallible>,
-        D: IntoIterator<Item = (F, Option<H>, Sign)>,
-        F: TryInto<u16>,
-        H: TryInto<u16>,
+        D: IntoIterator<Item = (F, Option<H>, Sign)> + std::fmt::Debug,
+        F: TryInto<u16> + std::fmt::Debug,
+        H: TryInto<u16> + std::fmt::Debug,
         StrandValidationError: From<<F as TryInto<u16>>::Error>
             + From<<H as TryInto<u16>>::Error>
             + From<std::convert::Infallible>,
@@ -617,9 +620,10 @@ impl Braid {
     ///
     /// See the documentation for the associated error type [`BraidValidationError`] for more
     /// information.
+    #[tracing::instrument(level = "info")]
     pub fn try_trivial<N>(index: N) -> BraidResult
     where
-        N: TryInto<u16>,
+        N: TryInto<u16> + std::fmt::Debug,
         IndexValidationError: From<<N as TryInto<u16>>::Error>,
     {
         Self::try_from_data(Some(index), Vec::<(u16, Option<u16>, Sign)>::new())
@@ -657,6 +661,7 @@ impl Braid {
     ///
     /// assert_eq!(braid.decompose(), expected_decomposition);
     /// ```
+    #[tracing::instrument(level = "info")]
     pub fn decompose(&self) -> Self {
         Self {
             index: self.index,
@@ -697,6 +702,7 @@ impl Braid {
     ///
     /// assert_eq!(braid.coalesce(), expected_coalescence);
     /// ```
+    #[tracing::instrument(level = "info")]
     pub fn coalesce(&self) -> Self {
         Self {
             index: self.index,
@@ -721,6 +727,7 @@ impl Braid {
     ///
     /// assert_eq!(braid.braid_index(), BraidIndex::try_new(9).unwrap());
     /// ```
+    #[tracing::instrument(level = "debug")]
     pub fn braid_index(&self) -> BraidIndex {
         self.index
     }
@@ -741,6 +748,7 @@ impl Braid {
     ///
     /// assert_eq!(braid.word(), word.clone());
     /// ```
+    #[tracing::instrument(level = "debug")]
     pub fn word(&self) -> Word {
         self.word.clone()
     }
@@ -762,6 +770,7 @@ impl Braid {
     ///
     /// assert_eq!(braid.letters(), word.letters());
     /// ```
+    #[tracing::instrument(level = "debug")]
     pub fn letters(&self) -> Vec<Letter> {
         self.word.letters()
     }
@@ -788,6 +797,7 @@ impl Braid {
     ///     word.minimal_required_braid_index(),
     /// );
     /// ```
+    #[tracing::instrument(level = "info")]
     pub fn minimal_required_braid_index(&self) -> BraidIndex {
         self.word.minimal_required_braid_index()
     }
@@ -817,6 +827,7 @@ impl Braid {
     ///     })
     /// );
     /// ```
+    #[tracing::instrument(level = "info")]
     pub fn writhe(&self) -> i32 {
         self.word.iter().fold(0, |a, b| {
             if b.sign() == Sign::Positive {
@@ -844,6 +855,7 @@ impl Braid {
     ///
     /// assert_eq!(braid.letter_length(), word.length());
     /// ```
+    #[tracing::instrument(level = "info")]
     pub fn letter_length(&self) -> u16 {
         // Length checks performed on underlying word: safe to unwrap
         self.word.length()
@@ -868,6 +880,7 @@ impl Braid {
     ///
     /// assert_eq!(braid.artin_length(), word.artin_length());
     /// ```
+    #[tracing::instrument(level = "info")]
     pub fn artin_length(&self) -> u16 {
         // Length checks performed on underlying word: safe to unwrap
         self.word.iter().fold(0, |a, b| a + b.artin_length())
@@ -892,6 +905,7 @@ impl Braid {
     ///     Braid::try_new(9, word.inverse()).clone_unwrap(),
     /// );
     /// ```
+    #[tracing::instrument(level = "info")]
     pub fn inverse(&self) -> Self {
         Self {
             index: self.index,
@@ -917,18 +931,21 @@ impl Braid {
     /// assert!(!braid.is_trivial());
     /// assert!(Braid::try_trivial(9).clone_unwrap().is_trivial());
     /// ```
+    #[tracing::instrument(level = "info")]
     pub fn is_trivial(&self) -> bool {
         self.word.is_trivial()
     }
 }
 
 impl Default for Braid {
+    #[tracing::instrument(level = "debug")]
     fn default() -> Self {
         Self::try_trivial(1).clone_unwrap()
     }
 }
 
 impl From<Word> for Braid {
+    #[tracing::instrument(level = "debug")]
     fn from(value: Word) -> Self {
         Self {
             index: value.minimal_required_braid_index(),
@@ -937,6 +954,7 @@ impl From<Word> for Braid {
     }
 }
 impl From<&Word> for Braid {
+    #[tracing::instrument(level = "debug")]
     fn from(value: &Word) -> Self {
         Self::from(value.clone())
     }
@@ -946,6 +964,7 @@ impl IntoIterator for Braid {
     type Item = <Word as IntoIterator>::Item;
     type IntoIter = <Word as IntoIterator>::IntoIter;
 
+    #[tracing::instrument(level = "info")]
     fn into_iter(self) -> Self::IntoIter {
         self.word.into_iter()
     }
@@ -953,11 +972,13 @@ impl IntoIterator for Braid {
 impl std::ops::Deref for Braid {
     type Target = [Letter];
 
+    #[tracing::instrument(level = "debug")]
     fn deref(&self) -> &Self::Target {
         self.word.deref()
     }
 }
 impl AsRef<[Letter]> for Braid {
+    #[tracing::instrument(level = "debug")]
     fn as_ref(&self) -> &[Letter] {
         self.word.as_ref()
     }

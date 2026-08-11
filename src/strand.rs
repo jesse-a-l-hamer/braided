@@ -157,9 +157,10 @@ impl Strand {
     ///
     /// assert_matches!(*Strand::try_new(BraidIndex::try_new(1).unwrap()), Ok(_));
     /// ```
+    #[tracing::instrument(level = "debug")]
     pub fn try_new<K>(index: K) -> StrandResult
     where
-        K: TryInto<u16>,
+        K: TryInto<u16> + std::fmt::Debug,
         StrandValidationError: From<<K as TryInto<u16>>::Error> + From<std::convert::Infallible>,
     {
         let index = match index.try_into() {
@@ -175,6 +176,7 @@ impl Strand {
 }
 
 impl From<Strand> for u16 {
+    #[tracing::instrument(level = "debug")]
     fn from(value: Strand) -> Self {
         value.0
     }
@@ -183,11 +185,13 @@ impl From<Strand> for u16 {
 impl std::ops::Deref for Strand {
     type Target = u16;
 
+    #[tracing::instrument(level = "debug")]
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 impl AsRef<u16> for Strand {
+    #[tracing::instrument(level = "debug")]
     fn as_ref(&self) -> &u16 {
         self
     }
@@ -195,6 +199,7 @@ impl AsRef<u16> for Strand {
 
 impl std::ops::Add for Strand {
     type Output = StrandResult;
+    #[tracing::instrument(level = "debug")]
     fn add(self, rhs: Self) -> Self::Output {
         if u16::MAX - self.0 < rhs.0 {
             StrandResult::from(StrandValidationError::Addition {
@@ -208,6 +213,7 @@ impl std::ops::Add for Strand {
 }
 impl std::ops::Add<u16> for Strand {
     type Output = StrandResult;
+    #[tracing::instrument(level = "debug")]
     fn add(self, rhs: u16) -> Self::Output {
         if u16::MAX - self.0 < rhs {
             StrandResult::from(StrandValidationError::Addition {
@@ -221,6 +227,7 @@ impl std::ops::Add<u16> for Strand {
 }
 impl std::ops::Add<Strand> for u16 {
     type Output = StrandResult;
+    #[tracing::instrument(level = "debug")]
     fn add(self, rhs: Strand) -> Self::Output {
         if u16::MAX - self < rhs.0 {
             StrandResult::from(StrandValidationError::Addition {
@@ -235,6 +242,7 @@ impl std::ops::Add<Strand> for u16 {
 
 impl std::ops::Sub for Strand {
     type Output = StrandResult;
+    #[tracing::instrument(level = "debug")]
     fn sub(self, rhs: Self) -> Self::Output {
         if self.0 <= rhs.0 {
             StrandResult::from(StrandValidationError::Subtraction {
@@ -248,6 +256,7 @@ impl std::ops::Sub for Strand {
 }
 impl std::ops::Sub<u16> for Strand {
     type Output = StrandResult;
+    #[tracing::instrument(level = "debug")]
     fn sub(self, rhs: u16) -> Self::Output {
         if self.0 <= rhs {
             StrandResult::from(StrandValidationError::Subtraction {
@@ -261,6 +270,7 @@ impl std::ops::Sub<u16> for Strand {
 }
 impl std::ops::Sub<Strand> for u16 {
     type Output = StrandResult;
+    #[tracing::instrument(level = "debug")]
     fn sub(self, rhs: Strand) -> Self::Output {
         if self <= rhs.0 {
             StrandResult::from(StrandValidationError::Subtraction {

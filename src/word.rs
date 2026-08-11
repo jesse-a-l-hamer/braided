@@ -354,11 +354,12 @@ impl Word {
     ///
     /// See the documentation for [`WordValidationError`] for details and examples on the error
     /// cases for this function.
+    #[tracing::instrument(level = "info")]
     pub fn try_new<D, F, H>(letter_data: D) -> WordResult
     where
-        D: IntoIterator<Item = (F, Option<H>, Sign)>,
-        F: TryInto<u16>,
-        H: TryInto<u16>,
+        D: IntoIterator<Item = (F, Option<H>, Sign)> + std::fmt::Debug,
+        F: TryInto<u16> + std::fmt::Debug,
+        H: TryInto<u16> + std::fmt::Debug,
         StrandValidationError: From<<F as TryInto<u16>>::Error>
             + From<<H as TryInto<u16>>::Error>
             + From<std::convert::Infallible>,
@@ -413,9 +414,10 @@ impl Word {
     ///
     /// See the documentation for [`WordValidationError`] for details and examples on the error
     /// cases for this function.
+    #[tracing::instrument(level = "info")]
     pub fn try_from_letters<L>(letters: &[L]) -> WordResult
     where
-        L: Into<Letter> + Clone + Copy,
+        L: Into<Letter> + Clone + Copy + std::fmt::Debug,
     {
         let (total_len, letters) = letters
             .iter()
@@ -445,6 +447,7 @@ impl Word {
     ///
     /// assert_eq!(trivial, Word::default());
     /// ```
+    #[tracing::instrument(level = "info")]
     pub fn trivial() -> Self {
         Self(Vec::new())
     }
@@ -482,9 +485,11 @@ impl Word {
     ///
     /// assert_eq!(word.decompose(), expected_decomposition);
     /// ```
+    #[tracing::instrument(level = "info")]
     pub fn decompose(&self) -> Self {
         let mut artin_letters: Vec<Letter> = Vec::new();
         for letter in self.letters() {
+            tracing::trace!("Decomposing letter: {:?}", letter);
             artin_letters.extend(letter.decompose());
         }
         Self(artin_letters)
@@ -521,24 +526,38 @@ impl Word {
     ///
     /// assert_eq!(word.coalesce(), expected_coalescence);
     /// ```
+    #[tracing::instrument(level = "info")]
     pub fn coalesce(&self) -> Self {
         // The coalescing algorithm requires that we start from a word which has been completely
         // decomposed as Artin generators.
         self.decompose().coalesce_decomposed()
     }
+    #[tracing::instrument(level = "info")]
     fn coalesce_decomposed(&self) -> Self {
         if self.is_trivial() {
             return self.clone();
         }
         let num_letters = self.len(); // guaranteed to be > 0 since word is not trivial
 
+        tracing::debug!(
+            "Total number of letters in decomposed word: {:?}",
+            num_letters
+        );
+
         let mut radius = (num_letters - 1).div_euclid(2);
         let mut pivot = radius; // pivot is the index of the candidate band crossing
 
         // The following loop returns eventually, since if radius == 0, then window consists
         // of a single Artin generator, which trivially transforms into a band generator.
+        tracing::debug!(?radius, ?pivot, "Entering loop.");
         loop {
+            tracing::debug!("Attempting to find bands with radius {:?}", radius);
             while pivot + radius < num_letters {
+                tracing::debug!(
+                    "Checking pivot at index {:?} < {:?} = num_letters - radius",
+                    pivot,
+                    num_letters - pivot
+                );
                 let remaining_left = Word(self[0..pivot - radius].to_vec());
                 let window: Vec<ArtinGenerator> = self[pivot - radius..pivot + radius + 1]
                     .iter()
@@ -554,19 +573,21 @@ impl Word {
                     })
                     .collect();
                 let remaining_right = Word(self[pivot + radius + 1..num_letters].to_vec());
+                tracing::debug!("Checking to see if the window coalesces: {:?}", window);
                 if let Ok(band) = *BandGenerator::coalesce(&window) {
-                    // We can safely unwrap the following products, since we're operating on parts
+                    tracing::debug!("Success!");
+                    // We can safely unwrap the following product, since we're operating on parts
                     // of a word which has already been length-checked (at its construction)
                     return (remaining_left.coalesce_decomposed()
                         * Letter::Band(band)
                         * remaining_right.coalesce_decomposed())
-                    .as_ref()
-                    .unwrap()
-                    .clone();
+                    .clone_unwrap();
                 } else {
+                    tracing::debug!("Failed. Incrementing pivot.");
                     pivot += 1;
                 }
             }
+            tracing::debug!("No bands found with radius {:?}; decrementing.", radius);
             radius -= 1;
         }
     }
@@ -588,6 +609,7 @@ impl Word {
     ///
     /// assert_eq!(word.letters(), letters)
     /// ```
+    #[tracing::instrument(level = "debug")]
     pub fn letters(&self) -> Vec<Letter> {
         self.0.clone()
     }
@@ -608,6 +630,7 @@ impl Word {
     ///
     /// assert!(!word.is_trivial());
     /// ```
+    #[tracing::instrument(level = "info")]
     pub fn is_trivial(&self) -> bool {
         self.0.is_empty()
     }
@@ -633,6 +656,7 @@ impl Word {
     ///
     /// assert_eq!(word.length(), 4);
     /// ```
+    #[tracing::instrument(level = "info")]
     pub fn length(&self) -> u16 {
         // length checks taken care of at construction, so unwrapping here is safe
         self.len().try_into().unwrap()
@@ -662,6 +686,7 @@ impl Word {
     ///
     /// assert_eq!(word.artin_length(), 8);
     /// ```
+    #[tracing::instrument(level = "info")]
     pub fn artin_length(&self) -> u16 {
         self.iter().map(|l| l.artin_length()).sum()
     }
@@ -686,6 +711,7 @@ impl Word {
     ///
     /// assert_eq!(word.minimal_required_braid_index(), BraidIndex::try_new(5).unwrap());
     /// ```
+    #[tracing::instrument(level = "info")]
     pub fn minimal_required_braid_index(&self) -> BraidIndex {
         self.iter()
             .map(|l| l.minimal_required_braid_index())
@@ -714,12 +740,14 @@ impl Word {
     ///     ).clone_unwrap(),
     /// );
     /// ```
+    #[tracing::instrument(level = "info")]
     pub fn inverse(&self) -> Self {
         Self(self.iter().rev().map(|l| l.inverse()).collect())
     }
 }
 
 impl Default for Word {
+    #[tracing::instrument(level = "debug")]
     fn default() -> Self {
         Word::trivial()
     }
@@ -729,6 +757,7 @@ impl IntoIterator for Word {
     type Item = (u16, Option<u16>, Sign);
     type IntoIter = <Vec<(u16, Option<u16>, Sign)> as IntoIterator>::IntoIter;
 
+    #[tracing::instrument(level = "info")]
     fn into_iter(self) -> Self::IntoIter {
         self.0
             .iter()
@@ -743,11 +772,13 @@ impl IntoIterator for Word {
 impl std::ops::Deref for Word {
     type Target = [Letter];
 
+    #[tracing::instrument(level = "debug")]
     fn deref(&self) -> &Self::Target {
         &self.0[..]
     }
 }
 impl AsRef<[Letter]> for Word {
+    #[tracing::instrument(level = "debug")]
     fn as_ref(&self) -> &[Letter] {
         self
     }
