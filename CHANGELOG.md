@@ -38,6 +38,17 @@ the long term health of the repo. Major additions include:
       any events emitted in the function body.
     - Use `trace` for the impl of `std::ops::Neg` for `Sign`, as well as all trait
       implementations on `*Result` structs.
+- Implementation of benchmarking suite using the
+  [`criterion`](https://docs.rs/criterion/latest/criterion) crate.
+  - Three benchmarks for multiplication:
+    - By type of operand (`Letter`, `Word`, `Braid`).
+    - By length of operands.
+    - By degree of auto-cancellation.
+  - Three benchmarks for coalescence:
+    - By location of coalescing band within word.
+    - By height of coalescing band within word.
+    - By number of coalescing bands within word.
+  - More benchmarks will be added as more complex algorithms are added to the library.
 
 ## [0.2.0](https://github.com/jesse-a-l-hamer/braided/compare/v0.1.2...v0.2.0) - 2026-08-10
 
