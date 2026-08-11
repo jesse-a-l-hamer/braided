@@ -356,7 +356,7 @@ impl Word {
     /// cases for this function.
     pub fn try_new<D, F, H>(letter_data: D) -> WordResult
     where
-        D: IntoIterator<Item = (F, Option<H>, Sign)>,
+        D: IntoIterator<Item = (F, Option<H>, Sign)> + std::fmt::Debug,
         F: TryInto<u16> + std::fmt::Debug,
         H: TryInto<u16> + std::fmt::Debug,
         StrandValidationError: From<<F as TryInto<u16>>::Error>
@@ -415,7 +415,7 @@ impl Word {
     /// cases for this function.
     pub fn try_from_letters<L>(letters: &[L]) -> WordResult
     where
-        L: Into<Letter> + Clone + Copy,
+        L: Into<Letter> + Clone + Copy + std::fmt::Debug,
     {
         let (total_len, letters) = letters
             .iter()

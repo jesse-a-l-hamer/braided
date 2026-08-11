@@ -494,7 +494,7 @@ impl Braid {
     where
         N: TryInto<u16> + std::fmt::Debug,
         IndexValidationError: From<<N as TryInto<u16>>::Error>,
-        L: Into<Letter> + Clone + Copy,
+        L: Into<Letter> + Clone + Copy + std::fmt::Debug,
     {
         let word_result = Word::try_from_letters(letters);
         let word = match &*word_result {
@@ -567,7 +567,7 @@ impl Braid {
     where
         N: TryInto<u16> + std::fmt::Debug,
         IndexValidationError: From<<N as TryInto<u16>>::Error> + From<std::convert::Infallible>,
-        D: IntoIterator<Item = (F, Option<H>, Sign)>,
+        D: IntoIterator<Item = (F, Option<H>, Sign)> + std::fmt::Debug,
         F: TryInto<u16> + std::fmt::Debug,
         H: TryInto<u16> + std::fmt::Debug,
         StrandValidationError: From<<F as TryInto<u16>>::Error>
