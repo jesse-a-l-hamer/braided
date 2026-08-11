@@ -15,9 +15,33 @@ exclude = [
   ".github/",
 ]
 
+[[bench]]
+harness = false
+name = "coalescence_by_band_length"
+
+[[bench]]
+harness = false
+name = "coalescence_by_band_location"
+
+[[bench]]
+harness = false
+name = "coalescence_by_band_number"
+
+[[bench]]
+harness = false
+name = "multiplication_by_cancellation"
+
+[[bench]]
+harness = false
+name = "multiplication_by_length"
+
+[[bench]]
+harness = false
+name = "multiplication_by_type"
+
 [dependencies]
 thiserror = "2.0.19"
-tracing = {version = "0.1.44", features = ["log"]}
+tracing = { version = "0.1.44", features = ["log"] }
 
 [dev-dependencies]
 criterion = { version = "0.8.2", features = ["html_reports"] }
