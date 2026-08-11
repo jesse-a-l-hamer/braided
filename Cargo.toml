@@ -21,3 +21,4 @@ tracing = {version = "0.1.44", features = ["log"]}
 
 [dev-dependencies]
 googletest = "0.14.3"
+tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
