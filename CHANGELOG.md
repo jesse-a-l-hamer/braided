@@ -6,6 +6,44 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [0.2.1](https://github.com/jesse-a-l-hamer/braided/compare/v0.2.0...v0.2.1) - 2026-08-11
+
+### Added
+
+- annotate every fn with `tracing::instrument` attribute
+
+### Fixed
+
+- *(changelog)* fix small typo in changelog v0.2.0 codeblock
+
+### Other
+
+- *(changelog)* update unreleased section of changelog with benchmarking info
+- *(bench)* set `lib.bench = false` in Cargo.toml
+- *(benches)* implement first 6 benchmarks
+- add empty benchmarks and update Cargo.toml
+- *(dev-dependencies)* add `criterion` crate
+- *(changelog)* update "unreleased" portion of changelog with details from last two PRs
+- formatting
+- *(tests)* add telemetry to integration tests
+- *(dev-dependencies)* add `tracing-subscriber`
+- *(tests)* refactored integration tests to enable shared top-level modules for helpers and telemetry
+- *(braid,word)* add `std::fmt::Debug` bound to `IntoIterator<...>` generics on certain `Word` and `Braid` constructors
+- *(dependencies)* add `tracing` crate
+- add `std::fmt::Debug` bounds to any `TryInto<u16>` generics in fn signatures
+- *(multiplication)* remove unneeded imports
+- *(macros)* refactor recursive branches of `word!` macro to make use of more robust multiplication
+- *(algebraic_properties::group_axioms)* implement integration tests to ensure group axioms hold for braid multiplication
+- *(algebraic_properties::coalescence)* implement integration tests to check band coalescence relation
+- *(algebraic_properties::decomposition)* implement integration tests to check band decomposition relations
+- *(algebraic_properties::cancellation)* implement integration tests to check that cancellation properties work as expected
+- *(api::generators)* implement integration tests to check invariance with respect to generator type
+- *(algebraic_properties)* add decomposition and coalescence modules
+- *(api::multiplication)* move multiplication unit tests into integration test suite
+- *(api)* move generators test module into api module
+- *(api::construction)* move macros unit tests into integration test suite
+- setup integration test suite skeleton
+
 This release does not offer any new features, but implements a few key ingredients for
 the long term health of the repo. Major additions include:
 
