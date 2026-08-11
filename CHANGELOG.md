@@ -6,6 +6,39 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+This release does not offer any new features, but implements a few key ingredients for
+the long term health of the repo. Major additions include:
+
+- Implementation of an integration test suite.
+  - Currently, two sets of invariants are emphasized by these tests:
+    - _Public API_
+      - Ensure that constructor macros `letter!`, `word!`, and `braid!` behave as
+        advertised.
+      - Ensure that `Letter` properly abstracts over the underlying generating set. For
+        example, these tests ensure that invariants like `Letter::height` and
+        `Letter::artin_length` compute as expected whether the wrapped generator is an
+        `ArtinGenerator` or an equivalent `BandGenerator`.
+      - Ensure that multiplication works consistenly across all possible combinations of
+        operand type.
+    - _Algebraic Properties_
+      - Ensure that braids of a given index satisfy the group axioms.
+      - Ensure that auto-cancellation of multiplication results works as expected.
+      - Ensure that the band decomposition and coalescence relations are upheld by the
+        various `decompose` and `coalesce` methods.
+  - More tests will be added as the library grows and more invariants need guarantees.
+- Implementation of tracing infrastructure using the
+  [`tracing`](https://docs.rs/tracing/0.1.44/tracing/index.html) crate.
+  - Users who use either the [`tracing`](https://docs.rs/tracing/0.1.44/tracing/index.html)
+    or [`log`](https://docs.rs/log/0.4.6/log/) crates will now benefit from
+    instrumentation of every function in the library.
+  - I tried to adhere to the following level-heuristics when instrumenting functions,
+    though there are exceptions to each rule:
+    - Use level `info` for fallible constructors and computed properties.
+    - Use level `debug` for infallible constructors and accessor methods, as well as
+      any events emitted in the function body.
+    - Use `trace` for the impl of `std::ops::Neg` for `Sign`, as well as all trait
+      implementations on `*Result` structs.
+
 ## [0.2.0](https://github.com/jesse-a-l-hamer/braided/compare/v0.1.2...v0.2.0) - 2026-08-10
 
 This release brings improvements to the ergonomics of the multiplication system. In particular,
