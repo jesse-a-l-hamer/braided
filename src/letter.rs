@@ -248,10 +248,11 @@ impl Letter {
     ///
     /// See the documentation for [`LetterValidationError`] for more details and examples concerning
     /// the possible error cases.
+    #[tracing::instrument(level = "info")]
     pub fn try_new<F, H>(foot: F, head: Option<H>, sign: Sign) -> LetterResult
     where
-        F: TryInto<u16>,
-        H: TryInto<u16>,
+        F: TryInto<u16> + std::fmt::Debug,
+        H: TryInto<u16> + std::fmt::Debug,
         StrandValidationError: From<<F as TryInto<u16>>::Error>
             + From<<H as TryInto<u16>>::Error>
             + From<std::convert::Infallible>,
@@ -294,6 +295,7 @@ impl Letter {
     ///     ],
     ///     );
     /// ```
+    #[tracing::instrument(level = "info")]
     pub fn decompose(&self) -> Vec<Self> {
         match self {
             Letter::Artin(_) => vec![*self],
@@ -319,6 +321,7 @@ impl Letter {
     ///     assert_eq!(letter.sign(), sign); // [+, -, +]
     /// }
     /// ```
+    #[tracing::instrument(level = "debug")]
     pub fn sign(&self) -> Sign {
         match self {
             Self::Artin(artin) => artin.sign(),
@@ -343,6 +346,7 @@ impl Letter {
     ///     assert_eq!(letter.foot(), Strand::try_new(foot).unwrap()); // [1, 3, 6]
     /// }
     /// ```
+    #[tracing::instrument(level = "debug")]
     pub fn foot(&self) -> Strand {
         match self {
             Self::Artin(artin) => artin.foot(),
@@ -370,6 +374,7 @@ impl Letter {
     ///     ); // [2, 5, 7]
     /// }
     /// ```
+    #[tracing::instrument(level = "debug")]
     pub fn head(&self) -> Strand {
         match self {
             Self::Artin(artin) => artin.head(),
@@ -398,6 +403,7 @@ impl Letter {
     ///     ); // [[1; -], [3 => 5; +], [6 => 7; -]]
     /// }
     /// ```
+    #[tracing::instrument(level = "info")]
     pub fn inverse(&self) -> Self {
         match self {
             Self::Artin(artin) => Self::Artin(artin.inverse()),
@@ -426,6 +432,7 @@ impl Letter {
     ///     assert_eq!(letter.is_artin(), head.unwrap_or(foot + 1) - foot == 1); // [T, F, T]
     /// }
     /// ```
+    #[tracing::instrument(level = "info")]
     pub fn is_artin(&self) -> bool {
         match self {
             Self::Artin(_) => true,
@@ -452,6 +459,7 @@ impl Letter {
     ///     assert_eq!(letter.height(), head.unwrap_or(foot + 1) - foot); // [1, 2, 1]
     /// }
     /// ```
+    #[tracing::instrument(level = "info")]
     pub fn height(&self) -> u16 {
         match self {
             Self::Artin(_) => 1,
@@ -479,6 +487,7 @@ impl Letter {
     ///     ); // [1, 3, 1]
     /// }
     /// ```
+    #[tracing::instrument(level = "info")]
     pub fn artin_length(&self) -> u16 {
         match self {
             Self::Artin(_) => 1,
@@ -506,6 +515,7 @@ impl Letter {
     ///     ); // [2, 5, 7]
     /// }
     /// ```
+    #[tracing::instrument(level = "info")]
     pub fn minimal_required_braid_index(&self) -> BraidIndex {
         match self {
             Self::Artin(artin) => artin.minimal_required_braid_index(),
@@ -515,17 +525,20 @@ impl Letter {
 }
 
 impl From<ArtinGenerator> for Letter {
+    #[tracing::instrument(level = "debug")]
     fn from(value: ArtinGenerator) -> Self {
         Self::Artin(value)
     }
 }
 impl From<BandGenerator> for Letter {
+    #[tracing::instrument(level = "debug")]
     fn from(value: BandGenerator) -> Self {
         Self::Band(value)
     }
 }
 
 impl std::cmp::PartialEq for Letter {
+    #[tracing::instrument(level = "debug")]
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (Self::Artin(lhs), Self::Artin(rhs)) => lhs == rhs,

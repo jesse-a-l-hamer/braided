@@ -148,54 +148,64 @@ pub struct StrandResult(Result<Strand, StrandValidationError>);
 pub struct WordResult(Result<Word, WordValidationError>);
 
 impl From<Result<ArtinGenerator, ArtinValidationError>> for ArtinResult {
+    #[tracing::instrument(level = "trace")]
     fn from(value: Result<ArtinGenerator, ArtinValidationError>) -> Self {
         Self(value)
     }
 }
 impl From<ArtinGenerator> for ArtinResult {
+    #[tracing::instrument(level = "trace")]
     fn from(value: ArtinGenerator) -> Self {
         Self(Ok(value))
     }
 }
 impl From<ArtinValidationError> for ArtinResult {
+    #[tracing::instrument(level = "trace")]
     fn from(value: ArtinValidationError) -> Self {
         Self(Err(value))
     }
 }
 impl std::ops::Deref for ArtinResult {
     type Target = Result<ArtinGenerator, ArtinValidationError>;
+    #[tracing::instrument(level = "trace")]
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 impl std::ops::DerefMut for ArtinResult {
+    #[tracing::instrument(level = "trace")]
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
 }
 
 impl From<Result<BandGenerator, BandValidationError>> for BandResult {
+    #[tracing::instrument(level = "trace")]
     fn from(value: Result<BandGenerator, BandValidationError>) -> Self {
         Self(value)
     }
 }
 impl From<BandGenerator> for BandResult {
+    #[tracing::instrument(level = "trace")]
     fn from(value: BandGenerator) -> Self {
         Self(Ok(value))
     }
 }
 impl From<BandValidationError> for BandResult {
+    #[tracing::instrument(level = "trace")]
     fn from(value: BandValidationError) -> Self {
         Self(Err(value))
     }
 }
 impl std::ops::Deref for BandResult {
     type Target = Result<BandGenerator, BandValidationError>;
+    #[tracing::instrument(level = "trace")]
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 impl std::ops::DerefMut for BandResult {
+    #[tracing::instrument(level = "trace")]
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
@@ -218,6 +228,7 @@ impl BraidResult {
     ///
     /// assert_eq!(braid.writhe(), 0);
     /// ```
+    #[tracing::instrument(level = "debug")]
     pub fn clone_unwrap(&self) -> Braid {
         <Result<Braid, BraidValidationError> as Clone>::clone(self).unwrap()
     }
@@ -242,113 +253,134 @@ impl BraidResult {
     ///     minimal_required_index: BraidIndex::try_new(5).unwrap()
     /// });
     /// ```
+    #[tracing::instrument(level = "debug")]
     pub fn clone_unwrap_err(&self) -> BraidValidationError {
         <Result<Braid, BraidValidationError> as Clone>::clone(self).unwrap_err()
     }
 }
 impl From<Result<Braid, BraidValidationError>> for BraidResult {
+    #[tracing::instrument(level = "trace")]
     fn from(value: Result<Braid, BraidValidationError>) -> Self {
         Self(value)
     }
 }
 impl From<Braid> for BraidResult {
+    #[tracing::instrument(level = "trace")]
     fn from(value: Braid) -> Self {
         Self(Ok(value))
     }
 }
 impl From<BraidValidationError> for BraidResult {
+    #[tracing::instrument(level = "trace")]
     fn from(value: BraidValidationError) -> Self {
         Self(Err(value))
     }
 }
 impl std::ops::Deref for BraidResult {
     type Target = Result<Braid, BraidValidationError>;
+    #[tracing::instrument(level = "trace")]
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 impl std::ops::DerefMut for BraidResult {
+    #[tracing::instrument(level = "trace")]
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
 }
 
 impl From<Result<BraidIndex, IndexValidationError>> for IndexResult {
+    #[tracing::instrument(level = "trace")]
     fn from(value: Result<BraidIndex, IndexValidationError>) -> Self {
         Self(value)
     }
 }
 impl From<BraidIndex> for IndexResult {
+    #[tracing::instrument(level = "trace")]
     fn from(value: BraidIndex) -> Self {
         Self(Ok(value))
     }
 }
 impl From<IndexValidationError> for IndexResult {
+    #[tracing::instrument(level = "trace")]
     fn from(value: IndexValidationError) -> Self {
         Self(Err(value))
     }
 }
 impl std::ops::Deref for IndexResult {
     type Target = Result<BraidIndex, IndexValidationError>;
+    #[tracing::instrument(level = "trace")]
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 impl std::ops::DerefMut for IndexResult {
+    #[tracing::instrument(level = "trace")]
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
 }
 
 impl From<Result<Letter, LetterValidationError>> for LetterResult {
+    #[tracing::instrument(level = "trace")]
     fn from(value: Result<Letter, LetterValidationError>) -> Self {
         Self(value)
     }
 }
 impl From<Letter> for LetterResult {
+    #[tracing::instrument(level = "trace")]
     fn from(value: Letter) -> Self {
         Self(Ok(value))
     }
 }
 impl From<LetterValidationError> for LetterResult {
+    #[tracing::instrument(level = "trace")]
     fn from(value: LetterValidationError) -> Self {
         Self(Err(value))
     }
 }
 impl std::ops::Deref for LetterResult {
     type Target = Result<Letter, LetterValidationError>;
+    #[tracing::instrument(level = "trace")]
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 impl std::ops::DerefMut for LetterResult {
+    #[tracing::instrument(level = "trace")]
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
 }
 
 impl From<Result<Strand, StrandValidationError>> for StrandResult {
+    #[tracing::instrument(level = "trace")]
     fn from(value: Result<Strand, StrandValidationError>) -> Self {
         Self(value)
     }
 }
 impl From<Strand> for StrandResult {
+    #[tracing::instrument(level = "trace")]
     fn from(value: Strand) -> Self {
         Self(Ok(value))
     }
 }
 impl From<StrandValidationError> for StrandResult {
+    #[tracing::instrument(level = "trace")]
     fn from(value: StrandValidationError) -> Self {
         Self(Err(value))
     }
 }
 impl std::ops::Deref for StrandResult {
     type Target = Result<Strand, StrandValidationError>;
+    #[tracing::instrument(level = "trace")]
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 impl std::ops::DerefMut for StrandResult {
+    #[tracing::instrument(level = "trace")]
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
@@ -370,6 +402,7 @@ impl WordResult {
     ///
     /// assert_eq!(word.artin_length(), 6);
     /// ```
+    #[tracing::instrument(level = "debug")]
     pub fn clone_unwrap(&self) -> Word {
         <Result<Word, WordValidationError> as Clone>::clone(self).unwrap()
     }
@@ -390,32 +423,38 @@ impl WordResult {
     ///
     /// assert_matches!(invalid_word, WordValidationError::LetterValidation(_));
     /// ```
+    #[tracing::instrument(level = "debug")]
     pub fn clone_unwrap_err(&self) -> WordValidationError {
         <Result<Word, WordValidationError> as Clone>::clone(self).unwrap_err()
     }
 }
 impl From<Result<Word, WordValidationError>> for WordResult {
+    #[tracing::instrument(level = "trace")]
     fn from(value: Result<Word, WordValidationError>) -> Self {
         Self(value)
     }
 }
 impl From<Word> for WordResult {
+    #[tracing::instrument(level = "trace")]
     fn from(value: Word) -> Self {
         Self(Ok(value))
     }
 }
 impl From<WordValidationError> for WordResult {
+    #[tracing::instrument(level = "trace")]
     fn from(value: WordValidationError) -> Self {
         Self(Err(value))
     }
 }
 impl std::ops::Deref for WordResult {
     type Target = Result<Word, WordValidationError>;
+    #[tracing::instrument(level = "trace")]
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 impl std::ops::DerefMut for WordResult {
+    #[tracing::instrument(level = "trace")]
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }

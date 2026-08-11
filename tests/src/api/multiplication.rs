@@ -1,5 +1,6 @@
 //! Integration tests for the multiplication interface.
 
+use crate::telemetry::start_tracing;
 use braided::{
     Braid, BraidIndex, BraidResult, BraidValidationError, Letter, Sign, Word, WordValidationError,
     braid, letter, word,
@@ -10,6 +11,7 @@ use googletest::{assert_that, expect_that, gtest};
 // LETTERS
 #[gtest]
 fn valid_multiplication_of_two_letters_succeeds() {
+    start_tracing();
     let l1 = Letter::try_new(1, None::<u16>, Sign::Positive).unwrap();
     let l2 = Letter::try_new(2, Some(4), Sign::Negative).unwrap();
 
@@ -22,6 +24,7 @@ fn valid_multiplication_of_two_letters_succeeds() {
 
 #[gtest]
 fn invalid_multiplication_of_two_letters_fails() {
+    start_tracing();
     let l1 = Letter::try_new(1, None::<u16>, Sign::Positive).unwrap();
     let l2 = Letter::try_new(1, Some(2u16.pow(15) + 1), Sign::Negative).unwrap();
     let error = WordValidationError::TooLong(u16::MAX as usize + 1);
@@ -32,6 +35,7 @@ fn invalid_multiplication_of_two_letters_fails() {
 
 #[gtest]
 fn can_multiply_letter_and_letter_result() {
+    start_tracing();
     let letter = letter![1; +].unwrap();
     let letter_result = letter![2; -];
 
@@ -41,6 +45,7 @@ fn can_multiply_letter_and_letter_result() {
 
 #[test]
 fn can_multiply_letter_result_and_letter_result() {
+    start_tracing();
     let letter_result1 = letter![1; +];
     let letter_result2 = letter![2; -];
 
@@ -49,6 +54,7 @@ fn can_multiply_letter_result_and_letter_result() {
 
 #[gtest]
 fn multiplication_with_invalid_letter_result_propagates_error() {
+    start_tracing();
     let invalid_letter_result = letter![2 => 1; +];
     let invalid_word_result = word![[0; -1], [1 => 3; 3]];
     let invalid_braid_result = braid![(1); [1 => 3; 2]];
@@ -126,6 +132,7 @@ fn multiplication_with_invalid_letter_result_propagates_error() {
 // WORDS
 #[gtest]
 fn valid_multiplicaation_of_word_and_letter_succeeds() {
+    start_tracing();
     let letters = vec![
         Letter::try_new(1, Some(3), Sign::Positive).unwrap(),
         Letter::try_new(2, None::<u16>, Sign::Negative).unwrap(),
@@ -150,6 +157,7 @@ fn valid_multiplicaation_of_word_and_letter_succeeds() {
 
 #[gtest]
 fn valid_multiplication_of_word_and_word_succeeds() {
+    start_tracing();
     let letters1 = vec![
         Letter::try_new(1, Some(3), Sign::Positive).unwrap(),
         Letter::try_new(2, None::<u16>, Sign::Negative).unwrap(),
@@ -177,6 +185,7 @@ fn valid_multiplication_of_word_and_word_succeeds() {
 
 #[gtest]
 fn invalid_multiplication_of_word_with_letter_fails() {
+    start_tracing();
     let short_word = Word::try_new([
         (1, Some(3), Sign::Positive),
         (2, None, Sign::Negative),
@@ -236,6 +245,7 @@ fn invalid_multiplication_of_word_with_letter_fails() {
 
 #[gtest]
 fn invalid_multiplication_of_word_with_word_fails() {
+    start_tracing();
     let short_word = Word::try_new([
         (1, Some(3), Sign::Positive),
         (2, None, Sign::Negative),
@@ -277,6 +287,7 @@ fn invalid_multiplication_of_word_with_word_fails() {
 
 #[gtest]
 fn can_multiply_letter_with_borrowed_word() {
+    start_tracing();
     let letter = letter![1; +].unwrap();
     let word = word![[2; -1], [1 => 3; 2]].clone_unwrap();
 
@@ -286,6 +297,7 @@ fn can_multiply_letter_with_borrowed_word() {
 
 #[gtest]
 fn can_multiply_borrowed_word_and_word() {
+    start_tracing();
     let word1 = word![[2; -1], [1 => 3; 2]].clone_unwrap();
     let word2 = word![[1; 7], [2; -3]].clone_unwrap();
     let word3 = word![[1 => 3; 4]].clone_unwrap();
@@ -302,6 +314,7 @@ fn can_multiply_borrowed_word_and_word() {
 
 #[test]
 fn can_multiply_borrowed_word_and_borrowed_word() {
+    start_tracing();
     let word1 = word![[2; -1], [1 => 3; 2]].clone_unwrap();
     let word2 = word![[1; 7], [2; -3]].clone_unwrap();
 
@@ -313,6 +326,7 @@ fn can_multiply_borrowed_word_and_borrowed_word() {
 
 #[gtest]
 fn can_multiply_word_and_letter_result() {
+    start_tracing();
     let letter_result = letter![1; +];
     let word = word![[2; -1], [1 => 3; 2]].clone_unwrap();
 
@@ -336,6 +350,7 @@ fn can_multiply_word_and_letter_result() {
 
 #[gtest]
 fn can_multiply_letter_and_word_result() {
+    start_tracing();
     let letter = letter![1; +].unwrap();
     let word_result = word![[2; -1], [1 => 3; 2]];
 
@@ -351,6 +366,7 @@ fn can_multiply_letter_and_word_result() {
 
 #[gtest]
 fn can_multiply_word_and_word_result() {
+    start_tracing();
     let word = word![[1; 1]].clone_unwrap();
     let word_result = word![[2; -1], [1 => 3; 2]];
 
@@ -374,6 +390,7 @@ fn can_multiply_word_and_word_result() {
 
 #[gtest]
 fn can_multiply_letter_result_and_word_result() {
+    start_tracing();
     let letter_result = letter![1; +];
     let word_result = word![[2; -1], [1 => 3; 2]];
 
@@ -389,6 +406,7 @@ fn can_multiply_letter_result_and_word_result() {
 
 #[test]
 fn can_multiply_word_result_and_word_result() {
+    start_tracing();
     let word_result1 = word![[1; 1]];
     let word_result2 = word![[2; -1], [1 => 3; 2]];
 
@@ -400,6 +418,7 @@ fn can_multiply_word_result_and_word_result() {
 
 #[gtest]
 fn can_multiply_letter_and_word_with_borrowed_word_result() {
+    start_tracing();
     let letter = letter![1; +].unwrap();
     let letter_result = letter![1; +];
     let word = word![[1; 1]].clone_unwrap();
@@ -432,6 +451,7 @@ fn can_multiply_letter_and_word_with_borrowed_word_result() {
 
 #[gtest]
 fn multiplication_with_invalid_word_result_propagates_error() {
+    start_tracing();
     let invalid_letter_result = letter![2 => 1; +];
     let invalid_word_result = word![[0; -1], [1 => 3; 3]];
     let invalid_braid_result = braid![(1); [1 => 3; 2]];
@@ -581,6 +601,7 @@ fn multiplication_with_invalid_word_result_propagates_error() {
 
 #[gtest]
 fn valid_multiplication_of_braid_with_letter_succeeds() {
+    start_tracing();
     let letters = vec![
         Letter::try_new(1, Some(3), Sign::Positive).unwrap(),
         Letter::try_new(2, None::<u16>, Sign::Negative).unwrap(),
@@ -607,6 +628,7 @@ fn valid_multiplication_of_braid_with_letter_succeeds() {
 
 #[gtest]
 fn valid_multiplication_of_braid_with_word_succeeds_and_computes_as_expected() {
+    start_tracing();
     let braid = Braid::try_from_letters(
         None::<u16>,
         &[
@@ -637,6 +659,7 @@ fn valid_multiplication_of_braid_with_word_succeeds_and_computes_as_expected() {
 
 #[gtest]
 fn valid_multiplication_of_braid_with_braid_succeeds() {
+    start_tracing();
     let braid1 = Braid::try_from_letters(
         None::<u16>,
         &[
@@ -674,6 +697,7 @@ fn valid_multiplication_of_braid_with_braid_succeeds() {
 
 #[gtest]
 fn invalid_multiplication_with_braid_fails_as_expected() {
+    start_tracing();
     let letter = Letter::try_new(7, None::<u16>, Sign::Positive).unwrap();
     let word = Word::try_new(vec![
         (2, Some(8), Sign::Negative),
@@ -868,6 +892,7 @@ fn invalid_multiplication_with_braid_fails_as_expected() {
 
 #[gtest]
 fn can_multiply_borrowed_braid_with_letter() {
+    start_tracing();
     let letter = letter![1; +].unwrap();
     let braid = braid![(); [2; -1], [1 => 3; 3]].clone_unwrap();
 
@@ -883,6 +908,7 @@ fn can_multiply_borrowed_braid_with_letter() {
 
 #[gtest]
 fn can_multiply_borrowed_braid_with_word() {
+    start_tracing();
     let word1 = word![[1; 1], [2; -3]].clone_unwrap();
     let word2 = word![[1 => 3; 2]].clone_unwrap();
     let braid = braid![(); [2; -1], [1 => 3; 3]].clone_unwrap();
@@ -899,6 +925,7 @@ fn can_multiply_borrowed_braid_with_word() {
 
 #[gtest]
 fn can_multiply_braid_with_borrowed_word() {
+    start_tracing();
     let braid1 = braid![(); [1; 1], [2; -3]].clone_unwrap();
     let braid2 = braid![(); [1 => 3; 2]].clone_unwrap();
     let word = word![[2; -1], [1 => 3; 3]].clone_unwrap();
@@ -915,6 +942,7 @@ fn can_multiply_braid_with_borrowed_word() {
 
 #[gtest]
 fn can_multiply_borrowed_braid_with_borrowed_word() {
+    start_tracing();
     let braid = braid![(); [1; 1], [2; -3]].clone_unwrap();
     let word = word![[2; -1], [1 => 3; 3]].clone_unwrap();
 
@@ -930,6 +958,7 @@ fn can_multiply_borrowed_braid_with_borrowed_word() {
 
 #[gtest]
 fn can_multiply_braid_with_borrowed_braid() {
+    start_tracing();
     let braid1 = braid![(); [1; 1], [2; -3]].clone_unwrap();
     let braid2 = braid![(); [1 => 3; 2]].clone_unwrap();
     let braid = braid![(); [2; -1], [1 => 3; 3]].clone_unwrap();
@@ -946,6 +975,7 @@ fn can_multiply_braid_with_borrowed_braid() {
 
 #[test]
 fn can_multiply_borrowed_braid_with_borrowed_braid() {
+    start_tracing();
     let braid1 = braid![(); [1; 1], [2; -3]].clone_unwrap();
     let braid2 = braid![(); [1 => 3; 2]].clone_unwrap();
 
@@ -957,6 +987,7 @@ fn can_multiply_borrowed_braid_with_borrowed_braid() {
 
 #[gtest]
 fn can_multiply_braid_with_letter_result() {
+    start_tracing();
     let letter_result = letter![1; +];
     let braid = braid![(); [1 => 3; -3], [2; 7]].clone_unwrap();
 
@@ -985,6 +1016,7 @@ fn can_multiply_braid_with_letter_result() {
 
 #[gtest]
 fn can_multiply_braid_with_word_result() {
+    start_tracing();
     let word_result = word![[1; 3], [2; -7]];
     let braid = braid![(); [1 => 3; 2], [1; 1]].clone_unwrap();
 
@@ -1013,6 +1045,7 @@ fn can_multiply_braid_with_word_result() {
 
 #[gtest]
 fn can_multiply_letter_with_braid_result() {
+    start_tracing();
     let letter = letter![1; +].unwrap();
     let braid_result = braid![(); [1 => 3; -3], [2; 7]];
 
@@ -1039,6 +1072,7 @@ fn can_multiply_letter_with_braid_result() {
 
 #[gtest]
 fn can_multiply_word_with_braid_result() {
+    start_tracing();
     let word = word![[1; 3], [2; -7]].clone_unwrap();
     let braid_result = braid![(); [1 => 3; 2], [1; 1]];
 
@@ -1067,6 +1101,7 @@ fn can_multiply_word_with_braid_result() {
 
 #[gtest]
 fn can_multiply_braid_with_braid_result() {
+    start_tracing();
     let braid = braid![(); [1; 3], [2; -7]].clone_unwrap();
     let braid_result = braid![(); [1 => 3; 2], [1; 1]];
 
@@ -1102,6 +1137,7 @@ fn can_multiply_braid_with_braid_result() {
 
 #[gtest]
 fn can_multiply_letter_result_with_braid_result() {
+    start_tracing();
     let letter_result = letter![1; +];
     let braid_result = braid![(); [1 => 3; -3], [2; 7]];
 
@@ -1128,6 +1164,7 @@ fn can_multiply_letter_result_with_braid_result() {
 
 #[gtest]
 fn can_multiply_word_result_with_braid_result() {
+    start_tracing();
     let word_result = word![[1; 3], [2; -7]];
     let braid_result = braid![(); [1 => 3; 2], [1; 1]];
 
@@ -1154,6 +1191,7 @@ fn can_multiply_word_result_with_braid_result() {
 
 #[test]
 fn can_multiply_braid_result_with_braid_result() {
+    start_tracing();
     let braid_result1 = braid![(); [1; 3], [2; -7]];
     let braid_result2 = braid![(); [1 => 3; 2], [1; 1]];
 
@@ -1165,6 +1203,7 @@ fn can_multiply_braid_result_with_braid_result() {
 
 #[gtest]
 fn can_multiply_braid_with_borrowed_word_result() {
+    start_tracing();
     let braid = braid![(); [1; 1]].clone_unwrap();
     let braid_result = braid![(); [1; 1]];
 
@@ -1188,6 +1227,7 @@ fn can_multiply_braid_with_borrowed_word_result() {
 
 #[gtest]
 fn can_multiply_any_with_borrowed_braid_result() {
+    start_tracing();
     let letter = letter![1; +].unwrap();
     let letter_result = letter![1; +];
     let word = word![[1; 1]].clone_unwrap();
@@ -1237,6 +1277,7 @@ fn can_multiply_any_with_borrowed_braid_result() {
 
 #[gtest]
 fn multiplication_with_invalid_braid_result_propagates_error() {
+    start_tracing();
     let invalid_letter_result = letter![2 => 1; +];
     let invalid_word_result = word![[0; -1], [1 => 3; 3]];
     let invalid_braid_result = braid![(1); [1 => 3; 2]];

@@ -2,8 +2,9 @@ use crate::{Letter, LetterResult, Word, WordResult, WordValidationError};
 
 impl std::ops::Mul for Letter {
     type Output = WordResult;
-
+    #[tracing::instrument(level = "info")]
     fn mul(self, rhs: Self) -> Self::Output {
+        tracing::debug!("Attempting to multiply {:?} x {:?}", self, rhs);
         match (self, rhs) {
             (Self::Artin(lhs), Self::Artin(rhs)) => {
                 if lhs == rhs.inverse() {
@@ -39,6 +40,7 @@ impl std::ops::Mul for Letter {
 
 impl std::ops::Mul<Letter> for LetterResult {
     type Output = WordResult;
+    #[tracing::instrument(level = "info")]
     fn mul(self, rhs: Letter) -> Self::Output {
         match *self {
             Ok(lhs) => lhs * rhs,
@@ -48,6 +50,7 @@ impl std::ops::Mul<Letter> for LetterResult {
 }
 impl std::ops::Mul<LetterResult> for Letter {
     type Output = WordResult;
+    #[tracing::instrument(level = "info")]
     fn mul(self, rhs: LetterResult) -> Self::Output {
         match *rhs {
             Ok(rhs) => self * rhs,
@@ -57,6 +60,7 @@ impl std::ops::Mul<LetterResult> for Letter {
 }
 impl std::ops::Mul for LetterResult {
     type Output = WordResult;
+    #[tracing::instrument(level = "info")]
     fn mul(self, rhs: LetterResult) -> Self::Output {
         match (*self, *rhs) {
             (Ok(lhs), Ok(rhs)) => lhs * rhs,

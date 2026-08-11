@@ -1,5 +1,6 @@
 //! Integration tests which check that band coalescence works as expected.
 
+use crate::telemetry::start_tracing;
 use googletest::matchers::eq;
 use googletest::{expect_that, gtest};
 
@@ -7,6 +8,7 @@ use braided::{braid, word};
 
 #[gtest]
 fn coalescence_works_as_expected_on_words() {
+    start_tracing();
     let test_cases = [
         (
             word![[1; -1], [2; 1], [1; 1], [2; -1], [1; 1]].clone_unwrap(),
@@ -33,6 +35,7 @@ fn coalescence_works_as_expected_on_words() {
 
 #[gtest]
 fn coalescence_works_as_expected_on_braids() {
+    start_tracing();
     let test_cases = [
         (
             braid![(); [1; -1], [2; 1], [1; 1], [2; -1], [1; 1]].clone_unwrap(),

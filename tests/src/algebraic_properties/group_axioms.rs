@@ -1,5 +1,6 @@
 //! Integration tests to check that group axioms hold for multiplication of braids.
 
+use crate::telemetry::start_tracing;
 use googletest::matchers::{anything, eq, err, is_true, ok};
 use googletest::{expect_that, gtest};
 
@@ -7,6 +8,7 @@ use braided::braid;
 
 #[gtest]
 fn multiplication_of_braids_with_different_indices_fails() {
+    start_tracing();
     let test_cases = [
         (braid![(1);], braid![(2);]),
         (braid![(3);], braid![(4);]),
@@ -21,6 +23,7 @@ fn multiplication_of_braids_with_different_indices_fails() {
 
 #[gtest]
 fn multiplication_of_braids_preserves_index() {
+    start_tracing();
     let test_cases = [
         (braid![(1);], braid![(1);], braid![(1);].clone_unwrap()),
         (
@@ -47,6 +50,7 @@ fn multiplication_of_braids_preserves_index() {
 
 #[gtest]
 fn multiplication_of_braids_is_associative() {
+    start_tracing();
     let test_cases = [
         (braid![(2);], braid![(2);], braid![(2);]),
         (
@@ -76,6 +80,7 @@ fn multiplication_of_braids_is_associative() {
 
 #[gtest]
 fn trivial_braid_is_multiplicative_identity() {
+    start_tracing();
     let test_cases = [
         braid![(1);],
         braid![(2); [1; 1]],
@@ -94,6 +99,7 @@ fn trivial_braid_is_multiplicative_identity() {
 
 #[gtest]
 fn braid_inverse_is_multiplicative_inverse() {
+    start_tracing();
     let test_cases = [
         braid![(1);],
         braid![(2); [1; 1]],
