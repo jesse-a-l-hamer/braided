@@ -14,7 +14,7 @@ syntax like the following is now supported:
 ```rust
 use braided::{letter, word, braid};
 
-let my_product = letter![1; -] * word![[2 => 4; 3]]; * braid![(); [2; -1], [1 => 5; 4]];
+let my_product = letter![1; -] * word![[2 => 4; 3]] * braid![(); [2; -1], [1 => 5; 4]];
 let my_other_product = &my_product * braid![(5); [3; 7]];
 
 assert_eq!(my_product.clone_unwrap().writhe(), 5);
