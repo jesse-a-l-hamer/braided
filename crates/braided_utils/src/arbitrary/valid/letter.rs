@@ -1,6 +1,6 @@
-use crate::arbitrary::valid::{artin::arbitrary_artin_data, band::arbitrary_band_data};
+use crate::arbitrary::valid::{arbitrary_artin_data, arbitrary_band_data};
 use braided::{Letter, Sign};
-use proptest::{bits::u16, prelude::*};
+use proptest::prelude::*;
 
 pub fn arbitrary_letter_data(
     max_head: Option<u16>,

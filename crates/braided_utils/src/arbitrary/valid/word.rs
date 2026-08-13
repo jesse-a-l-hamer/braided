@@ -1,7 +1,9 @@
-use crate::arbitrary::valid::artin::arbitrary_artin;
-use crate::arbitrary::valid::band::arbitrary_band_with_given_height;
-use braided::{BandGenerator, Letter, Word};
-use proptest::{bits::u16, prelude::*};
+use crate::arbitrary::valid::band::{
+    arbitrary_band_data_with_given_height, arbitrary_band_with_given_height,
+};
+use crate::arbitrary::valid::{arbitrary_artin, arbitrary_artin_data};
+use braided::{BandGenerator, Letter, Sign, Word};
+use proptest::prelude::*;
 
 // Returns a partition of `partition_value` into a vector of odd numbers no greater than
 // `max_partition_elem`.
@@ -72,7 +74,14 @@ fn arbitrary_partition_into_odd_numbers(
         })
 }
 
-pub fn arbitrary_vector_of_artin_letters_of_given_length(
+pub fn arbitrary_vector_of_artin_data_with_given_length(
+    num_artins: usize,
+    max_foot: Option<u16>,
+) -> impl Strategy<Value = Vec<(u16, Sign)>> {
+    prop::collection::vec(arbitrary_artin_data(max_foot), num_artins..=num_artins)
+}
+
+pub fn arbitrary_vector_of_artin_letters_with_given_length(
     num_artins: usize,
     max_foot: Option<u16>,
 ) -> impl Strategy<Value = Vec<Letter>> {
@@ -80,7 +89,28 @@ pub fn arbitrary_vector_of_artin_letters_of_given_length(
         .prop_map(|artin_generators| artin_generators.iter().map(|&a| Letter::from(a)).collect())
 }
 
-pub fn arbitrary_vector_of_band_letters_of_given_artin_length(
+pub fn arbitrary_vector_of_band_data_with_given_artin_length(
+    artin_length: u16,
+    max_head: Option<u16>,
+) -> impl Strategy<Value = Vec<(u16, u16, Sign)>> {
+    arbitrary_partition_into_odd_numbers(
+        artin_length,
+        *[artin_length, 2 * max_head.unwrap_or(u16::MAX) - 3]
+            .iter()
+            .min()
+            .unwrap(),
+    )
+    .prop_flat_map(move |partition| {
+        let mut band_generator_data_strategies = Vec::new();
+        for height in partition {
+            band_generator_data_strategies
+                .push(arbitrary_band_data_with_given_height(height, max_head));
+        }
+        band_generator_data_strategies
+    })
+}
+
+pub fn arbitrary_vector_of_band_letters_with_given_artin_length(
     artin_length: u16,
     max_head: Option<u16>,
 ) -> impl Strategy<Value = Vec<Letter>> {
@@ -104,18 +134,53 @@ pub fn arbitrary_vector_of_band_letters_of_given_artin_length(
     })
 }
 
-pub fn arbitrary_vector_of_letters_of_given_artin_length(
+pub fn arbitrary_vector_of_letter_data_with_given_artin_length(
+    artin_length: u16,
+    max_head: Option<u16>,
+) -> impl Strategy<Value = Vec<(u16, Option<u16>, Sign)>> {
+    (0..=artin_length)
+        .prop_flat_map(move |num_artins| {
+            (
+                arbitrary_vector_of_artin_data_with_given_length(
+                    num_artins as usize,
+                    max_head.map(|h| h - 1),
+                )
+                .prop_flat_map(|artin_data_vector| {
+                    let mut letter_data_strategies = Vec::new();
+                    for (foot, sign) in artin_data_vector {
+                        letter_data_strategies.push((Just(foot), Just(None), Just(sign)));
+                    }
+                    letter_data_strategies
+                }),
+                arbitrary_vector_of_band_data_with_given_artin_length(
+                    artin_length - num_artins,
+                    max_head,
+                )
+                .prop_flat_map(|band_data_vector| {
+                    let mut letter_data_strategies = Vec::new();
+                    for (foot, head, sign) in band_data_vector {
+                        letter_data_strategies.push((Just(foot), Just(Some(head)), Just(sign)));
+                    }
+                    letter_data_strategies
+                }),
+            )
+        })
+        .prop_map(|(artin_letters, band_letters)| [artin_letters, band_letters].concat())
+        .prop_shuffle()
+}
+
+pub fn arbitrary_vector_of_letters_with_given_artin_length(
     artin_length: u16,
     max_head: Option<u16>,
 ) -> impl Strategy<Value = Vec<Letter>> {
     (0..=artin_length)
         .prop_flat_map(move |num_artins| {
             (
-                arbitrary_vector_of_artin_letters_of_given_length(
+                arbitrary_vector_of_artin_letters_with_given_length(
                     num_artins as usize,
                     max_head.map(|h| h - 1),
                 ),
-                arbitrary_vector_of_band_letters_of_given_artin_length(
+                arbitrary_vector_of_band_letters_with_given_artin_length(
                     artin_length - num_artins,
                     max_head,
                 ),
@@ -125,12 +190,21 @@ pub fn arbitrary_vector_of_letters_of_given_artin_length(
         .prop_shuffle()
 }
 
-pub fn arbitrary_word_of_given_artin_length(
+pub fn arbitrary_word_with_given_artin_length(
     artin_length: u16,
     max_head: Option<u16>,
 ) -> impl Strategy<Value = Word> {
-    arbitrary_vector_of_letters_of_given_artin_length(artin_length, max_head)
+    arbitrary_vector_of_letters_with_given_artin_length(artin_length, max_head)
         .prop_map(|letters| Word::try_from_letters(&letters[..]).clone_unwrap())
+}
+
+pub fn arbitrary_word_data(
+    max_head: Option<u16>,
+    max_artin_length: Option<u16>,
+) -> impl Strategy<Value = Vec<(u16, Option<u16>, Sign)>> {
+    (0..=max_artin_length.unwrap_or(u16::MAX)).prop_flat_map(move |artin_length| {
+        arbitrary_vector_of_letter_data_with_given_artin_length(artin_length, max_head)
+    })
 }
 
 pub fn arbitrary_word(
@@ -138,6 +212,6 @@ pub fn arbitrary_word(
     max_artin_length: Option<u16>,
 ) -> impl Strategy<Value = Word> {
     (0..=max_artin_length.unwrap_or(u16::MAX)).prop_flat_map(move |artin_length| {
-        arbitrary_word_of_given_artin_length(artin_length, max_head)
+        arbitrary_word_with_given_artin_length(artin_length, max_head)
     })
 }

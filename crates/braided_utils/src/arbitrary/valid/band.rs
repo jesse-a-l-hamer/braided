@@ -1,5 +1,5 @@
 use braided::{BandGenerator, Sign};
-use proptest::{bits::u16, prelude::*};
+use proptest::prelude::*;
 
 pub fn arbitrary_band_data_with_given_height(
     height: u16,
@@ -60,4 +60,3 @@ pub fn arbitrary_band(
     arbitrary_band_data(max_head, max_height, max_artin_length)
         .prop_map(|(foot, head, sign)| BandGenerator::try_new(foot, head, sign).unwrap())
 }
-

@@ -1,5 +1,5 @@
 use braided::{ArtinGenerator, Sign};
-use proptest::{bits::u16, prelude::*};
+use proptest::prelude::*;
 
 pub fn arbitrary_artin_data(max_foot: Option<u16>) -> impl Strategy<Value = (u16, Sign)> {
     (
@@ -12,5 +12,3 @@ pub fn arbitrary_artin(max_foot: Option<u16>) -> impl Strategy<Value = ArtinGene
     arbitrary_artin_data(max_foot)
         .prop_map(|(foot, sign)| ArtinGenerator::try_new(foot, sign).unwrap())
 }
-
-
