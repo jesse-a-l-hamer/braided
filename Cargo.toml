@@ -13,6 +13,7 @@ keywords = ["braids", "knots", "topology"]
 categories = ["mathematics"]
 exclude = [
   ".github/",
+  "test_utils/",
 ]
 
 [lib]
@@ -49,4 +50,6 @@ tracing = { version = "0.1.44", features = ["log"] }
 [dev-dependencies]
 criterion = { version = "0.8.2", features = ["html_reports"] }
 googletest = "0.14.3"
+proptest = "1.11.0"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
+test_utils = { path = "test_utils" }

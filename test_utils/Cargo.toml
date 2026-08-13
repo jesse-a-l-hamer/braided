@@ -1,0 +1,12 @@
+[package]
+name = "test_utils"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.97"
+description = "Common utilities for braided unit and integration tests."
+
+[dependencies]
+braided = { path = "../" }
+proptest = "1.11.0"
+
+
