@@ -17,7 +17,7 @@ exclude = [
 
 [workspace]
 resolver = "3"
-members = ["crates/test_utils"]
+members = ["crates/braided_utils"]
 
 [workspace.package]
 version = "0.2.1"
@@ -30,10 +30,6 @@ proptest = "1.11.0"
 [lib]
 bench = false
 path = "crates/braided/lib.rs"
-
-[[test]]
-name = "integration"
-path = "tests/braided/main.rs"
 
 [[bench]]
 harness = false
@@ -64,8 +60,8 @@ thiserror = "2.0.19"
 tracing = { version = "0.1.44", features = ["log"] }
 
 [dev-dependencies]
+braided_utils = { path = "crates/braided_utils" }
 criterion = { version = "0.8.2", features = ["html_reports"] }
 googletest = "0.14.3"
 proptest.workspace = true
-test_utils = { path = "crates/test_utils/" }
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
