@@ -13,6 +13,7 @@ keywords = ["braids", "knots", "topology"]
 categories = ["mathematics"]
 exclude = [
   ".github/",
+  "release-plz.toml",
 ]
 
 [workspace]
