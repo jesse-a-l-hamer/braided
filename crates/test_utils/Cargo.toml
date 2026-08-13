@@ -1,0 +1,11 @@
+[package]
+name = "test_utils"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+description = "Common utilities for braided unit and integration tests."
+publish = false
+
+[dependencies]
+braided = { path = "../.." }
+proptest.workspace = true

@@ -1,8 +1,8 @@
 [package]
 name = "braided"
-version = "0.2.1"
-edition = "2024"
-rust-version = "1.97"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
 description = "A library for defining and manipulating mathematical braids"
 documentation = "https://docs.rs/braided"
 readme = "README.md"
@@ -13,11 +13,27 @@ keywords = ["braids", "knots", "topology"]
 categories = ["mathematics"]
 exclude = [
   ".github/",
-  "test_utils/",
 ]
+
+[workspace]
+resolver = "3"
+members = ["crates/test_utils"]
+
+[workspace.package]
+version = "0.2.1"
+edition = "2024"
+rust-version = "1.97"
+
+[workspace.dependencies]
+proptest = "1.11.0"
 
 [lib]
 bench = false
+path = "crates/braided/lib.rs"
+
+[[test]]
+name = "integration"
+path = "tests/braided/main.rs"
 
 [[bench]]
 harness = false
@@ -50,6 +66,6 @@ tracing = { version = "0.1.44", features = ["log"] }
 [dev-dependencies]
 criterion = { version = "0.8.2", features = ["html_reports"] }
 googletest = "0.14.3"
-proptest = "1.11.0"
+proptest.workspace = true
+test_utils = { path = "crates/test_utils/" }
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
-test_utils = { path = "test_utils" }
