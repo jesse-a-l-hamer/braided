@@ -19,6 +19,7 @@ exclude = [
 [workspace]
 resolver = "3"
 members = ["crates/braided_utils"]
+default-members = ["."]
 
 [workspace.package]
 version = "0.2.1"
@@ -31,6 +32,10 @@ proptest = "1.11.0"
 [lib]
 bench = false
 path = "crates/braided/lib.rs"
+
+[[test]]
+name = "integration"
+path = "tests/braided/main.rs"
 
 [[bench]]
 harness = false

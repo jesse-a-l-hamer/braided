@@ -79,81 +79,11 @@ fn arbitrary_single_coalescence_as_letters(
 }
 
 #[derive(Debug, Clone)]
-struct BlockedCoalescence {
+struct WalledCoalescence {
     band: Letter,
     decomposed_band: Vec<Letter>,
-    left_blockage: Vec<Letter>,
-    right_blockage: Vec<Letter>,
-}
-
-fn arbitrary_single_blocked_coalescence(
-    max_head: Option<u16>,
-    max_height: Option<u16>,
-    max_artin_length: Option<u16>,
-) -> impl Strategy<Value = BlockedCoalescence> {
-    arbitrary_single_coalescence_as_letters(max_head, max_height, max_artin_length)
-        .prop_flat_map(move |(coalesced_band, decomposed_band)| {
-            let max_blockage_length =
-                (max_artin_length.unwrap_or(u16::MAX) as usize - decomposed_band.len()).div_ceil(2);
-            (
-                Just(coalesced_band),
-                Just(decomposed_band.clone()),
-                arbitrary_letter(max_head, max_height, max_artin_length),
-                1..max_blockage_length,
-                arbitrary_letter(max_head, max_height, max_artin_length),
-                1..max_blockage_length,
-            )
-        })
-        .prop_filter_map(
-            "The blockers must not extend the coalesced band.",
-            |(
-                coalesced_band,
-                decomposed_band,
-                left_blocker,
-                left_blockage_length,
-                right_blocker,
-                right_blockage_length,
-            )| {
-                let foot = coalesced_band.foot();
-                let head = coalesced_band.head();
-                let is_lower_extension = left_blocker.sign() == Sign::Negative
-                    && right_blocker.sign() == Sign::Positive
-                    && left_blocker.head() == foot
-                    && right_blocker.head() == foot;
-                let is_upper_extension = left_blocker.sign() == Sign::Positive
-                    && right_blocker.sign() == Sign::Negative
-                    && left_blocker.foot() == head
-                    && right_blocker.foot() == head;
-
-                if is_lower_extension || is_upper_extension {
-                    None
-                } else {
-                    Some(BlockedCoalescence {
-                        band: coalesced_band,
-                        decomposed_band,
-                        left_blockage: vec![left_blocker; left_blockage_length],
-                        right_blockage: vec![right_blocker; right_blockage_length],
-                    })
-                }
-            },
-        )
-}
-
-fn arbitrary_multiple_blocked_coalescence(
-    max_head: Option<u16>,
-    max_height: Option<u16>,
-    max_artin_length: Option<u16>,
-) -> impl Strategy<Value = Vec<BlockedCoalescence>> {
-    prop::collection::vec(
-        arbitrary_single_blocked_coalescence(max_head, max_height, max_artin_length),
-        1..(max_artin_length.unwrap_or(u16::MAX) as usize),
-    )
-}
-
-enum PruningSafety {
-    None,
-    Partial,
-    Full,
+    left_wall: Vec<Letter>,
+    right_wall: Vec<Letter>,
 }
 
 fn pair_extends_band(band: Letter, left: Letter, right: Letter) -> bool {
@@ -169,18 +99,138 @@ fn pair_extends_band(band: Letter, left: Letter, right: Letter) -> bool {
     extends_up || extends_down
 }
 
+fn arbitrary_single_walled_coalescence(
+    max_head: Option<u16>,
+    max_height: Option<u16>,
+    max_artin_length: Option<u16>,
+) -> impl Strategy<Value = WalledCoalescence> {
+    let max_band_artin_length = if let Some(max) = max_artin_length {
+        if max <= 2 {
+            panic!("The max_artin_length for a walled coalescence must be greater than 2.");
+        } else {
+            max - 2
+        }
+    } else {
+        u16::MAX - 2
+    };
+    arbitrary_single_coalescence_as_letters(max_head, max_height, Some(max_band_artin_length))
+        .prop_flat_map(move |(band, decomposed_band)| {
+            let max_wall_length = max_artin_length.unwrap_or(u16::MAX)
+                - <usize as TryInto<u16>>::try_into(decomposed_band.len()).unwrap();
+            (
+                Just(band),
+                Just(decomposed_band),
+                Just(max_wall_length),
+                1..max_wall_length,
+            )
+        })
+        .prop_flat_map(
+            move |(band, decomposed_band, max_total_wall_length, max_left_wall_length)| {
+                let max_right_wall_length = max_total_wall_length - max_left_wall_length;
+                (
+                    Just(band),
+                    Just(decomposed_band),
+                    Just(max_left_wall_length),
+                    Just(max_right_wall_length),
+                    arbitrary_letter(max_head, max_height, Some(max_left_wall_length)),
+                    arbitrary_letter(max_head, max_height, Some(max_right_wall_length)),
+                )
+            },
+        )
+        .prop_filter(
+            "The wall letters must not extend the coalesced band.",
+            |(band, _, _, _, left_wall_letter, right_wall_letter)| {
+                !pair_extends_band(*band, *left_wall_letter, *right_wall_letter)
+            },
+        )
+        .prop_flat_map(
+            |(
+                band,
+                decomposed_band,
+                max_left_wall_length,
+                max_right_wall_length,
+                left_wall_letter,
+                right_wall_letter,
+            )| {
+                let max_left_wall_letter_reps =
+                    max_left_wall_length.div_euclid(left_wall_letter.artin_length());
+                let max_right_wall_letter_reps =
+                    max_right_wall_length.div_euclid(right_wall_letter.artin_length());
+                (
+                    Just(band),
+                    Just(decomposed_band),
+                    Just(left_wall_letter),
+                    Just(right_wall_letter),
+                    1..=max_left_wall_letter_reps,
+                    1..=max_right_wall_letter_reps,
+                )
+            },
+        )
+        .prop_map(
+            |(
+                band,
+                decomposed_band,
+                left_wall_letter,
+                right_wall_letter,
+                left_wall_letter_reps,
+                right_wall_letter_reps,
+            )| WalledCoalescence {
+                band,
+                decomposed_band,
+                left_wall: vec![left_wall_letter; left_wall_letter_reps as usize],
+                right_wall: vec![right_wall_letter; right_wall_letter_reps as usize],
+            },
+        )
+}
+
+fn arbitrary_multiple_walled_coalescence(
+    max_head: Option<u16>,
+    max_height: Option<u16>,
+    max_artin_length: Option<u16>,
+) -> impl Strategy<Value = Vec<WalledCoalescence>> {
+    let max_walled_coalescences = if let Some(max) = max_artin_length {
+        if max < 3 {
+            panic!("Max artin length must be at least 3 for generation of arbitrary coalescences.");
+        } else {
+            max.div_euclid(3)
+        }
+    } else {
+        u16::MAX.div_euclid(3)
+    };
+    (1..=max_walled_coalescences).prop_flat_map(move |num_walled_coalescences| {
+        let max_walled_coalescence_artin_length = max_artin_length
+            .unwrap_or(u16::MAX)
+            .div_euclid(num_walled_coalescences);
+        let mut strategies = Vec::new();
+        for _ in 0..num_walled_coalescences {
+            strategies.push(arbitrary_single_walled_coalescence(
+                max_head,
+                max_height,
+                Some(max_walled_coalescence_artin_length),
+            ));
+        }
+        strategies
+    })
+}
+
+enum PruningSafety {
+    None,
+    Partial,
+    Full,
+}
+
 fn get_pruning_safety(
     first: Letter,
-    first_left_blockage: &[Letter],
-    first_right_blockage: &[Letter],
+    first_left_wall: &[Letter],
+    first_right_wall: &[Letter],
     second: Letter,
-    second_left_blockage: &[Letter],
-    second_right_blockage: &[Letter],
+    second_left_wall: &[Letter],
+    second_right_wall: &[Letter],
 ) -> PruningSafety {
-    let first_left_letter = first_left_blockage.first().unwrap();
-    let first_right_letter = first_right_blockage.first().unwrap();
-    let second_left_letter = second_left_blockage.first().unwrap();
-    let second_right_letter = second_right_blockage.first().unwrap();
+    let first_left_letter = first_left_wall.first().unwrap();
+    let first_right_letter = first_right_wall.first().unwrap();
+    let second_left_letter = second_left_wall.first().unwrap();
+    let second_right_letter = second_right_wall.first().unwrap();
 
     if pair_extends_band(first, *first_left_letter, *second_left_letter)
         || pair_extends_band(second, *first_right_letter, *second_right_letter)
@@ -200,73 +250,73 @@ pub fn arbitrary_coalescence(
     max_height: Option<u16>,
     max_artin_length: Option<u16>,
 ) -> impl Strategy<Value = (Word, Word)> {
-    arbitrary_multiple_blocked_coalescence(max_head, max_height, max_artin_length).prop_perturb(
-        |mut blocked_coalescences, mut rng| {
-            let mut blocked_coalescences = blocked_coalescences.iter_mut().peekable();
+    arbitrary_multiple_walled_coalescence(max_head, max_height, max_artin_length).prop_perturb(
+        |mut walled_coalescences, mut rng| {
+            let mut walled_coalescences = walled_coalescences.iter_mut().peekable();
             let mut coalescence: Vec<Letter> = Vec::new();
             let mut decomposed: Vec<Letter> = Vec::new();
 
             if rng.random_bool(0.5)
-                && let Some(BlockedCoalescence {
+                && let Some(WalledCoalescence {
                     band: _,
                     decomposed_band: _,
-                    left_blockage: initial_left_blockage,
-                    right_blockage: _,
-                }) = blocked_coalescences.peek_mut()
+                    left_wall: initial_left_wall,
+                    right_wall: _,
+                }) = walled_coalescences.peek_mut()
             {
-                *initial_left_blockage = Vec::new();
+                *initial_left_wall = Vec::new();
             }
 
-            while let Some(BlockedCoalescence {
+            while let Some(WalledCoalescence {
                 band,
                 decomposed_band,
-                left_blockage,
-                right_blockage,
-            }) = blocked_coalescences.next()
+                left_wall,
+                right_wall,
+            }) = walled_coalescences.next()
             {
-                if let Some(BlockedCoalescence {
+                if let Some(WalledCoalescence {
                     band: next_band,
                     decomposed_band: _,
-                    left_blockage: next_left_blockage,
-                    right_blockage: next_right_blockage,
-                }) = blocked_coalescences.peek_mut()
+                    left_wall: next_left_wall,
+                    right_wall: next_right_wall,
+                }) = walled_coalescences.peek_mut()
                 {
                     match get_pruning_safety(
                         *band,
-                        left_blockage,
-                        right_blockage,
+                        left_wall,
+                        right_wall,
                         *next_band,
-                        next_left_blockage,
-                        next_right_blockage,
+                        next_left_wall,
+                        next_right_wall,
                     ) {
                         PruningSafety::None => {}
                         PruningSafety::Partial => {
                             if rng.random_bool(0.5) && rng.random_bool(0.5) {
-                                *right_blockage = Vec::new();
+                                *right_wall = Vec::new();
                             } else if rng.random_bool(0.5) && rng.random_bool(0.5) {
-                                *next_left_blockage = Vec::new();
+                                *next_left_wall = Vec::new();
                             }
                         }
                         PruningSafety::Full => {
                             if rng.random_bool(0.5) {
-                                *right_blockage = Vec::new();
-                                *next_left_blockage = Vec::new();
+                                *right_wall = Vec::new();
+                                *next_left_wall = Vec::new();
                             }
                         }
                     }
                 } else {
                     if rng.random_bool(0.5) {
-                        *right_blockage = Vec::new();
+                        *right_wall = Vec::new();
                     }
                 }
 
-                coalescence.extend(left_blockage.clone());
+                coalescence.extend(left_wall.clone());
                 coalescence.push(*band);
-                coalescence.extend(right_blockage.clone());
+                coalescence.extend(right_wall.clone());
 
-                decomposed.extend(left_blockage.clone());
+                decomposed.extend(left_wall.clone());
                 decomposed.extend(decomposed_band.clone());
-                decomposed.extend(right_blockage.clone());
+                decomposed.extend(right_wall.clone());
             }
 
             (
