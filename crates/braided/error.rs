@@ -771,7 +771,7 @@ pub enum StrandValidationError {
 /// ```
 #[derive(Debug, thiserror::Error, PartialEq, Eq, Clone, Copy)]
 pub enum WordValidationError {
-    /// Occurs when attempting to multiply two [words](crate::Word) whose combined
+    /// Occurs when attempting to construct a [word](crate::Word) from components whose combined
     /// [Artin length](crate::Word::artin_length) exceeds [`u16::MAX`].
     ///
     /// Wraps the total Artin length.

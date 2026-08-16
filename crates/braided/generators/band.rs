@@ -326,7 +326,7 @@ impl BandGenerator {
     ///
     /// <div class="warning">
     ///
-    /// The return type is [`BandResult`](crate::BandResult), which is a new-type wrapper around
+    /// The return type is [`BandResult`], which is a new-type wrapper around
     /// [`Result<BandGenerator, BandValidationError>`]. Use the dereference operator "*" for easy access to
     /// the inner value.
     ///
