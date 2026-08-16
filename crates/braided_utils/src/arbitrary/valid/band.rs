@@ -52,6 +52,30 @@ pub fn arbitrary_band_with_given_height(
         .prop_map(|(foot, head, sign)| BandGenerator::try_new(foot, head, sign).unwrap())
 }
 
+pub fn arbitrary_band_data_with_given_head(
+    head: u16,
+    max_height: Option<u16>,
+    max_artin_length: Option<u16>,
+) -> impl Strategy<Value = (u16, u16, Sign)> {
+    if head < 2 {
+        panic!("Head index must be at least 2.");
+    }
+
+    (
+        Just(head),
+        1..=*[
+            head - 1,
+            max_height.unwrap_or(u16::MAX.div_ceil(2)),
+            max_artin_length.unwrap_or(u16::MAX).div_ceil(2),
+        ]
+        .iter()
+        .min()
+        .unwrap(),
+        prop_oneof![Just(Sign::Negative), Just(Sign::Positive)],
+    )
+        .prop_map(|(head, height, sign)| (head - height, head, sign))
+}
+
 pub fn arbitrary_band(
     max_head: Option<u16>,
     max_height: Option<u16>,

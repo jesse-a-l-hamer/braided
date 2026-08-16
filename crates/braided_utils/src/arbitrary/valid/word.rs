@@ -1,7 +1,7 @@
 use crate::arbitrary::valid::band::{
     arbitrary_band_data_with_given_height, arbitrary_band_with_given_height,
 };
-use crate::arbitrary::valid::{arbitrary_artin, arbitrary_artin_data};
+use crate::arbitrary::valid::{arbitrary_artin_data, arbitrary_artin_generator};
 use braided::{BandGenerator, Letter, Sign, Word};
 use proptest::prelude::*;
 
@@ -85,7 +85,7 @@ pub fn arbitrary_vector_of_artin_letters_with_given_length(
     num_artins: usize,
     max_foot: Option<u16>,
 ) -> impl Strategy<Value = Vec<Letter>> {
-    prop::collection::vec(arbitrary_artin(max_foot), num_artins..=num_artins)
+    prop::collection::vec(arbitrary_artin_generator(max_foot), num_artins..=num_artins)
         .prop_map(|artin_generators| artin_generators.iter().map(|&a| Letter::from(a)).collect())
 }
 
@@ -196,6 +196,85 @@ pub fn arbitrary_word_with_given_artin_length(
 ) -> impl Strategy<Value = Word> {
     arbitrary_vector_of_letters_with_given_artin_length(artin_length, max_head)
         .prop_map(|letters| Word::try_from_letters(&letters[..]).clone_unwrap())
+}
+
+pub fn arbitrary_word_macro_data_single_factor_with_given_head(
+    head: u16,
+    max_artin_length: Option<u16>,
+) -> impl Strategy<Value = (u16, Option<u16>, isize)> {
+    (
+        Just(head),
+        1..=*[head - 1, max_artin_length.unwrap_or(u16::MAX).div_ceil(2)]
+            .iter()
+            .min()
+            .unwrap(),
+    )
+        .prop_flat_map(move |(head, height)| {
+            (
+                Just(head),
+                Just(height),
+                prop_oneof![Just(Sign::Negative), Just(Sign::Positive)],
+                1isize
+                    ..=(max_artin_length
+                        .unwrap_or(u16::MAX)
+                        .div_euclid(2 * height - 1) as isize),
+            )
+                .prop_perturb(|(head, height, sign, exponent), mut rng| {
+                    let foot = head - height;
+                    let head = if height > 1 || rng.random_bool(0.5) {
+                        Some(head)
+                    } else {
+                        None
+                    };
+                    match sign {
+                        Sign::Negative => (foot, head, -exponent),
+                        Sign::Positive => (foot, head, exponent),
+                    }
+                })
+        })
+}
+
+pub fn arbitrary_word_macro_data_single_factor(
+    max_head: Option<u16>,
+    max_artin_length: Option<u16>,
+) -> impl Strategy<Value = (u16, Option<u16>, isize)> {
+    (2..=max_head.unwrap_or(u16::MAX)).prop_flat_map(move |head| {
+        arbitrary_word_macro_data_single_factor_with_given_head(head, max_artin_length)
+    })
+}
+
+pub fn arbitrary_word_macro_data(
+    max_head: Option<u16>,
+    max_artin_length: Option<u16>,
+) -> impl Strategy<Value = [(u16, Option<u16>, isize); 5]> {
+    if max_artin_length.unwrap_or(u16::MAX) < 5 {
+        panic!("Max Artin length must be at least 5 to generate this data.")
+    }
+    if max_head.unwrap_or(u16::MAX) < 2 {
+        panic!("Max head must be at least 2 to generate this data.")
+    }
+    [
+        arbitrary_word_macro_data_single_factor(
+            max_head,
+            Some(max_artin_length.unwrap_or(u16::MAX).div_euclid(5)),
+        ),
+        arbitrary_word_macro_data_single_factor(
+            max_head,
+            Some(max_artin_length.unwrap_or(u16::MAX).div_euclid(5)),
+        ),
+        arbitrary_word_macro_data_single_factor(
+            max_head,
+            Some(max_artin_length.unwrap_or(u16::MAX).div_euclid(5)),
+        ),
+        arbitrary_word_macro_data_single_factor(
+            max_head,
+            Some(max_artin_length.unwrap_or(u16::MAX).div_euclid(5)),
+        ),
+        arbitrary_word_macro_data_single_factor(
+            max_head,
+            Some(max_artin_length.unwrap_or(u16::MAX).div_euclid(5)),
+        ),
+    ]
 }
 
 pub fn arbitrary_word_data(
