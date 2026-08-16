@@ -442,7 +442,8 @@
 
 mod braid;
 mod error;
-mod generators;
+#[doc(hidden)]
+pub mod generators;
 mod index;
 mod letter;
 mod multiplication;
