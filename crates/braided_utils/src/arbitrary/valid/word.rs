@@ -1,6 +1,7 @@
 use crate::arbitrary::valid::band::{
     arbitrary_band_data_with_given_height, arbitrary_band_with_given_height,
 };
+use crate::arbitrary::valid::u16::{ValidPositiveU16Data, arbitrary_valid_positive_u16_data};
 use crate::arbitrary::valid::{arbitrary_artin_data, arbitrary_artin_generator};
 use braided::{BandGenerator, Letter, Sign, Word};
 use proptest::prelude::*;
@@ -77,22 +78,28 @@ fn arbitrary_partition_into_odd_numbers(
 pub fn arbitrary_vector_of_artin_data_with_given_length(
     num_artins: usize,
     max_foot: Option<u16>,
-) -> impl Strategy<Value = Vec<(u16, Sign)>> {
-    prop::collection::vec(arbitrary_artin_data(max_foot), num_artins..=num_artins)
+) -> impl Strategy<Value = Vec<(ValidPositiveU16Data, Sign)>> {
+    prop::collection::vec(
+        arbitrary_artin_data(None, max_foot),
+        num_artins..=num_artins,
+    )
 }
 
 pub fn arbitrary_vector_of_artin_letters_with_given_length(
     num_artins: usize,
     max_foot: Option<u16>,
 ) -> impl Strategy<Value = Vec<Letter>> {
-    prop::collection::vec(arbitrary_artin_generator(max_foot), num_artins..=num_artins)
-        .prop_map(|artin_generators| artin_generators.iter().map(|&a| Letter::from(a)).collect())
+    prop::collection::vec(
+        arbitrary_artin_generator(None, max_foot),
+        num_artins..=num_artins,
+    )
+    .prop_map(|artin_generators| artin_generators.iter().map(|&a| Letter::from(a)).collect())
 }
 
 pub fn arbitrary_vector_of_band_data_with_given_artin_length(
     artin_length: u16,
     max_head: Option<u16>,
-) -> impl Strategy<Value = Vec<(u16, u16, Sign)>> {
+) -> impl Strategy<Value = Vec<(ValidPositiveU16Data, ValidPositiveU16Data, Sign)>> {
     arbitrary_partition_into_odd_numbers(
         artin_length,
         *[artin_length, 2 * max_head.unwrap_or(u16::MAX) - 3]
@@ -137,7 +144,7 @@ pub fn arbitrary_vector_of_band_letters_with_given_artin_length(
 pub fn arbitrary_vector_of_letter_data_with_given_artin_length(
     artin_length: u16,
     max_head: Option<u16>,
-) -> impl Strategy<Value = Vec<(u16, Option<u16>, Sign)>> {
+) -> impl Strategy<Value = Vec<(ValidPositiveU16Data, Option<ValidPositiveU16Data>, Sign)>> {
     (0..=artin_length)
         .prop_flat_map(move |num_artins| {
             (
@@ -201,7 +208,7 @@ pub fn arbitrary_word_with_given_artin_length(
 pub fn arbitrary_word_macro_data_single_factor_with_given_head(
     head: u16,
     max_artin_length: Option<u16>,
-) -> impl Strategy<Value = (u16, Option<u16>, isize)> {
+) -> impl Strategy<Value = (ValidPositiveU16Data, Option<ValidPositiveU16Data>, isize)> {
     (
         Just(head),
         1..=*[head - 1, max_artin_length.unwrap_or(u16::MAX).div_ceil(2)]
@@ -219,25 +226,35 @@ pub fn arbitrary_word_macro_data_single_factor_with_given_head(
                         .unwrap_or(u16::MAX)
                         .div_euclid(2 * height - 1) as isize),
             )
-                .prop_perturb(|(head, height, sign, exponent), mut rng| {
+                .prop_map(|(head, height, sign, exponent)| {
                     let foot = head - height;
-                    let head = if height > 1 || rng.random_bool(0.5) {
-                        Some(head)
-                    } else {
-                        None
-                    };
                     match sign {
-                        Sign::Negative => (foot, head, -exponent),
-                        Sign::Positive => (foot, head, exponent),
+                        Sign::Negative => (height, foot, head, -exponent),
+                        Sign::Positive => (height, foot, head, exponent),
                     }
                 })
+        })
+        .prop_flat_map(|(height, foot, head, exponent)| {
+            (
+                Just(height),
+                arbitrary_valid_positive_u16_data(Some(foot), Some(foot)),
+                arbitrary_valid_positive_u16_data(Some(head), Some(head)),
+                Just(exponent),
+            )
+        })
+        .prop_perturb(|(height, foot, head, exponent), mut rng| {
+            if height > 1 || rng.random_bool(0.5) {
+                (foot, Some(head), exponent)
+            } else {
+                (foot, None, exponent)
+            }
         })
 }
 
 pub fn arbitrary_word_macro_data_single_factor(
     max_head: Option<u16>,
     max_artin_length: Option<u16>,
-) -> impl Strategy<Value = (u16, Option<u16>, isize)> {
+) -> impl Strategy<Value = (ValidPositiveU16Data, Option<ValidPositiveU16Data>, isize)> {
     (2..=max_head.unwrap_or(u16::MAX)).prop_flat_map(move |head| {
         arbitrary_word_macro_data_single_factor_with_given_head(head, max_artin_length)
     })
@@ -246,7 +263,7 @@ pub fn arbitrary_word_macro_data_single_factor(
 pub fn arbitrary_word_macro_data(
     max_head: Option<u16>,
     max_artin_length: Option<u16>,
-) -> impl Strategy<Value = [(u16, Option<u16>, isize); 5]> {
+) -> impl Strategy<Value = [(ValidPositiveU16Data, Option<ValidPositiveU16Data>, isize); 5]> {
     if max_artin_length.unwrap_or(u16::MAX) < 5 {
         panic!("Max Artin length must be at least 5 to generate this data.")
     }
@@ -280,7 +297,7 @@ pub fn arbitrary_word_macro_data(
 pub fn arbitrary_word_data(
     max_head: Option<u16>,
     max_artin_length: Option<u16>,
-) -> impl Strategy<Value = Vec<(u16, Option<u16>, Sign)>> {
+) -> impl Strategy<Value = Vec<(ValidPositiveU16Data, Option<ValidPositiveU16Data>, Sign)>> {
     (0..=max_artin_length.unwrap_or(u16::MAX)).prop_flat_map(move |artin_length| {
         arbitrary_vector_of_letter_data_with_given_artin_length(artin_length, max_head)
     })

@@ -8,7 +8,11 @@ pub fn arbitrary_single_coalescence(
     max_artin_length: Option<u16>,
 ) -> impl Strategy<Value = (BandResult, Vec<ArtinGenerator>)> {
     arbitrary_band_data(max_head, max_height, max_artin_length)
-        .prop_flat_map(|(foot, head, sign)| (Just(foot), Just(head), Just(sign), foot..(head - 1)))
+        .prop_flat_map(|(foot, head, sign)| {
+            let foot: u16 = foot.try_into().unwrap();
+            let head: u16 = head.try_into().unwrap();
+            (Just(foot), Just(head), Just(sign), foot..(head - 1))
+        })
         .prop_perturb(|(foot, head, sign, crossing_foot), mut rng| {
             let band = BandGenerator::try_new(foot, head, sign);
             let crossing = ArtinGenerator::try_new(crossing_foot, sign).unwrap();

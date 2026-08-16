@@ -8,6 +8,7 @@ use crate::arbitrary::invalid::word::{
 };
 use crate::arbitrary::valid::arbitrary_word_data;
 use crate::arbitrary::valid::letter::arbitrary_letter_data_with_given_head;
+use crate::arbitrary::valid::u16::{ValidPositiveU16Data, arbitrary_valid_positive_u16_data};
 use crate::arbitrary::valid::word::{
     arbitrary_word_macro_data, arbitrary_word_macro_data_single_factor,
     arbitrary_word_macro_data_single_factor_with_given_head,
@@ -17,22 +18,28 @@ use proptest::prelude::*;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum InvalidBraidTryNewData {
-    IndexTooSmall(u16, Word),
+    IndexTooSmall(ValidPositiveU16Data, Word),
     InvalidIndex(InvalidBraidIndexTryNewData, Word),
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum InvalidBraidTryFromDataData {
-    IndexTooSmall(Option<u16>, Vec<(u16, Option<u16>, Sign)>),
-    InvalidIndex(InvalidBraidIndexTryNewData, Vec<(u16, Option<u16>, Sign)>),
-    InvalidWord(Option<u16>, InvalidWordTryNewData),
+    IndexTooSmall(
+        Option<ValidPositiveU16Data>,
+        Vec<(ValidPositiveU16Data, Option<ValidPositiveU16Data>, Sign)>,
+    ),
+    InvalidIndex(
+        InvalidBraidIndexTryNewData,
+        Vec<(ValidPositiveU16Data, Option<ValidPositiveU16Data>, Sign)>,
+    ),
+    InvalidWord(Option<ValidPositiveU16Data>, InvalidWordTryNewData),
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum InvalidBraidTryFromLettersData {
-    IndexTooSmall(Option<u16>, Vec<Letter>),
+    IndexTooSmall(Option<ValidPositiveU16Data>, Vec<Letter>),
     InvalidIndex(InvalidBraidIndexTryNewData, Vec<Letter>),
-    InvalidWord(Option<u16>, InvalidWordTryFromLettersData),
+    InvalidWord(Option<ValidPositiveU16Data>, InvalidWordTryFromLettersData),
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -42,9 +49,15 @@ pub enum InvalidBraidTryTrivialData {
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum InvalidBraidMacroData {
-    IndexTooSmall(u16, [(u16, Option<u16>, isize); 5]),
-    InvalidIndex(InvalidBraidIndexTryNewData, [(u16, Option<u16>, isize); 5]),
-    InvalidWord(Option<u16>, InvalidWordMacroData),
+    IndexTooSmall(
+        ValidPositiveU16Data,
+        [(ValidPositiveU16Data, Option<ValidPositiveU16Data>, isize); 5],
+    ),
+    InvalidIndex(
+        InvalidBraidIndexTryNewData,
+        [(ValidPositiveU16Data, Option<ValidPositiveU16Data>, isize); 5],
+    ),
+    InvalidWord(Option<ValidPositiveU16Data>, InvalidWordMacroData),
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -81,14 +94,16 @@ fn arbitrary_word_data_with_single_letter_with_given_head(
     head: u16,
     max_height: Option<u16>,
     max_artin_length: Option<u16>,
-) -> impl Strategy<Value = Vec<(u16, Option<u16>, Sign)>> {
+) -> impl Strategy<Value = Vec<(ValidPositiveU16Data, Option<ValidPositiveU16Data>, Sign)>> {
     if head < 3 {
         panic!("Head must be at least 3 to generate the appropriate data.");
     }
 
     arbitrary_letter_data_with_given_head(head, max_height, max_artin_length)
         .prop_flat_map(move |(foot_idx, head_idx, sign)| {
-            let max_artin_length = max_artin_length.map(|max| max - (2 * (head - foot_idx) - 1));
+            let height: u16 =
+                head - <ValidPositiveU16Data as TryInto<u16>>::try_into(foot_idx).unwrap();
+            let max_artin_length = max_artin_length.map(|max| max - (2 * height - 1));
             (
                 Just((foot_idx, head_idx, sign)),
                 arbitrary_word_data(Some(head - 1), max_artin_length),
@@ -112,7 +127,7 @@ fn arbitrary_invalid_braid_try_new_index_too_small(
         })
         .prop_flat_map(move |(braid_index, head)| {
             (
-                Just(braid_index),
+                arbitrary_valid_positive_u16_data(Some(braid_index), Some(braid_index)),
                 arbitrary_word_data_with_single_letter_with_given_head(
                     head,
                     max_height,
@@ -173,18 +188,24 @@ fn arbitrary_invalid_braid_try_from_data_index_too_small(
         .prop_flat_map(move |(braid_index, head)| {
             (
                 Just(braid_index),
+                arbitrary_valid_positive_u16_data(Some(braid_index), Some(braid_index)),
                 arbitrary_word_data_with_single_letter_with_given_head(
                     head,
                     max_height,
                     max_artin_length,
                 ),
             )
-                .prop_map(move |(braid_index, word_data)| InvalidBraidTryFromData {
-                    data: InvalidBraidTryFromDataData::IndexTooSmall(Some(braid_index), word_data),
-                    error: BraidValidationError::IndexTooSmall {
-                        index: BraidIndex::try_new(braid_index).unwrap(),
-                        minimal_required_index: BraidIndex::try_new(head).unwrap(),
-                    },
+                .prop_map(move |(braid_index, braid_index_data, word_data)| {
+                    InvalidBraidTryFromData {
+                        data: InvalidBraidTryFromDataData::IndexTooSmall(
+                            Some(braid_index_data),
+                            word_data,
+                        ),
+                        error: BraidValidationError::IndexTooSmall {
+                            index: BraidIndex::try_new(braid_index).unwrap(),
+                            minimal_required_index: BraidIndex::try_new(head).unwrap(),
+                        },
+                    }
                 })
         })
 }
@@ -205,7 +226,7 @@ fn arbitrary_invalid_braid_try_from_data_invalid_word(
     max_braid_index: Option<u16>,
 ) -> impl Strategy<Value = InvalidBraidTryFromData> {
     (
-        2..max_braid_index.unwrap_or(u16::MAX),
+        arbitrary_valid_positive_u16_data(Some(2), max_braid_index),
         arbitrary_invalid_word_try_new(),
     )
         .prop_flat_map(|(braid_index, invalid_word)| {
@@ -250,24 +271,29 @@ fn arbitrary_invalid_braid_try_from_letters_index_too_small(
         .prop_flat_map(move |(braid_index, head)| {
             (
                 Just(braid_index),
+                arbitrary_valid_positive_u16_data(Some(braid_index), Some(braid_index)),
                 arbitrary_word_data_with_single_letter_with_given_head(
                     head,
                     max_height,
                     max_artin_length,
                 ),
             )
-                .prop_map(move |(braid_index, word_data)| InvalidBraidTryFromLetters {
-                    data: InvalidBraidTryFromLettersData::IndexTooSmall(
-                        Some(braid_index),
-                        word_data
-                            .iter()
-                            .map(|(foot, head, sign)| Letter::try_new(*foot, *head, *sign).unwrap())
-                            .collect(),
-                    ),
-                    error: BraidValidationError::IndexTooSmall {
-                        index: BraidIndex::try_new(braid_index).unwrap(),
-                        minimal_required_index: BraidIndex::try_new(head).unwrap(),
-                    },
+                .prop_map(move |(braid_index, braid_index_data, word_data)| {
+                    InvalidBraidTryFromLetters {
+                        data: InvalidBraidTryFromLettersData::IndexTooSmall(
+                            Some(braid_index_data),
+                            word_data
+                                .iter()
+                                .map(|(foot, head, sign)| {
+                                    Letter::try_new(*foot, *head, *sign).unwrap()
+                                })
+                                .collect(),
+                        ),
+                        error: BraidValidationError::IndexTooSmall {
+                            index: BraidIndex::try_new(braid_index).unwrap(),
+                            minimal_required_index: BraidIndex::try_new(head).unwrap(),
+                        },
+                    }
                 })
         })
 }
@@ -298,7 +324,7 @@ fn arbitrary_invalid_braid_try_from_letters_invalid_word(
     max_braid_index: Option<u16>,
 ) -> impl Strategy<Value = InvalidBraidTryFromLetters> {
     (
-        2..max_braid_index.unwrap_or(u16::MAX),
+        arbitrary_valid_positive_u16_data(Some(2), max_braid_index),
         arbitrary_invalid_word_try_from_letters(),
     )
         .prop_flat_map(|(braid_index, invalid_word)| {
@@ -383,23 +409,30 @@ fn arbitrary_invalid_braid_macro_index_too_small(
                 ],
             )
                 .prop_flat_map(|(braid_index, fixed_head_factor, other_factors)| {
-                    let factors: [(u16, Option<u16>, isize); 5] = (
-                        fixed_head_factor,
-                        other_factors[0],
-                        other_factors[1],
-                        other_factors[2],
-                        other_factors[3],
+                    let factors: [(ValidPositiveU16Data, Option<ValidPositiveU16Data>, isize); 5] =
+                        (
+                            fixed_head_factor,
+                            other_factors[0],
+                            other_factors[1],
+                            other_factors[2],
+                            other_factors[3],
+                        )
+                            .into();
+                    (
+                        Just(braid_index),
+                        arbitrary_valid_positive_u16_data(Some(braid_index), Some(braid_index)),
+                        Just(factors).prop_shuffle(),
                     )
-                        .into();
-                    (Just(braid_index), Just(factors).prop_shuffle())
                 })
-                .prop_map(move |(braid_index, word_data)| InvalidBraidMacro {
-                    data: InvalidBraidMacroData::IndexTooSmall(braid_index, word_data),
-                    error: BraidValidationError::IndexTooSmall {
-                        index: BraidIndex::try_new(braid_index).unwrap(),
-                        minimal_required_index: BraidIndex::try_new(head).unwrap(),
+                .prop_map(
+                    move |(braid_index, braid_index_data, word_data)| InvalidBraidMacro {
+                        data: InvalidBraidMacroData::IndexTooSmall(braid_index_data, word_data),
+                        error: BraidValidationError::IndexTooSmall {
+                            index: BraidIndex::try_new(braid_index).unwrap(),
+                            minimal_required_index: BraidIndex::try_new(head).unwrap(),
+                        },
                     },
-                })
+                )
         })
 }
 fn arbitrary_invalid_braid_macro_invalid_index(
@@ -418,7 +451,7 @@ fn arbitrary_invalid_braid_macro_invalid_index(
 fn arbitrary_invalid_braid_macro_invalid_word(
     max_braid_index: Option<u16>,
 ) -> impl Strategy<Value = InvalidBraidMacro> {
-    (2..max_braid_index.unwrap_or(u16::MAX)).prop_flat_map(|braid_index| {
+    arbitrary_valid_positive_u16_data(Some(2), max_braid_index).prop_flat_map(|braid_index| {
         (
             Just(Some(braid_index)).prop_union(Just(None)),
             arbitrary_invalid_word_macro(),

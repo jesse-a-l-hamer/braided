@@ -1,26 +1,34 @@
+use crate::arbitrary::valid::u16::{ValidPositiveU16Data, arbitrary_valid_positive_u16_data};
 use braided::{BandGenerator, Sign};
 use proptest::prelude::*;
 
 pub fn arbitrary_band_data_with_given_height(
     height: u16,
     max_head: Option<u16>,
-) -> impl Strategy<Value = (u16, u16, Sign)> {
+) -> impl Strategy<Value = (ValidPositiveU16Data, ValidPositiveU16Data, Sign)> {
+    let min_head = 1 + height.div_ceil(2);
+    let max_head = [height + 1, max_head.unwrap_or(u16::MAX)]
+        .iter()
+        .min()
+        .cloned();
     (
-        (1 + height.div_ceil(2))
-            ..=*[height + 1, max_head.unwrap_or(u16::MAX)]
-                .iter()
-                .min()
-                .unwrap(),
+        min_head..=max_head.unwrap(),
         prop_oneof![Just(Sign::Positive), Just(Sign::Negative)],
     )
-        .prop_map(move |(head_idx, sign)| (head_idx - height, head_idx, sign))
+        .prop_flat_map(move |(head_idx, sign)| {
+            (
+                arbitrary_valid_positive_u16_data(Some(head_idx - height), Some(head_idx - height)),
+                arbitrary_valid_positive_u16_data(Some(head_idx), Some(head_idx)),
+                Just(sign),
+            )
+        })
 }
 
 pub fn arbitrary_band_data(
     max_head: Option<u16>,
     max_height: Option<u16>,
     max_artin_length: Option<u16>,
-) -> impl Strategy<Value = (u16, u16, Sign)> {
+) -> impl Strategy<Value = (ValidPositiveU16Data, ValidPositiveU16Data, Sign)> {
     (2u16..max_head.unwrap_or(u16::MAX))
         .prop_flat_map(move |head_idx| {
             (
@@ -37,8 +45,8 @@ pub fn arbitrary_band_data(
         })
         .prop_flat_map(|(head_idx, height)| {
             (
-                Just(head_idx - height),
-                Just(head_idx),
+                arbitrary_valid_positive_u16_data(Some(head_idx - height), Some(head_idx - height)),
+                arbitrary_valid_positive_u16_data(Some(head_idx), Some(head_idx)),
                 prop_oneof![Just(Sign::Positive), Just(Sign::Negative)],
             )
         })
@@ -56,24 +64,31 @@ pub fn arbitrary_band_data_with_given_head(
     head: u16,
     max_height: Option<u16>,
     max_artin_length: Option<u16>,
-) -> impl Strategy<Value = (u16, u16, Sign)> {
+) -> impl Strategy<Value = (ValidPositiveU16Data, ValidPositiveU16Data, Sign)> {
     if head < 2 {
         panic!("Head index must be at least 2.");
     }
+    let max_height = *[
+        head - 1,
+        max_height.unwrap_or(u16::MAX.div_ceil(2)),
+        max_artin_length.unwrap_or(u16::MAX).div_ceil(2),
+    ]
+    .iter()
+    .min()
+    .unwrap();
 
     (
         Just(head),
-        1..=*[
-            head - 1,
-            max_height.unwrap_or(u16::MAX.div_ceil(2)),
-            max_artin_length.unwrap_or(u16::MAX).div_ceil(2),
-        ]
-        .iter()
-        .min()
-        .unwrap(),
+        1..=max_height,
         prop_oneof![Just(Sign::Negative), Just(Sign::Positive)],
     )
-        .prop_map(|(head, height, sign)| (head - height, head, sign))
+        .prop_flat_map(|(head, height, sign)| {
+            (
+                arbitrary_valid_positive_u16_data(Some(head - height), Some(head - height)),
+                arbitrary_valid_positive_u16_data(Some(head), Some(head)),
+                Just(sign),
+            )
+        })
 }
 
 pub fn arbitrary_band(

@@ -3,6 +3,7 @@ use crate::arbitrary::invalid::letter::{
 };
 use crate::arbitrary::invalid::u16::{InvalidU16Data, arbitrary_invalid_u16};
 use crate::arbitrary::valid::arbitrary_letter_data;
+use crate::arbitrary::valid::u16::ValidPositiveU16Data;
 use crate::arbitrary::valid::word::{
     arbitrary_vector_of_letter_data_with_given_artin_length,
     arbitrary_vector_of_letters_with_given_artin_length,
@@ -12,8 +13,13 @@ use proptest::prelude::*;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum InvalidWordTryNewData {
-    InvalidLetter((InvalidLetterTryNewData, Vec<(u16, Option<u16>, Sign)>)),
-    TooLong(Vec<(u16, Option<u16>, Sign)>),
+    InvalidLetter(
+        (
+            InvalidLetterTryNewData,
+            Vec<(ValidPositiveU16Data, Option<ValidPositiveU16Data>, Sign)>,
+        ),
+    ),
+    TooLong(Vec<(ValidPositiveU16Data, Option<ValidPositiveU16Data>, Sign)>),
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -35,12 +41,23 @@ pub struct InvalidWordTryFromLetters {
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum InvalidWordMacroData {
-    ExponentFailsISizeCoercion((u16, Option<u16>, usize)),
-    ExponentFailsU16Coercion((u16, Option<u16>, InvalidU16Data)),
-    InvalidLetter((InvalidLetterTryNewData, Vec<(u16, Option<u16>, Sign)>)),
+    ExponentFailsISizeCoercion((ValidPositiveU16Data, Option<ValidPositiveU16Data>, usize)),
+    ExponentFailsU16Coercion(
+        (
+            ValidPositiveU16Data,
+            Option<ValidPositiveU16Data>,
+            InvalidU16Data,
+        ),
+    ),
+    InvalidLetter(
+        (
+            InvalidLetterTryNewData,
+            Vec<(ValidPositiveU16Data, Option<ValidPositiveU16Data>, Sign)>,
+        ),
+    ),
     TooLong {
-        first: (u16, Option<u16>, isize),
-        second: (u16, Option<u16>, isize),
+        first: (ValidPositiveU16Data, Option<ValidPositiveU16Data>, isize),
+        second: (ValidPositiveU16Data, Option<ValidPositiveU16Data>, isize),
     },
 }
 
@@ -228,15 +245,31 @@ fn arbitrary_invalid_word_too_long_macro() -> impl Strategy<Value = InvalidWordM
                         -(second_exponent as isize),
                     )
                 };
-                let total_length: usize = ((first_exponent as usize)
-                    * (2 * (first_letter_data.1.unwrap_or(first_letter_data.0 + 1) as usize
-                        - first_letter_data.0 as usize)
-                        - 1))
-                    + ((second_exponent as usize)
-                        * (2 * (second_letter_data.1.unwrap_or(second_letter_data.0 + 1)
+                let first_letter_foot: usize =
+                    <ValidPositiveU16Data as TryInto<u16>>::try_into(first_letter_data.0).unwrap()
+                        as usize;
+                let first_letter_head: usize = match first_letter_data.1 {
+                    Some(first_letter_head) => {
+                        <ValidPositiveU16Data as TryInto<u16>>::try_into(first_letter_head).unwrap()
                             as usize
-                            - second_letter_data.0 as usize)
-                            - 1));
+                    }
+                    None => first_letter_foot + 1,
+                };
+                let first_letter_height: usize = 2 * (first_letter_head - first_letter_foot) - 1;
+
+                let second_letter_foot: usize =
+                    <ValidPositiveU16Data as TryInto<u16>>::try_into(second_letter_data.0).unwrap()
+                        as usize;
+                let second_letter_head: usize = match second_letter_data.1 {
+                    Some(second_letter_head) => {
+                        <ValidPositiveU16Data as TryInto<u16>>::try_into(second_letter_head)
+                            .unwrap() as usize
+                    }
+                    None => second_letter_foot + 1,
+                };
+                let second_letter_height: usize = 2 * (second_letter_head - second_letter_foot) - 1;
+                let total_length: usize = ((first_exponent as usize) * first_letter_height)
+                    + ((second_exponent as usize) * second_letter_height);
                 InvalidWordMacro {
                     data: InvalidWordMacroData::TooLong { first, second },
                     error: WordValidationError::TooLong(total_length),

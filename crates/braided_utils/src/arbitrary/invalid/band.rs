@@ -150,7 +150,7 @@ fn arbitrary_invalid_band_coalescence_even_generators()
         .prop_flat_map(|half_length| {
             let mut strategies = Vec::new();
             for _ in 0..(2 * half_length) {
-                strategies.push(arbitrary_artin_generator(None));
+                strategies.push(arbitrary_artin_generator(None, None));
             }
             strategies
         })
@@ -165,7 +165,7 @@ fn arbitrary_invalid_band_coalescence_too_many_generators()
         .prop_flat_map(|num_generators| {
             let mut strategies = Vec::new();
             for _ in 0..num_generators {
-                strategies.push(arbitrary_artin_generator(None));
+                strategies.push(arbitrary_artin_generator(None, None));
             }
             (Just(num_generators), strategies)
         })
