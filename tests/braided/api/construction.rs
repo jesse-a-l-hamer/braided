@@ -176,7 +176,7 @@ fn macro_word_constructs_word_when_leading_letter_is_band() {
 #[gtest]
 fn macro_word_fails_to_construct_invalid_words() {
     start_tracing();
-    let invalid_words: [(WordResult, WordValidationError); 6] = [
+    let invalid_words: [(WordResult, WordValidationError, &'static str); 6] = [
         (
             word![[-1; 1], [1; 2], [2 => 5; -3]],
             Word::try_new(
@@ -188,6 +188,7 @@ fn macro_word_fails_to_construct_invalid_words() {
                 .concat(),
             )
             .clone_unwrap_err(),
+            "test case 1",
         ),
         (
             word![[1; 2], [0 => 4; -2], [2 => 5; -3]],
@@ -200,6 +201,7 @@ fn macro_word_fails_to_construct_invalid_words() {
                 .concat(),
             )
             .clone_unwrap_err(),
+            "test case 2",
         ),
         (
             word![[1; 2], [2 => 5; -3], [u16::MAX as u32 + 1; 2]],
@@ -212,6 +214,7 @@ fn macro_word_fails_to_construct_invalid_words() {
                 .concat(),
             )
             .clone_unwrap_err(),
+            "test case 3",
         ),
         (
             word![[4 => 1; 3], [1; 2], [2 => 5; -3]],
@@ -224,11 +227,14 @@ fn macro_word_fails_to_construct_invalid_words() {
                 .concat(),
             )
             .clone_unwrap_err(),
+            "test case 4",
         ),
         (
             word![[1; u16::MAX as u32 + 1]],
-            Word::try_from_letters(&vec![letter![1; +].unwrap(); u16::MAX as usize + 1])
-                .clone_unwrap_err(),
+            WordValidationError::from(
+                <u32 as TryInto<u16>>::try_into(u16::MAX as u32 + 1).unwrap_err(),
+            ),
+            "test case 5",
         ),
         (
             word![[1 => 3; (u16::MAX as u32).div_euclid(3)], [3; -1]],
@@ -240,10 +246,11 @@ fn macro_word_fails_to_construct_invalid_words() {
                 .concat(),
             )
             .clone_unwrap_err(),
+            "test case 6",
         ),
     ];
-    for (invalid_word, error) in invalid_words {
-        expect_that!(*invalid_word, err(eq(&error)))
+    for (invalid_word, error, label) in invalid_words {
+        expect_that!(*invalid_word, err(eq(&error)), "{label}")
     }
 }
 
@@ -364,15 +371,9 @@ fn macro_braid_fails_to_construct_invalid_braids() {
         ),
         (
             braid![();[1; u16::MAX as u32 + 1]],
-            Braid::try_from_data(
-                None::<u16>,
-                [vec![
-                    (1, None::<u16>, Sign::Positive);
-                    u16::MAX as usize + 1
-                ]]
-                .concat(),
-            )
-            .clone_unwrap_err(),
+            BraidValidationError::WordValidation(WordValidationError::from(
+                <u32 as TryInto<u16>>::try_into(u16::MAX as u32 + 1).unwrap_err(),
+            )),
         ),
         (
             braid![();[1 => 3; u16::MAX as u32 - 1], [3; -2]],

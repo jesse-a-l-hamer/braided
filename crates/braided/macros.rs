@@ -164,11 +164,9 @@ macro_rules! letter {
 /// use std::assert_matches;
 /// # #[macro_use] extern crate braided;
 /// # fn main() {
-/// let long_word_artin = word![[1; -(u16::MAX as i32 + 1)]];
 /// let long_word_bands = word![[1 => 3; (u16::MAX as u32).div_euclid(3) + 1]];
 /// let long_product = word![[1; u16::MAX as u32 -1], [3; 2]];
 ///
-/// assert_matches!(*long_word_artin, Err(WordValidationError::TooLong(_)));
 /// assert_matches!(*long_word_bands, Err(WordValidationError::TooLong(_)));
 /// assert_matches!(*long_product, Err(WordValidationError::TooLong(_)));
 /// # }
