@@ -206,7 +206,7 @@ macro_rules! letter {
 macro_rules! word {
     () => {$crate::WordResult::from($crate::Word::trivial())};
     ([$foot:expr; $exponent:expr]) => {
-        match TryInto::<i32>::try_into($exponent) {
+        match TryInto::<isize>::try_into($exponent) {
             Ok(exponent) => {
                 let letter = if exponent < 0 {
                     $crate::letter![$foot; -]
@@ -214,17 +214,22 @@ macro_rules! word {
                     $crate::letter![$foot; +]
                 };
                 match *letter {
-                    Ok(letter) => $crate::Word::try_from_letters(
-                        &vec![letter; exponent.unsigned_abs().try_into().unwrap()]
-                    ),
+                    Ok(letter) => match <usize as TryInto<u16>>::try_into(exponent.unsigned_abs()) {
+                            Ok(repetitions) => $crate::Word::try_from_letters(
+                                &vec![letter; exponent.unsigned_abs().try_into().unwrap()],
+                            ),
+                            Err(e) => $crate::WordResult::from(
+                                $crate::WordValidationError::from(e)
+                            ),
+                        },
                     Err(e) => $crate::WordResult::from($crate::WordValidationError::from(e)),
                 }
             },
-            Err(e) => $crate::WordResult::from($crate::WordValidationError::from(e))
+            Err(e) => $crate::WordResult::from($crate::WordValidationError::from(e)),
         }
     };
     ([$foot:expr => $head:expr; $exponent:expr]) => {
-        match TryInto::<i32>::try_into($exponent) {
+        match TryInto::<isize>::try_into($exponent) {
             Ok(exponent) => {
                 let letter = if exponent < 0 {
                     $crate::letter![$foot => $head; -]
@@ -232,9 +237,14 @@ macro_rules! word {
                     $crate::letter![$foot => $head; +]
                 };
                 match *letter {
-                    Ok(letter) => $crate::Word::try_from_letters(
-                        &vec![letter; exponent.unsigned_abs().try_into().unwrap()]
-                    ),
+                    Ok(letter) => match <usize as TryInto<u16>>::try_into(exponent.unsigned_abs()) {
+                            Ok(repetitions) => $crate::Word::try_from_letters(
+                                &vec![letter; exponent.unsigned_abs().try_into().unwrap()],
+                            ),
+                            Err(e) => $crate::WordResult::from(
+                                $crate::WordValidationError::from(e)
+                            ),
+                        },
                     Err(e) => $crate::WordResult::from($crate::WordValidationError::from(e)),
                 }
             },
