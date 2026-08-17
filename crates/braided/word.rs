@@ -574,7 +574,7 @@ impl Word {
                     .collect();
                 let remaining_right = Word(self[pivot + radius + 1..num_letters].to_vec());
                 tracing::debug!("Checking to see if the window coalesces: {:?}", window);
-                if let Ok(band) = *BandGenerator::coalesce(&window) {
+                if let Ok(band) = *BandGenerator::try_coalesce(&window) {
                     tracing::debug!("Success!");
                     // We can safely unwrap the following product, since we're operating on parts
                     // of a word which has already been length-checked (at its construction)

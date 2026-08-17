@@ -472,7 +472,7 @@ impl BandGenerator {
     /// Please see the documentation for [`BandValidationError`] for more details on possible
     /// failure causes.
     #[tracing::instrument(level = "info")]
-    pub fn coalesce(band_parts: &[ArtinGenerator]) -> BandResult {
+    pub fn try_coalesce(band_parts: &[ArtinGenerator]) -> BandResult {
         let num_parts = band_parts.len();
 
         if num_parts == 0 {
@@ -900,34 +900,34 @@ mod tests {
     #[gtest]
     fn valid_inputs_to_coalesce_yield_successful_construction() {
         expect_that!(
-            BandGenerator::coalesce(&[ArtinGenerator::try_new(1, Sign::Negative).unwrap()]),
+            BandGenerator::try_coalesce(&[ArtinGenerator::try_new(1, Sign::Negative).unwrap()]),
             eq(BandGenerator::try_new(1, 2, Sign::Negative))
         );
 
         let test_band = BandGenerator::try_new(1, 4, Sign::Positive);
         let valid_bands = [
-            BandGenerator::coalesce(&[
+            BandGenerator::try_coalesce(&[
                 ArtinGenerator::try_new(1, Sign::Negative).unwrap(),
                 ArtinGenerator::try_new(2, Sign::Negative).unwrap(),
                 ArtinGenerator::try_new(3, Sign::Positive).unwrap(),
                 ArtinGenerator::try_new(2, Sign::Positive).unwrap(),
                 ArtinGenerator::try_new(1, Sign::Positive).unwrap(),
             ]),
-            BandGenerator::coalesce(&[
+            BandGenerator::try_coalesce(&[
                 ArtinGenerator::try_new(3, Sign::Positive).unwrap(),
                 ArtinGenerator::try_new(2, Sign::Positive).unwrap(),
                 ArtinGenerator::try_new(1, Sign::Positive).unwrap(),
                 ArtinGenerator::try_new(2, Sign::Negative).unwrap(),
                 ArtinGenerator::try_new(3, Sign::Negative).unwrap(),
             ]),
-            BandGenerator::coalesce(&[
+            BandGenerator::try_coalesce(&[
                 ArtinGenerator::try_new(3, Sign::Positive).unwrap(),
                 ArtinGenerator::try_new(1, Sign::Negative).unwrap(),
                 ArtinGenerator::try_new(2, Sign::Positive).unwrap(),
                 ArtinGenerator::try_new(1, Sign::Positive).unwrap(),
                 ArtinGenerator::try_new(3, Sign::Negative).unwrap(),
             ]),
-            BandGenerator::coalesce(&[
+            BandGenerator::try_coalesce(&[
                 ArtinGenerator::try_new(1, Sign::Negative).unwrap(),
                 ArtinGenerator::try_new(3, Sign::Positive).unwrap(),
                 ArtinGenerator::try_new(2, Sign::Positive).unwrap(),
@@ -981,7 +981,7 @@ mod tests {
                 ],
             ),
             (
-                BandGenerator::coalesce(&[
+                BandGenerator::try_coalesce(&[
                     ArtinGenerator::try_new(1, Sign::Negative).unwrap(),
                     ArtinGenerator::try_new(2, Sign::Negative).unwrap(),
                     ArtinGenerator::try_new(3, Sign::Positive).unwrap(),
@@ -997,7 +997,7 @@ mod tests {
                 ],
             ),
             (
-                BandGenerator::coalesce(&[
+                BandGenerator::try_coalesce(&[
                     ArtinGenerator::try_new(1, Sign::Negative).unwrap(),
                     ArtinGenerator::try_new(3, Sign::Positive).unwrap(),
                     ArtinGenerator::try_new(2, Sign::Positive).unwrap(),
@@ -1145,7 +1145,7 @@ mod tests {
 
         for (invalid_artin_list, error) in invalid_artin_lists {
             expect_that!(
-                *BandGenerator::coalesce(&invalid_artin_list),
+                *BandGenerator::try_coalesce(&invalid_artin_list),
                 err(eq(error))
             );
         }
