@@ -1,6 +1,4 @@
-use crate::arbitrary::valid::braid::arbitrary_braid_with_given_index;
-use crate::arbitrary::valid::word::arbitrary_vector_of_letters_with_given_artin_length;
-use crate::arbitrary::valid::{arbitrary_letter, arbitrary_word};
+use crate::arbitrary::valid;
 use braided::{Braid, BraidResult, Letter, LetterResult, Word, WordResult};
 use proptest::prelude::*;
 
@@ -164,24 +162,24 @@ impl std::ops::Mul for MulOperand {
     }
 }
 
-pub fn arbitrary_mul_operand_with_fixed_braid_index(
+pub fn operand_with_fixed_braid_index(
     braid_index: u16,
     max_artin_length: Option<u16>,
 ) -> impl Strategy<Value = MulOperand> {
     prop_oneof![
-        arbitrary_letter(Some(braid_index), None, max_artin_length).prop_map(MulOperand::Letter),
-        arbitrary_letter(Some(braid_index), None, max_artin_length)
+        valid::letter::new(Some(braid_index), None, max_artin_length).prop_map(MulOperand::Letter),
+        valid::letter::new(Some(braid_index), None, max_artin_length)
             .prop_map(|letter| MulOperand::LetterResult(LetterResult::from(letter))),
-        arbitrary_word(Some(braid_index), max_artin_length).prop_map(MulOperand::Word),
-        arbitrary_word(Some(braid_index), max_artin_length)
+        valid::word::new(Some(braid_index), max_artin_length).prop_map(MulOperand::Word),
+        valid::word::new(Some(braid_index), max_artin_length)
             .prop_map(|word| MulOperand::WordResult(WordResult::from(word))),
-        arbitrary_braid_with_given_index(braid_index).prop_map(MulOperand::Braid),
-        arbitrary_braid_with_given_index(braid_index)
+        valid::braid::with_given_index(braid_index).prop_map(MulOperand::Braid),
+        valid::braid::with_given_index(braid_index)
             .prop_map(|braid| MulOperand::BraidResult(BraidResult::from(braid)))
     ]
 }
 
-pub fn arbitrary_mul_operands(
+pub fn operands(
     max_braid_index: Option<u16>,
     max_artin_length: Option<u16>,
 ) -> impl Strategy<Value = (MulOperand, MulOperand)> {
@@ -194,49 +192,44 @@ pub fn arbitrary_mul_operands(
         })
         .prop_flat_map(|(braid_index, artin_length, lhs_length)| {
             (
-                arbitrary_mul_operand_with_fixed_braid_index(braid_index, Some(lhs_length)),
-                arbitrary_mul_operand_with_fixed_braid_index(
-                    braid_index,
-                    Some(artin_length - lhs_length),
-                ),
+                operand_with_fixed_braid_index(braid_index, Some(lhs_length)),
+                operand_with_fixed_braid_index(braid_index, Some(artin_length - lhs_length)),
             )
         })
 }
 
-fn arbitrary_mul_operand_from_letters(
+fn operand_from_letters(
     braid_index: u16,
     letters: Vec<Letter>,
 ) -> impl Strategy<Value = MulOperand> {
-    if letters.len() == 1 {
-        prop_oneof![
-            6 => Just(MulOperand::Letter(*letters.last().unwrap())),
-            6 => Just(MulOperand::LetterResult(LetterResult::from(Ok(*letters.last().unwrap())))),
-            1 => Just(MulOperand::Word(Word::try_from_letters(&letters[..]).clone_unwrap())),
-            1 => Just(MulOperand::WordResult(Word::try_from_letters(&letters[..]))),
-            1 => Just(MulOperand::Braid(Braid::try_from_letters(Some(braid_index), &letters[..]).clone_unwrap())),
-            1 => Just(MulOperand::BraidResult(Braid::try_from_letters(Some(braid_index), &letters[..]))),
-        ]
-    } else {
-        prop_oneof![
-            0 => Just(MulOperand::Letter(*letters.last().unwrap())),
-            0 => Just(MulOperand::LetterResult(LetterResult::from(Ok(*letters.last().unwrap())))),
-            1 => Just(MulOperand::Word(Word::try_from_letters(&letters[..]).clone_unwrap())),
-            1 => Just(MulOperand::WordResult(Word::try_from_letters(&letters[..]))),
-            1 => Just(MulOperand::Braid(Braid::try_from_letters(Some(braid_index), &letters[..]).clone_unwrap())),
-            1 => Just(MulOperand::BraidResult(Braid::try_from_letters(Some(braid_index), &letters[..]))),
-        ]
-    }
+    let letter_weight: u32 = if letters.len() == 1 { 6 } else { 0 };
+    prop_oneof![
+        letter_weight => Just(MulOperand::Letter(*letters.last().unwrap())),
+        letter_weight => Just(
+            MulOperand::LetterResult(LetterResult::from(Ok(*letters.last().unwrap())))
+        ),
+        1 => Just(MulOperand::Word(Word::try_from_letters(&letters[..]).clone_unwrap())),
+        1 => Just(MulOperand::WordResult(Word::try_from_letters(&letters[..]))),
+        1 => Just(
+            MulOperand::Braid(
+                Braid::try_from_letters(Some(braid_index), &letters[..]).clone_unwrap()
+            )
+        ),
+        1 => Just(
+            MulOperand::BraidResult(Braid::try_from_letters(Some(braid_index), &letters[..]))
+        ),
+    ]
 }
 
-pub fn arbitrary_mul_operands_with_product_from_letters(
+pub fn operands_and_product_from_letters(
     braid_index: u16,
     lhs_letters: Vec<Letter>,
     rhs_letters: Vec<Letter>,
     product_letters: Vec<Letter>,
 ) -> impl Strategy<Value = (MulOperand, MulOperand, MulResult)> {
     (
-        arbitrary_mul_operand_from_letters(braid_index, lhs_letters),
-        arbitrary_mul_operand_from_letters(braid_index, rhs_letters),
+        operand_from_letters(braid_index, lhs_letters),
+        operand_from_letters(braid_index, rhs_letters),
     )
         .prop_map(move |(lhs, rhs)| match (lhs.clone(), rhs.clone()) {
             (MulOperand::Braid(_), _)
@@ -258,7 +251,7 @@ pub fn arbitrary_mul_operands_with_product_from_letters(
         })
 }
 
-pub fn arbitrary_non_cancelling_mul_operands_with_product_as_letters(
+pub fn non_cancelling_operands_and_product_as_letters(
     max_braid_index: Option<u16>,
     max_artin_length: Option<u16>,
 ) -> impl Strategy<Value = (u16, Vec<Letter>, Vec<Letter>, Vec<Letter>)> {
@@ -296,8 +289,11 @@ pub fn arbitrary_non_cancelling_mul_operands_with_product_as_letters(
         .prop_flat_map(|(braid_index, artin_length, lhs_length)| {
             (
                 Just(braid_index),
-                arbitrary_vector_of_letters_with_given_artin_length(lhs_length, Some(braid_index)),
-                arbitrary_vector_of_letters_with_given_artin_length(
+                valid::letter::vector_of_letters_with_given_artin_length(
+                    lhs_length,
+                    Some(braid_index),
+                ),
+                valid::letter::vector_of_letters_with_given_artin_length(
                     artin_length - lhs_length,
                     Some(braid_index),
                 ),
@@ -323,17 +319,18 @@ pub fn arbitrary_non_cancelling_mul_operands_with_product_as_letters(
         })
 }
 
-pub fn arbitrary_non_cancelling_mul_operands_with_product(
+pub fn non_cancelling_operands_and_product(
     max_braid_index: Option<u16>,
     max_artin_length: Option<u16>,
 ) -> impl Strategy<Value = (MulOperand, MulOperand, MulResult)> {
-    arbitrary_non_cancelling_mul_operands_with_product_as_letters(max_braid_index, max_artin_length)
-        .prop_flat_map(|(braid_index, lhs_letters, rhs_letters, product_letters)| {
-            arbitrary_mul_operands_with_product_from_letters(
+    non_cancelling_operands_and_product_as_letters(max_braid_index, max_artin_length).prop_flat_map(
+        |(braid_index, lhs_letters, rhs_letters, product_letters)| {
+            operands_and_product_from_letters(
                 braid_index,
                 lhs_letters,
                 rhs_letters,
                 product_letters,
             )
-        })
+        },
+    )
 }

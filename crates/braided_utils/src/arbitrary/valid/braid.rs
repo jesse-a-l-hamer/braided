@@ -1,42 +1,39 @@
-use crate::arbitrary::valid::{
-    arbitrary_word, arbitrary_word_data,
-    u16::{ValidPositiveU16Data, arbitrary_valid_positive_u16_data},
-};
+use crate::arbitrary::valid;
 use braided::{Braid, Sign};
 use proptest::prelude::*;
 
-pub fn arbitrary_braid_data_with_given_index(
+pub fn data_with_given_index(
     braid_index: u16,
 ) -> impl Strategy<
     Value = (
-        ValidPositiveU16Data,
-        Vec<(ValidPositiveU16Data, Option<ValidPositiveU16Data>, Sign)>,
+        valid::u16::Data,
+        Vec<(valid::u16::Data, Option<valid::u16::Data>, Sign)>,
     ),
 > {
-    arbitrary_word_data(Some(braid_index), None).prop_flat_map(move |word_data| {
+    valid::word::data(Some(braid_index), None).prop_flat_map(move |word_data| {
         (
-            arbitrary_valid_positive_u16_data(Some(braid_index), Some(braid_index)),
+            valid::u16::data(Some(braid_index), Some(braid_index)),
             Just(word_data),
         )
     })
 }
 
-pub fn arbitrary_braid_with_given_index(braid_index: u16) -> impl Strategy<Value = Braid> {
-    arbitrary_word(Some(braid_index), None)
+pub fn with_given_index(braid_index: u16) -> impl Strategy<Value = Braid> {
+    valid::word::new(Some(braid_index), None)
         .prop_map(move |word| Braid::try_new(braid_index, word).clone_unwrap())
 }
 
-pub fn arbitrary_braid_data(
+pub fn data(
     max_braid_index: Option<u16>,
 ) -> impl Strategy<
     Value = (
-        ValidPositiveU16Data,
-        Vec<(ValidPositiveU16Data, Option<ValidPositiveU16Data>, Sign)>,
+        valid::u16::Data,
+        Vec<(valid::u16::Data, Option<valid::u16::Data>, Sign)>,
     ),
 > {
-    (1..=max_braid_index.unwrap_or(u16::MAX)).prop_flat_map(arbitrary_braid_data_with_given_index)
+    (1..=max_braid_index.unwrap_or(u16::MAX)).prop_flat_map(data_with_given_index)
 }
 
-pub fn arbitrary_braid(max_braid_index: Option<u16>) -> impl Strategy<Value = Braid> {
-    (1..=max_braid_index.unwrap_or(u16::MAX)).prop_flat_map(arbitrary_braid_with_given_index)
+pub fn new(max_braid_index: Option<u16>) -> impl Strategy<Value = Braid> {
+    (1..=max_braid_index.unwrap_or(u16::MAX)).prop_flat_map(with_given_index)
 }

@@ -1,60 +1,61 @@
-use crate::arbitrary::invalid::artin::{
-    InvalidArtinGeneratorTryNewData, arbitrary_invalid_artin_generator_try_new,
-};
-use crate::arbitrary::invalid::band::{InvalidBandTryNewData, arbitrary_invalid_band_try_new};
+use crate::arbitrary::invalid;
 use braided::LetterValidationError;
 use proptest::prelude::*;
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub enum InvalidLetterTryNewData {
-    InvalidArtinGenerator(InvalidArtinGeneratorTryNewData),
-    InvalidBand(InvalidBandTryNewData),
-}
+pub mod test_cases {
+    use super::*;
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub enum InvalidLetterMacroData {
-    InvalidArtinGenerator(InvalidArtinGeneratorTryNewData),
-    InvalidBand(InvalidBandTryNewData),
-}
+    #[derive(Debug, PartialEq, Eq, Clone, Copy)]
+    pub enum TryNewData {
+        InvalidArtinGenerator(invalid::artin::test_cases::TryNewData),
+        InvalidBand(invalid::band::test_cases::TryNewData),
+    }
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub struct InvalidLetterTryNew {
-    pub data: InvalidLetterTryNewData,
-    pub error: LetterValidationError,
-}
+    #[derive(Debug, PartialEq, Eq, Clone, Copy)]
+    pub enum MacroData {
+        InvalidArtinGenerator(invalid::artin::test_cases::TryNewData),
+        InvalidBand(invalid::band::test_cases::TryNewData),
+    }
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub struct InvalidLetterMacro {
-    pub data: InvalidLetterMacroData,
-    pub error: LetterValidationError,
-}
+    #[derive(Debug, PartialEq, Eq, Clone, Copy)]
+    pub struct TryNew {
+        pub data: TryNewData,
+        pub error: LetterValidationError,
+    }
 
-pub fn arbitrary_invalid_letter_try_new() -> impl Strategy<Value = InvalidLetterTryNew> {
-    prop_oneof![
-        arbitrary_invalid_artin_generator_try_new().prop_map(|invalid_artin_generator| {
-            InvalidLetterTryNew {
-                data: InvalidLetterTryNewData::InvalidArtinGenerator(invalid_artin_generator.data),
-                error: LetterValidationError::ArtinValidation(invalid_artin_generator.error),
-            }
-        }),
-        arbitrary_invalid_band_try_new().prop_map(|invalid_band| InvalidLetterTryNew {
-            data: InvalidLetterTryNewData::InvalidBand(invalid_band.data),
-            error: LetterValidationError::BandValidation(invalid_band.error),
-        }),
-    ]
-}
+    #[derive(Debug, PartialEq, Eq, Clone, Copy)]
+    pub struct Macro {
+        pub data: MacroData,
+        pub error: LetterValidationError,
+    }
 
-pub fn arbitrary_invalid_letter_macro() -> impl Strategy<Value = InvalidLetterMacro> {
-    prop_oneof![
-        arbitrary_invalid_artin_generator_try_new().prop_map(|invalid_artin_generator| {
-            InvalidLetterMacro {
-                data: InvalidLetterMacroData::InvalidArtinGenerator(invalid_artin_generator.data),
-                error: LetterValidationError::ArtinValidation(invalid_artin_generator.error),
-            }
-        }),
-        arbitrary_invalid_band_try_new().prop_map(|invalid_band| InvalidLetterMacro {
-            data: InvalidLetterMacroData::InvalidBand(invalid_band.data),
-            error: LetterValidationError::BandValidation(invalid_band.error),
-        }),
-    ]
+    pub fn try_new() -> impl Strategy<Value = TryNew> {
+        prop_oneof![
+            invalid::artin::test_cases::try_new().prop_map(|invalid_artin_generator| {
+                TryNew {
+                    data: TryNewData::InvalidArtinGenerator(invalid_artin_generator.data),
+                    error: LetterValidationError::ArtinValidation(invalid_artin_generator.error),
+                }
+            }),
+            invalid::band::test_cases::try_new().prop_map(|invalid_band| TryNew {
+                data: TryNewData::InvalidBand(invalid_band.data),
+                error: LetterValidationError::BandValidation(invalid_band.error),
+            }),
+        ]
+    }
+
+    pub fn r#macro() -> impl Strategy<Value = Macro> {
+        prop_oneof![
+            invalid::artin::test_cases::try_new().prop_map(|invalid_artin_generator| {
+                Macro {
+                    data: MacroData::InvalidArtinGenerator(invalid_artin_generator.data),
+                    error: LetterValidationError::ArtinValidation(invalid_artin_generator.error),
+                }
+            }),
+            invalid::band::test_cases::try_new().prop_map(|invalid_band| Macro {
+                data: MacroData::InvalidBand(invalid_band.data),
+                error: LetterValidationError::BandValidation(invalid_band.error),
+            }),
+        ]
+    }
 }

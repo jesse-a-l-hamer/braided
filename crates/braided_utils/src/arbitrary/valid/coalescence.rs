@@ -1,13 +1,13 @@
-use crate::arbitrary::valid::{arbitrary_band_data, arbitrary_letter};
+use crate::arbitrary::valid;
 use braided::{ArtinGenerator, BandGenerator, BandResult, Letter, Sign, Word};
 use proptest::prelude::*;
 
-pub fn arbitrary_single_coalescence(
+pub fn of_band_generator(
     max_head: Option<u16>,
     max_height: Option<u16>,
     max_artin_length: Option<u16>,
 ) -> impl Strategy<Value = (BandResult, Vec<ArtinGenerator>)> {
-    arbitrary_band_data(max_head, max_height, max_artin_length)
+    valid::band::data(max_head, max_height, max_artin_length)
         .prop_flat_map(|(foot, head, sign)| {
             let foot: u16 = foot.try_into().unwrap();
             let head: u16 = head.try_into().unwrap();
@@ -58,12 +58,12 @@ pub fn arbitrary_single_coalescence(
         })
 }
 
-fn arbitrary_single_coalescence_as_letters(
+fn of_band_letter(
     max_head: Option<u16>,
     max_height: Option<u16>,
     max_artin_length: Option<u16>,
 ) -> impl Strategy<Value = (Letter, Vec<Letter>)> {
-    arbitrary_single_coalescence(max_head, max_height, max_artin_length).prop_perturb(
+    of_band_generator(max_head, max_height, max_artin_length).prop_perturb(
         |(band, artin_generators), mut rng| {
             let band_letter = Letter::Band(band.unwrap());
             let artin_letters: Vec<Letter> = artin_generators
@@ -83,7 +83,7 @@ fn arbitrary_single_coalescence_as_letters(
 }
 
 #[derive(Debug, Clone)]
-struct WalledCoalescence {
+struct WalledBandLetterCoalescence {
     band: Letter,
     decomposed_band: Vec<Letter>,
     left_wall: Vec<Letter>,
@@ -103,11 +103,11 @@ fn pair_extends_band(band: Letter, left: Letter, right: Letter) -> bool {
     extends_up || extends_down
 }
 
-fn arbitrary_single_walled_coalescence(
+fn of_band_letter_walled(
     max_head: Option<u16>,
     max_height: Option<u16>,
     max_artin_length: Option<u16>,
-) -> impl Strategy<Value = WalledCoalescence> {
+) -> impl Strategy<Value = WalledBandLetterCoalescence> {
     let max_band_artin_length = if let Some(max) = max_artin_length {
         if max <= 2 {
             panic!("The max_artin_length for a walled coalescence must be greater than 2.");
@@ -117,7 +117,7 @@ fn arbitrary_single_walled_coalescence(
     } else {
         u16::MAX - 2
     };
-    arbitrary_single_coalescence_as_letters(max_head, max_height, Some(max_band_artin_length))
+    of_band_letter(max_head, max_height, Some(max_band_artin_length))
         .prop_flat_map(move |(band, decomposed_band)| {
             let max_wall_length = max_artin_length.unwrap_or(u16::MAX)
                 - <usize as TryInto<u16>>::try_into(decomposed_band.len()).unwrap();
@@ -136,8 +136,8 @@ fn arbitrary_single_walled_coalescence(
                     Just(decomposed_band),
                     Just(max_left_wall_length),
                     Just(max_right_wall_length),
-                    arbitrary_letter(max_head, max_height, Some(max_left_wall_length)),
-                    arbitrary_letter(max_head, max_height, Some(max_right_wall_length)),
+                    valid::letter::new(max_head, max_height, Some(max_left_wall_length)),
+                    valid::letter::new(max_head, max_height, Some(max_right_wall_length)),
                 )
             },
         )
@@ -178,7 +178,7 @@ fn arbitrary_single_walled_coalescence(
                 right_wall_letter,
                 left_wall_letter_reps,
                 right_wall_letter_reps,
-            )| WalledCoalescence {
+            )| WalledBandLetterCoalescence {
                 band,
                 decomposed_band,
                 left_wall: vec![left_wall_letter; left_wall_letter_reps as usize],
@@ -187,11 +187,11 @@ fn arbitrary_single_walled_coalescence(
         )
 }
 
-fn arbitrary_multiple_walled_coalescence(
+fn of_band_letter_walled_multiple(
     max_head: Option<u16>,
     max_height: Option<u16>,
     max_artin_length: Option<u16>,
-) -> impl Strategy<Value = Vec<WalledCoalescence>> {
+) -> impl Strategy<Value = Vec<WalledBandLetterCoalescence>> {
     let max_walled_coalescences = if let Some(max) = max_artin_length {
         if max < 3 {
             panic!("Max artin length must be at least 3 for generation of arbitrary coalescences.");
@@ -207,7 +207,7 @@ fn arbitrary_multiple_walled_coalescence(
             .div_euclid(num_walled_coalescences);
         let mut strategies = Vec::new();
         for _ in 0..num_walled_coalescences {
-            strategies.push(arbitrary_single_walled_coalescence(
+            strategies.push(of_band_letter_walled(
                 max_head,
                 max_height,
                 Some(max_walled_coalescence_artin_length),
@@ -249,19 +249,19 @@ fn get_pruning_safety(
     }
 }
 
-pub fn arbitrary_coalescence(
+pub fn of_word(
     max_head: Option<u16>,
     max_height: Option<u16>,
     max_artin_length: Option<u16>,
 ) -> impl Strategy<Value = (Word, Word)> {
-    arbitrary_multiple_walled_coalescence(max_head, max_height, max_artin_length).prop_perturb(
+    of_band_letter_walled_multiple(max_head, max_height, max_artin_length).prop_perturb(
         |mut walled_coalescences, mut rng| {
             let mut walled_coalescences = walled_coalescences.iter_mut().peekable();
             let mut coalescence: Vec<Letter> = Vec::new();
             let mut decomposed: Vec<Letter> = Vec::new();
 
             if rng.random_bool(0.5)
-                && let Some(WalledCoalescence {
+                && let Some(WalledBandLetterCoalescence {
                     band: _,
                     decomposed_band: _,
                     left_wall: initial_left_wall,
@@ -271,14 +271,14 @@ pub fn arbitrary_coalescence(
                 *initial_left_wall = Vec::new();
             }
 
-            while let Some(WalledCoalescence {
+            while let Some(WalledBandLetterCoalescence {
                 band,
                 decomposed_band,
                 left_wall,
                 right_wall,
             }) = walled_coalescences.next()
             {
-                if let Some(WalledCoalescence {
+                if let Some(WalledBandLetterCoalescence {
                     band: next_band,
                     decomposed_band: _,
                     left_wall: next_left_wall,

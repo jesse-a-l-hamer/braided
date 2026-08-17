@@ -1,28 +1,32 @@
-use crate::arbitrary::invalid::u16::{InvalidU16Data, arbitrary_invalid_u16};
+use crate::arbitrary::invalid;
 use braided::IndexValidationError;
 use proptest::prelude::*;
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub enum InvalidBraidIndexTryNewData {
-    InvalidU16(InvalidU16Data),
-    Zero(u16),
-}
+pub mod test_cases {
+    use super::*;
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub struct InvalidBraidIndexTryNew {
-    pub data: InvalidBraidIndexTryNewData,
-    pub error: IndexValidationError,
-}
+    #[derive(Debug, PartialEq, Eq, Clone, Copy)]
+    pub enum TryNewData {
+        InvalidU16(invalid::u16::FailedU16ConversionData),
+        Zero(u16),
+    }
 
-pub fn arbitrary_invalid_braid_index() -> impl Strategy<Value = InvalidBraidIndexTryNew> {
-    prop_oneof![
-        Just(0u16).prop_map(|zero| InvalidBraidIndexTryNew {
-            data: InvalidBraidIndexTryNewData::Zero(zero),
-            error: IndexValidationError::Zero
-        }),
-        arbitrary_invalid_u16().prop_map(|invalid_u16| InvalidBraidIndexTryNew {
-            data: InvalidBraidIndexTryNewData::InvalidU16(invalid_u16.data),
-            error: IndexValidationError::from(invalid_u16.error)
-        })
-    ]
+    #[derive(Debug, PartialEq, Eq, Clone, Copy)]
+    pub struct TryNew {
+        pub data: TryNewData,
+        pub error: IndexValidationError,
+    }
+
+    pub fn try_new() -> impl Strategy<Value = TryNew> {
+        prop_oneof![
+            Just(0u16).prop_map(|zero| TryNew {
+                data: TryNewData::Zero(zero),
+                error: IndexValidationError::Zero
+            }),
+            invalid::u16::failed_u16_conversion().prop_map(|invalid_u16| TryNew {
+                data: TryNewData::InvalidU16(invalid_u16.data),
+                error: IndexValidationError::from(invalid_u16.error)
+            })
+        ]
+    }
 }

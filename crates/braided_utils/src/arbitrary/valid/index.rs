@@ -1,17 +1,31 @@
-use crate::arbitrary::valid::u16::{ValidPositiveU16Data, arbitrary_valid_positive_u16_data};
+use crate::arbitrary::valid;
 use braided::BraidIndex;
 use proptest::prelude::*;
 
-pub fn arbitrary_braid_index_data(
-    min: Option<u16>,
-    max: Option<u16>,
-) -> impl Strategy<Value = ValidPositiveU16Data> {
-    arbitrary_valid_positive_u16_data(min, max)
+pub fn data(min: Option<u16>, max: Option<u16>) -> impl Strategy<Value = valid::u16::Data> {
+    valid::u16::data(min, max)
 }
 
-pub fn arbitrary_braid_index(
-    min: Option<u16>,
-    max: Option<u16>,
-) -> impl Strategy<Value = BraidIndex> {
-    arbitrary_braid_index_data(min, max).prop_map(|data| BraidIndex::try_new(data).unwrap())
+pub fn new(min: Option<u16>, max: Option<u16>) -> impl Strategy<Value = BraidIndex> {
+    data(min, max).prop_map(|data| BraidIndex::try_new(data).unwrap())
+}
+
+pub mod test_cases {
+    use super::*;
+
+    #[derive(Debug, PartialEq, Eq, Clone, Copy)]
+    pub struct TryNewData(pub valid::u16::Data);
+
+    #[derive(Debug, PartialEq, Eq, Clone, Copy)]
+    pub struct TryNew {
+        pub data: TryNewData,
+        pub expected_index: u16,
+    }
+
+    pub fn try_new(min: Option<u16>, max: Option<u16>) -> impl Strategy<Value = TryNew> {
+        data(min, max).prop_map(|valid_u16_data| TryNew {
+            data: TryNewData(valid_u16_data),
+            expected_index: valid_u16_data.try_into().unwrap(),
+        })
+    }
 }

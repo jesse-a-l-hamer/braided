@@ -2,7 +2,7 @@ use braided::{BraidIndex, Strand};
 use proptest::prelude::*;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub enum ValidPositiveU16Data {
+pub enum Data {
     U8(u8),
     U16(u16),
     U32(u32),
@@ -19,7 +19,7 @@ pub enum ValidPositiveU16Data {
     BraidIndex(BraidIndex),
 }
 
-impl TryInto<u16> for ValidPositiveU16Data {
+impl TryInto<u16> for Data {
     type Error = std::convert::Infallible;
     fn try_into(self) -> Result<u16, Self::Error> {
         match self {
@@ -41,10 +41,7 @@ impl TryInto<u16> for ValidPositiveU16Data {
     }
 }
 
-pub fn arbitrary_valid_positive_u16_data(
-    min: Option<u16>,
-    max: Option<u16>,
-) -> impl Strategy<Value = ValidPositiveU16Data> {
+pub fn data(min: Option<u16>, max: Option<u16>) -> impl Strategy<Value = Data> {
     let min = min.unwrap_or(1u16);
     let weight_u8 = if min <= u8::MAX as u16 { 1u32 } else { 0 };
     let weight_i8 = if min <= i8::MAX as u16 { 1u32 } else { 0 };
@@ -67,21 +64,21 @@ pub fn arbitrary_valid_positive_u16_data(
     };
     let weight: u32 = 1;
     prop_oneof![
-        weight_u8 => ((min as u8)..max_u8).prop_map(ValidPositiveU16Data::U8),
-        weight => (min..max).prop_map(ValidPositiveU16Data::U16),
-        weight => ((min as u32)..(max as u32)).prop_map(ValidPositiveU16Data::U32),
-        weight => ((min as u64)..(max as u64)).prop_map(ValidPositiveU16Data::U64),
-        weight => ((min as u128)..(max as u128)).prop_map(ValidPositiveU16Data::U128),
-        weight => ((min as usize)..(max as usize)).prop_map(ValidPositiveU16Data::USize),
-        weight_i8 => ((min as i8)..max_i8).prop_map(ValidPositiveU16Data::I8),
-        weight_i16 => ((min as i16)..max_i16).prop_map(ValidPositiveU16Data::I16),
-        weight => ((min as i32)..(max as i32)).prop_map(ValidPositiveU16Data::I32),
-        weight => ((min as i64)..(max as i64)).prop_map(ValidPositiveU16Data::I64),
-        weight => ((min as i128)..(max as i128)).prop_map(ValidPositiveU16Data::I128),
-        weight => ((min as isize)..(max as isize)).prop_map(ValidPositiveU16Data::ISize),
+        weight_u8 => ((min as u8)..max_u8).prop_map(Data::U8),
+        weight => (min..max).prop_map(Data::U16),
+        weight => ((min as u32)..(max as u32)).prop_map(Data::U32),
+        weight => ((min as u64)..(max as u64)).prop_map(Data::U64),
+        weight => ((min as u128)..(max as u128)).prop_map(Data::U128),
+        weight => ((min as usize)..(max as usize)).prop_map(Data::USize),
+        weight_i8 => ((min as i8)..max_i8).prop_map(Data::I8),
+        weight_i16 => ((min as i16)..max_i16).prop_map(Data::I16),
+        weight => ((min as i32)..(max as i32)).prop_map(Data::I32),
+        weight => ((min as i64)..(max as i64)).prop_map(Data::I64),
+        weight => ((min as i128)..(max as i128)).prop_map(Data::I128),
+        weight => ((min as isize)..(max as isize)).prop_map(Data::ISize),
         weight => (min..max)
-            .prop_map(|val| ValidPositiveU16Data::Strand(Strand::try_new(val).unwrap())),
+            .prop_map(|val| Data::Strand(Strand::try_new(val).unwrap())),
         weight => (min..max)
-            .prop_map(|val| ValidPositiveU16Data::BraidIndex(BraidIndex::try_new(val).unwrap())),
+            .prop_map(|val| Data::BraidIndex(BraidIndex::try_new(val).unwrap())),
     ]
 }
