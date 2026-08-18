@@ -1,7 +1,6 @@
 pub mod artin;
 pub mod band;
 pub mod braid;
-pub mod cancellation;
 pub mod coalescence;
 pub mod index;
 pub mod letter;

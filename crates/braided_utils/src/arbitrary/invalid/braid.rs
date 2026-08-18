@@ -3,6 +3,29 @@ use crate::arbitrary::valid;
 use braided::{BraidIndex, BraidValidationError, Letter, Sign, Word};
 use proptest::prelude::*;
 
+pub fn vector_of_word_data_where_one_letter_has_given_head_above_other_letters(
+    head: u16,
+    max_height: Option<u16>,
+    max_artin_length: Option<u16>,
+) -> impl Strategy<Value = Vec<(valid::u16::Data, Option<valid::u16::Data>, Sign)>> {
+    if head < 3 {
+        panic!("Head must be at least 3 to generate this data.");
+    }
+
+    valid::letter::data_with_given_head(head, max_height, max_artin_length)
+        .prop_flat_map(move |(foot_idx, head_idx, sign)| {
+            let height: u16 =
+                head - <valid::u16::Data as TryInto<u16>>::try_into(foot_idx).unwrap();
+            let max_artin_length = max_artin_length.map(|max| max - (2 * height - 1));
+            (
+                Just((foot_idx, head_idx, sign)),
+                valid::word::data(Some(head - 1), max_artin_length),
+            )
+        })
+        .prop_map(|(fixed_head_letter, word_data)| [vec![fixed_head_letter], word_data].concat())
+        .prop_shuffle()
+}
+
 pub mod test_cases {
     use super::*;
 
@@ -104,7 +127,7 @@ pub mod test_cases {
             .prop_flat_map(move |(braid_index, head)| {
                 (
                     valid::u16::data(Some(braid_index), Some(braid_index)),
-                    valid::word::data_where_single_letter_has_given_head(
+                    vector_of_word_data_where_one_letter_has_given_head_above_other_letters(
                         head,
                         max_height,
                         max_artin_length,
@@ -165,7 +188,7 @@ pub mod test_cases {
                 (
                     Just(braid_index),
                     valid::u16::data(Some(braid_index), Some(braid_index)),
-                    valid::word::data_where_single_letter_has_given_head(
+                    vector_of_word_data_where_one_letter_has_given_head_above_other_letters(
                         head,
                         max_height,
                         max_artin_length,
@@ -241,7 +264,7 @@ pub mod test_cases {
                 (
                     Just(braid_index),
                     valid::u16::data(Some(braid_index), Some(braid_index)),
-                    valid::word::data_where_single_letter_has_given_head(
+                    vector_of_word_data_where_one_letter_has_given_head_above_other_letters(
                         head,
                         max_height,
                         max_artin_length,
@@ -344,24 +367,24 @@ pub mod test_cases {
             .prop_flat_map(move |(braid_index, head)| {
                 (
                     Just(braid_index),
-                    valid::word::macro_data_where_one_factor_has_given_head(
+                    valid::word::macro_data_factor_with_given_head(
                         head,
                         Some(max_artin_length.unwrap_or(u16::MAX).div_euclid(5)),
                     ),
                     [
-                        valid::word::macro_data_with_single_factor(
+                        valid::word::macro_data_factor(
                             Some(head - 1),
                             Some(max_artin_length.unwrap_or(u16::MAX).div_euclid(5)),
                         ),
-                        valid::word::macro_data_with_single_factor(
+                        valid::word::macro_data_factor(
                             Some(head - 1),
                             Some(max_artin_length.unwrap_or(u16::MAX).div_euclid(5)),
                         ),
-                        valid::word::macro_data_with_single_factor(
+                        valid::word::macro_data_factor(
                             Some(head - 1),
                             Some(max_artin_length.unwrap_or(u16::MAX).div_euclid(5)),
                         ),
-                        valid::word::macro_data_with_single_factor(
+                        valid::word::macro_data_factor(
                             Some(head - 1),
                             Some(max_artin_length.unwrap_or(u16::MAX).div_euclid(5)),
                         ),

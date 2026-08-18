@@ -116,8 +116,8 @@ pub mod test_cases {
                 (
                     Just(artin_length_1),
                     Just(artin_length_2),
-                    valid::letter::vector_of_letters_with_given_artin_length(artin_length_1, None),
-                    valid::letter::vector_of_letters_with_given_artin_length(artin_length_2, None),
+                    valid::letter::vector_with_given_artin_length(artin_length_1, None),
+                    valid::letter::vector_with_given_artin_length(artin_length_2, None),
                 )
             })
             .prop_map(|(artin_length_1, artin_length_2, letters_1, letters_2)| {

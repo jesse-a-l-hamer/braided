@@ -1,6 +1,71 @@
 use crate::arbitrary::invalid;
+use crate::arbitrary::valid;
 use braided::{Strand, StrandValidationError};
 use proptest::prelude::*;
+
+pub fn addition_data() -> impl Strategy<
+    Value = (
+        valid::strand::AdditionOperand,
+        valid::strand::AdditionOperand,
+    ),
+> {
+    (1..=u16::MAX)
+        .prop_flat_map(|left| (Just(left), (u16::MAX - left + 1)..=u16::MAX))
+        .prop_perturb(|(left, right), mut rng| {
+            let left = if rng.random_bool(0.5) {
+                valid::strand::AdditionOperand::Strand(Strand::try_new(left).unwrap())
+            } else {
+                valid::strand::AdditionOperand::U16(left)
+            };
+
+            let right = match left {
+                valid::strand::AdditionOperand::U16(_) => {
+                    valid::strand::AdditionOperand::Strand(Strand::try_new(right).unwrap())
+                }
+                valid::strand::AdditionOperand::Strand(_) => {
+                    if rng.random_bool(0.5) {
+                        valid::strand::AdditionOperand::Strand(Strand::try_new(right).unwrap())
+                    } else {
+                        valid::strand::AdditionOperand::U16(right)
+                    }
+                }
+            };
+
+            (left, right)
+        })
+}
+
+pub fn subtraction_data() -> impl Strategy<
+    Value = (
+        valid::strand::SubtractionOperand,
+        valid::strand::SubtractionOperand,
+    ),
+> {
+    (1..=u16::MAX)
+        .prop_flat_map(|left| (Just(left), left..=u16::MAX))
+        .prop_perturb(|(left, right), mut rng| {
+            let left = if rng.random_bool(0.5) {
+                valid::strand::SubtractionOperand::Strand(Strand::try_new(left).unwrap())
+            } else {
+                valid::strand::SubtractionOperand::U16(left)
+            };
+
+            let right = match left {
+                valid::strand::SubtractionOperand::U16(_) => {
+                    valid::strand::SubtractionOperand::Strand(Strand::try_new(right).unwrap())
+                }
+                valid::strand::SubtractionOperand::Strand(_) => {
+                    if rng.random_bool(0.5) {
+                        valid::strand::SubtractionOperand::Strand(Strand::try_new(right).unwrap())
+                    } else {
+                        valid::strand::SubtractionOperand::U16(right)
+                    }
+                }
+            };
+
+            (left, right)
+        })
+}
 
 pub mod test_cases {
     use super::*;
@@ -12,9 +77,15 @@ pub mod test_cases {
     }
 
     #[derive(Debug, PartialEq, Eq, Clone, Copy)]
-    pub enum ArithmeticData {
-        SubtractionOperands { left: Strand, right: Strand },
-        AdditionOperands { left: Strand, right: Strand },
+    pub struct AdditionData {
+        pub left: valid::strand::AdditionOperand,
+        pub right: valid::strand::AdditionOperand,
+    }
+
+    #[derive(Debug, PartialEq, Eq, Clone, Copy)]
+    pub struct SubtractionData {
+        pub left: valid::strand::SubtractionOperand,
+        pub right: valid::strand::SubtractionOperand,
     }
 
     #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -24,8 +95,14 @@ pub mod test_cases {
     }
 
     #[derive(Debug, PartialEq, Eq, Clone, Copy)]
-    pub struct Arithmetic {
-        pub data: ArithmeticData,
+    pub struct Addition {
+        pub data: AdditionData,
+        pub error: StrandValidationError,
+    }
+
+    #[derive(Debug, PartialEq, Eq, Clone, Copy)]
+    pub struct Subtraction {
+        pub data: SubtractionData,
         pub error: StrandValidationError,
     }
 
@@ -42,31 +119,23 @@ pub mod test_cases {
         ]
     }
 
-    fn subtraction() -> impl Strategy<Value = Arithmetic> {
-        (1..u16::MAX)
-            .prop_flat_map(|left| (Just(left), left..=u16::MAX))
-            .prop_map(|(left, right)| Arithmetic {
-                data: ArithmeticData::SubtractionOperands {
-                    left: Strand::try_new(left).unwrap(),
-                    right: Strand::try_new(right).unwrap(),
-                },
-                error: StrandValidationError::Subtraction { left, right },
-            })
+    pub fn addition() -> impl Strategy<Value = Addition> {
+        addition_data().prop_map(|(left, right)| Addition {
+            data: AdditionData { left, right },
+            error: StrandValidationError::Addition {
+                left: left.into(),
+                right: right.into(),
+            },
+        })
     }
 
-    fn addition() -> impl Strategy<Value = Arithmetic> {
-        (1..u16::MAX)
-            .prop_flat_map(|left| (Just(left), (u16::MAX - left + 1)..=u16::MAX))
-            .prop_map(|(left, right)| Arithmetic {
-                data: ArithmeticData::AdditionOperands {
-                    left: Strand::try_new(left).unwrap(),
-                    right: Strand::try_new(right).unwrap(),
-                },
-                error: StrandValidationError::Addition { left, right },
-            })
-    }
-
-    pub fn arithmetic() -> impl Strategy<Value = Arithmetic> {
-        prop_oneof![subtraction(), addition()]
+    pub fn subtraction() -> impl Strategy<Value = Subtraction> {
+        subtraction_data().prop_map(|(left, right)| Subtraction {
+            data: SubtractionData { left, right },
+            error: StrandValidationError::Subtraction {
+                left: left.into(),
+                right: right.into(),
+            },
+        })
     }
 }
