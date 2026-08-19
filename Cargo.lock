@@ -69,7 +69,6 @@ dependencies = [
  "proptest",
  "thiserror",
  "tracing",
- "tracing-subscriber",
 ]
 
 [[package]]
@@ -78,6 +77,8 @@ version = "0.2.1"
 dependencies = [
  "braided",
  "proptest",
+ "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]

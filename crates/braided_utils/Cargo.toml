@@ -9,3 +9,5 @@ publish = false
 [dependencies]
 braided = { path = "../.." }
 proptest.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
