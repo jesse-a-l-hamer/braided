@@ -290,7 +290,7 @@ use crate::{
 /// );
 /// assert!(!braid.is_trivial());
 /// assert!(Braid::try_trivial(9).clone_unwrap().is_trivial());
-/// assert_eq!(braid.letter_length(), word.length());
+/// assert_eq!(braid.letter_length(), word.letter_length());
 /// assert_eq!(braid.artin_length(), word.artin_length());
 /// assert_eq!(
 ///     braid.writhe(),
@@ -853,7 +853,7 @@ impl Braid {
     /// .clone_unwrap();
     /// let braid = Braid::try_new(9, word.clone()).clone_unwrap();
     ///
-    /// assert_eq!(braid.letter_length(), word.length());
+    /// assert_eq!(braid.letter_length(), word.letter_length());
     /// ```
     #[tracing::instrument(level = "info")]
     pub fn letter_length(&self) -> u16 {

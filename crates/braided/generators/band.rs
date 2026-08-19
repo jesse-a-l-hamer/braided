@@ -62,7 +62,7 @@ pub enum StaircaseQuadrant {
 ///
 /// That said, the Artin generators still _generate_ the braid groups, thus we ought to be able to
 /// [decompose](BandGenerator::decompose) any band generator into a collection of Artin generators
-/// (and likewise [coalesce](BandGenerator::coalesce) an appropriate collection of Artin generators
+/// (and likewise [coalesce](BandGenerator::try_coalesce) an appropriate collection of Artin generators
 /// into a band generator). Let `b[f, h, s]` denote a band generator with foot `f`, head `h`, and
 /// sign `s`. There are in fact `h - f` distinct decompositions of `b[f, h, s]` into Artin
 /// generators, depending on where we situate the "crossing". Let `a[i, t]` denote the Artin
@@ -72,7 +72,7 @@ pub enum StaircaseQuadrant {
 ///
 /// In `braided`, we assume the convention that `c = h-1` when
 /// [decomposing](BandGenerator::decompose) a band generator; however, our implementation of the
-/// [coalescing algorithm](BandGenerator::coalesce) makes no assumptions as to the value of `c`, or
+/// [coalescing algorithm](BandGenerator::try_coalesce) makes no assumptions as to the value of `c`, or
 /// the order of the surrounding Artin generators (as long as the order is obtainable from that
 /// given above through applications of the _far commutativity_ relations).
 ///
@@ -81,7 +81,7 @@ pub enum StaircaseQuadrant {
 /// A [`BandGenerator`] may be constructed in multiple ways. The direct approach passes low-level
 /// band data directly to [`BandGenerator::try_new`]. A band can also be _infallibly_ converted from
 /// either an [`ArtinGenerator`] or a [`Letter`] using the [`BandGenerator::from`] function.
-/// Finally, one may use [`BandGenerator::coalesce`] in order to convert a collection of Artin
+/// Finally, one may use [`BandGenerator::try_coalesce`] in order to convert a collection of Artin
 /// generators into a band (see the previous section for more details on the relationship between
 /// Artin generators and band generators).
 ///
@@ -152,7 +152,7 @@ pub enum StaircaseQuadrant {
 /// );
 /// ```
 ///
-/// 3. Converting from a collection of [`ArtinGenerator`] using [`BandGenerator::coalesce`].
+/// 3. Converting from a collection of [`ArtinGenerator`] using [`BandGenerator::try_coalesce`].
 ///
 /// ```
 /// use braided::{ArtinGenerator, BandGenerator, Sign};
@@ -161,28 +161,28 @@ pub enum StaircaseQuadrant {
 ///
 /// // All of the following are valid means of constructing `test_band` via "coalescing":
 /// let coalesced_bands = [
-///     BandGenerator::coalesce(&[
+///     BandGenerator::try_coalesce(&[
 ///         ArtinGenerator::try_new(1, Sign::Negative).unwrap(),
 ///         ArtinGenerator::try_new(2, Sign::Negative).unwrap(),
 ///         ArtinGenerator::try_new(3, Sign::Positive).unwrap(),
 ///         ArtinGenerator::try_new(2, Sign::Positive).unwrap(),
 ///         ArtinGenerator::try_new(1, Sign::Positive).unwrap(),
 ///     ]),
-///     BandGenerator::coalesce(&[
+///     BandGenerator::try_coalesce(&[
 ///         ArtinGenerator::try_new(3, Sign::Positive).unwrap(),
 ///         ArtinGenerator::try_new(2, Sign::Positive).unwrap(),
 ///         ArtinGenerator::try_new(1, Sign::Positive).unwrap(),
 ///         ArtinGenerator::try_new(2, Sign::Negative).unwrap(),
 ///         ArtinGenerator::try_new(3, Sign::Negative).unwrap(),
 ///     ]),
-///     BandGenerator::coalesce(&[
+///     BandGenerator::try_coalesce(&[
 ///         ArtinGenerator::try_new(3, Sign::Positive).unwrap(),
 ///         ArtinGenerator::try_new(1, Sign::Negative).unwrap(),
 ///         ArtinGenerator::try_new(2, Sign::Positive).unwrap(),
 ///         ArtinGenerator::try_new(1, Sign::Positive).unwrap(),
 ///         ArtinGenerator::try_new(3, Sign::Negative).unwrap(),
 ///     ]),
-///     BandGenerator::coalesce(&[
+///     BandGenerator::try_coalesce(&[
 ///         ArtinGenerator::try_new(1, Sign::Negative).unwrap(),
 ///         ArtinGenerator::try_new(3, Sign::Positive).unwrap(),
 ///         ArtinGenerator::try_new(2, Sign::Positive).unwrap(),
@@ -199,7 +199,7 @@ pub enum StaircaseQuadrant {
 /// ## Errors
 ///
 /// Methods 1. and 3. above are _fallible_, and the associated error type for both
-/// [`BandGenerator::try_new`] and [`BandGenerator::coalesce`] is [`BandValidationError`]. Further
+/// [`BandGenerator::try_new`] and [`BandGenerator::try_coalesce`] is [`BandValidationError`]. Further
 /// details and examples can be found in the associated documentation.
 ///
 /// # Decomposition
@@ -229,7 +229,7 @@ pub enum StaircaseQuadrant {
 ///         ],
 ///     ),
 ///     (
-///         BandGenerator::coalesce(&[
+///         BandGenerator::try_coalesce(&[
 ///             ArtinGenerator::try_new(1, Sign::Negative).unwrap(),
 ///             ArtinGenerator::try_new(2, Sign::Negative).unwrap(),
 ///             ArtinGenerator::try_new(3, Sign::Positive).unwrap(),
@@ -245,7 +245,7 @@ pub enum StaircaseQuadrant {
 ///         ],
 ///     ),
 ///     (
-///         BandGenerator::coalesce(&[
+///         BandGenerator::try_coalesce(&[
 ///             ArtinGenerator::try_new(1, Sign::Negative).unwrap(),
 ///             ArtinGenerator::try_new(3, Sign::Positive).unwrap(),
 ///             ArtinGenerator::try_new(2, Sign::Positive).unwrap(),
@@ -429,7 +429,7 @@ impl BandGenerator {
     ///         ],
     ///     ),
     ///     (
-    ///         BandGenerator::coalesce(&[
+    ///         BandGenerator::try_coalesce(&[
     ///             ArtinGenerator::try_new(1, Sign::Negative).unwrap(),
     ///             ArtinGenerator::try_new(2, Sign::Negative).unwrap(),
     ///             ArtinGenerator::try_new(3, Sign::Positive).unwrap(),
@@ -445,7 +445,7 @@ impl BandGenerator {
     ///         ],
     ///     ),
     ///     (
-    ///         BandGenerator::coalesce(&[
+    ///         BandGenerator::try_coalesce(&[
     ///             ArtinGenerator::try_new(1, Sign::Negative).unwrap(),
     ///             ArtinGenerator::try_new(3, Sign::Positive).unwrap(),
     ///             ArtinGenerator::try_new(2, Sign::Positive).unwrap(),
@@ -791,7 +791,7 @@ impl BandGenerator {
     ///         ],
     ///     ),
     ///     (
-    ///         BandGenerator::coalesce(&[
+    ///         BandGenerator::try_coalesce(&[
     ///             ArtinGenerator::try_new(1, Sign::Negative).unwrap(),
     ///             ArtinGenerator::try_new(2, Sign::Negative).unwrap(),
     ///             ArtinGenerator::try_new(3, Sign::Positive).unwrap(),
@@ -807,7 +807,7 @@ impl BandGenerator {
     ///         ],
     ///     ),
     ///     (
-    ///         BandGenerator::coalesce(&[
+    ///         BandGenerator::try_coalesce(&[
     ///             ArtinGenerator::try_new(1, Sign::Negative).unwrap(),
     ///             ArtinGenerator::try_new(3, Sign::Positive).unwrap(),
     ///             ArtinGenerator::try_new(2, Sign::Positive).unwrap(),

@@ -100,7 +100,7 @@ pub enum ArtinValidationError {
 ///
 /// [Bands](BandGenerator) can be fallibly constructed in two ways: by providing band data directly
 /// to [`BandGenerator::try_new`], or by passing a list of [`ArtinGenerator`](crate::ArtinGenerator)
-/// to [`BandGenerator::coalesce`].
+/// to [`BandGenerator::try_coalesce`].
 ///
 /// # Failure When Using [`BandGenerator::try_new`]
 ///
@@ -159,7 +159,7 @@ pub enum ArtinValidationError {
 /// assert_matches!(*big_head, Err(BandValidationError::StrandValidation(_)));
 /// ```
 ///
-/// # Failure When Using [`BandGenerator::coalesce`]
+/// # Failure When Using [`BandGenerator::try_coalesce`]
 ///
 /// In each of these failure contexts, a [`BandValidationError::FromArtin`] is returned.
 ///
@@ -169,7 +169,7 @@ pub enum ArtinValidationError {
 /// use braided::{ArtinGenerator, BandGenerator, BandValidationError, Sign};
 /// use std::assert_matches;
 ///
-/// let empty_input = BandGenerator::coalesce(&[]);
+/// let empty_input = BandGenerator::try_coalesce(&[]);
 ///
 /// assert_matches!(*empty_input, Err(BandValidationError::FromArtin(_)))
 /// ```
@@ -180,7 +180,7 @@ pub enum ArtinValidationError {
 /// use braided::{ArtinGenerator, BandGenerator, BandValidationError, Sign};
 /// use std::assert_matches;
 ///
-/// let even_length_input = BandGenerator::coalesce(&[
+/// let even_length_input = BandGenerator::try_coalesce(&[
 ///     ArtinGenerator::try_new(1, Sign::Positive).unwrap(),
 ///     ArtinGenerator::try_new(2, Sign::Negative).unwrap(),
 /// ]);
@@ -194,7 +194,7 @@ pub enum ArtinValidationError {
 /// use braided::{ArtinGenerator, BandGenerator, BandValidationError, Sign};
 /// use std::assert_matches;
 ///
-/// let too_long_input = BandGenerator::coalesce(&vec![
+/// let too_long_input = BandGenerator::try_coalesce(&vec![
 ///     ArtinGenerator::try_new(1, Sign::Positive).unwrap(); u16::MAX as usize + 1
 /// ]);
 ///
@@ -208,7 +208,7 @@ pub enum ArtinValidationError {
 /// use braided::{ArtinGenerator, BandGenerator, BandValidationError, Sign};
 /// use std::assert_matches;
 ///
-/// let non_contiguous_generator = BandGenerator::coalesce(&[
+/// let non_contiguous_generator = BandGenerator::try_coalesce(&[
 ///     // should be 1-2-3 on the left, not 2-1-3
 ///     ArtinGenerator::try_new(2, Sign::Negative).unwrap(),
 ///     ArtinGenerator::try_new(1, Sign::Negative).unwrap(),
@@ -228,7 +228,7 @@ pub enum ArtinValidationError {
 /// use std::assert_matches;
 ///
 ///
-/// let imbalanced = BandGenerator::coalesce(&[
+/// let imbalanced = BandGenerator::try_coalesce(&[
 ///     ArtinGenerator::try_new(4, Sign::Positive).unwrap(), // above crossing
 ///     ArtinGenerator::try_new(2, Sign::Negative).unwrap(), // below crossing
 ///     ArtinGenerator::try_new(3, Sign::Positive).unwrap(), // crossing

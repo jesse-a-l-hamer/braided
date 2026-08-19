@@ -300,7 +300,7 @@ use crate::{
 ///
 /// assert!(!word.is_trivial());
 ///
-/// assert_eq!(word.length(), 4);
+/// assert_eq!(word.letter_length(), 4);
 ///
 /// assert_eq!(word.artin_length(), 8);
 ///
