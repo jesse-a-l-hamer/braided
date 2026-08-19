@@ -1,6 +1,6 @@
 //! Integration tests to check macro-based construction interface.
 
-use crate::telemetry::start_tracing;
+use braided_utils::telemetry::start_tracing;
 use braided::{
     ArtinGenerator, BandGenerator, Braid, BraidResult, BraidValidationError, Letter, LetterResult,
     LetterValidationError, Sign, Word, WordResult, WordValidationError, braid, letter, word,

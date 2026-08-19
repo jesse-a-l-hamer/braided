@@ -1,6 +1,6 @@
 //! Integration tests for the multiplication interface.
 
-use crate::telemetry::start_tracing;
+use braided_utils::telemetry::start_tracing;
 use braided::{
     Braid, BraidIndex, BraidResult, BraidValidationError, Letter, Sign, Word, WordValidationError,
     braid, letter, word,

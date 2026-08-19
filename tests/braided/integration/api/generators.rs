@@ -1,7 +1,7 @@
 //! Integration tests to ensure that the `Letter` interface upholds generator interoperability
 //! guarantees.
 
-use crate::telemetry::start_tracing;
+use braided_utils::telemetry::start_tracing;
 use googletest::matchers::{eq, is_true};
 use googletest::{expect_that, gtest};
 

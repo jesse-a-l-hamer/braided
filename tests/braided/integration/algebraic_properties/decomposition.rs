@@ -1,6 +1,6 @@
 //! Integration tests verifying that band decomposition works as expected.
 
-use crate::telemetry::start_tracing;
+use braided_utils::telemetry::start_tracing;
 use googletest::matchers::eq;
 use googletest::{expect_that, gtest};
 

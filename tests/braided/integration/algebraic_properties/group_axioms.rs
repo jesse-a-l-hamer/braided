@@ -1,6 +1,6 @@
 //! Integration tests to check that group axioms hold for multiplication of braids.
 
-use crate::telemetry::start_tracing;
+use braided_utils::telemetry::start_tracing;
 use googletest::matchers::{anything, eq, err, is_true, ok};
 use googletest::{expect_that, gtest};
 
