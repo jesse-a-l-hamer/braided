@@ -654,10 +654,10 @@ impl Word {
     /// ];
     /// let word = Word::try_from_letters(&letters).clone_unwrap();
     ///
-    /// assert_eq!(word.length(), 4);
+    /// assert_eq!(word.letter_length(), 4);
     /// ```
     #[tracing::instrument(level = "info")]
-    pub fn length(&self) -> u16 {
+    pub fn letter_length(&self) -> u16 {
         // length checks taken care of at construction, so unwrapping here is safe
         self.len().try_into().unwrap()
     }
@@ -895,7 +895,7 @@ mod tests {
         );
         expect_that!(word.is_trivial(), is_false());
         expect_that!(Word::trivial().is_trivial(), is_true());
-        expect_that!(word.length(), eq(letters.len().try_into().unwrap()));
+        expect_that!(word.letter_length(), eq(letters.len().try_into().unwrap()));
         expect_that!(
             word.artin_length(),
             eq(letters.iter().map(|&l| l.artin_length()).sum())

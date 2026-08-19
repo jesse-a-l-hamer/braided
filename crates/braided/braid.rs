@@ -858,7 +858,7 @@ impl Braid {
     #[tracing::instrument(level = "info")]
     pub fn letter_length(&self) -> u16 {
         // Length checks performed on underlying word: safe to unwrap
-        self.word.length()
+        self.word.letter_length()
     }
     /// Computes the _equivalent_ number of [Artin letters](Letter::Artin) of the [braid's](Braid)
     /// [word](Word).
@@ -1199,7 +1199,7 @@ mod tests {
         );
         expect_that!(braid.is_trivial(), is_false());
         expect_that!(Braid::try_trivial(9).clone_unwrap().is_trivial(), is_true());
-        expect_that!(braid.letter_length(), eq(word.length()));
+        expect_that!(braid.letter_length(), eq(word.letter_length()));
         expect_that!(braid.artin_length(), eq(word.artin_length()));
         expect_that!(
             braid.writhe(),
