@@ -45,7 +45,7 @@ pub mod test_cases {
     pub fn try_new(min: Option<u16>, max: Option<u16>) -> impl Strategy<Value = TryNew> {
         data(min, max).prop_map(|valid_u16_data| TryNew {
             data: TryNewData(valid_u16_data),
-            expected_index: valid_u16_data.try_into().unwrap(),
+            expected_index: valid_u16_data.into(),
         })
     }
 }

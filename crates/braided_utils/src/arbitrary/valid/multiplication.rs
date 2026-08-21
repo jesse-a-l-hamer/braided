@@ -297,23 +297,40 @@ fn operand_from_letters(
     if braid_index == 1 && !letters.is_empty() {
         panic!("braid_index 1 only allows for trivial operands, but letters were given.");
     }
-    let letter_weight: u32 = if letters.len() == 1 { 6 } else { 0 };
-    prop_oneof![
-        letter_weight => Just(MulOperand::Letter(*letters.last().unwrap())),
-        letter_weight => Just(
-            MulOperand::LetterResult(LetterResult::from(Ok(*letters.last().unwrap())))
-        ),
-        1 => Just(MulOperand::Word(Word::try_from_letters(&letters[..]).clone_unwrap())),
-        1 => Just(MulOperand::WordResult(Word::try_from_letters(&letters[..]))),
-        1 => Just(
-            MulOperand::Braid(
+    if letters.len() == 1 {
+        prop_oneof![
+            6 => Just(MulOperand::Letter(*letters.last().unwrap())),
+            6 => Just(
+                MulOperand::LetterResult(LetterResult::from(Ok(*letters.last().unwrap())))
+            ),
+            1 => Just(MulOperand::Word(Word::try_from_letters(&letters[..]).clone_unwrap())),
+            1 => Just(MulOperand::WordResult(Word::try_from_letters(&letters[..]))),
+            1 => Just(
+                MulOperand::Braid(
+                    Braid::try_from_letters(Some(braid_index), &letters[..]).clone_unwrap()
+                )
+            ),
+            1 => Just(
+                MulOperand::BraidResult(Braid::try_from_letters(Some(braid_index), &letters[..]))
+            ),
+        ]
+        .boxed()
+    } else {
+        prop_oneof![
+            Just(MulOperand::Word(
+                Word::try_from_letters(&letters[..]).clone_unwrap()
+            )),
+            Just(MulOperand::WordResult(Word::try_from_letters(&letters[..]))),
+            Just(MulOperand::Braid(
                 Braid::try_from_letters(Some(braid_index), &letters[..]).clone_unwrap()
-            )
-        ),
-        1 => Just(
-            MulOperand::BraidResult(Braid::try_from_letters(Some(braid_index), &letters[..]))
-        ),
-    ]
+            )),
+            Just(MulOperand::BraidResult(Braid::try_from_letters(
+                Some(braid_index),
+                &letters[..]
+            ))),
+        ]
+        .boxed()
+    }
 }
 
 pub fn operands_and_product_from_letters(
@@ -370,19 +387,14 @@ pub fn non_cancelling_operands_and_product_as_letters(
                         20 => 2..=(artin_length-2),
                         4 => (artin_length-1)..=(artin_length-1),
                         1 => artin_length..=artin_length,
-                    ],
+                    ]
+                    .boxed(),
                 )
             } else {
                 (
                     Just(braid_index),
                     Just(artin_length),
-                    prop_oneof![
-                        1 => 0u16..=0,
-                        1 => 1u16..=1,
-                        0 => 2..=(artin_length-2),
-                        0 => (artin_length-1)..=(artin_length-1),
-                        0 => artin_length..=artin_length,
-                    ],
+                    prop_oneof![0u16..=0, 1u16..=1,].boxed(),
                 )
             }
         })
@@ -588,7 +600,7 @@ pub mod test_cases {
         max_braid_index: Option<u16>,
         max_artin_length: Option<u16>,
     ) -> impl Strategy<Value = Closure> {
-        (1..max_braid_index.unwrap_or(u16::MAX))
+        (1..=max_braid_index.unwrap_or(u16::MAX))
             .prop_flat_map(move |braid_index| {
                 (
                     Just(braid_index),
@@ -609,7 +621,7 @@ pub mod test_cases {
         max_braid_index: Option<u16>,
         max_artin_length: Option<u16>,
     ) -> impl Strategy<Value = Associativity> {
-        (1..max_braid_index.unwrap_or(u16::MAX))
+        (1..=max_braid_index.unwrap_or(u16::MAX))
             .prop_flat_map(move |braid_index| {
                 (
                     Just(braid_index),

@@ -14,9 +14,9 @@ pub fn of_band_generator(
     }
     valid::band::data(max_head, max_height, max_artin_length)
         .prop_flat_map(|(foot, head, sign)| {
-            let foot: u16 = foot.try_into().unwrap();
-            let head: u16 = head.try_into().unwrap();
-            (Just(foot), Just(head), Just(sign), foot..(head - 1))
+            let foot: u16 = foot.into();
+            let head: u16 = head.into();
+            (Just(foot), Just(head), Just(sign), foot..=(head - 1))
         })
         .prop_perturb(|(foot, head, sign, crossing_foot), mut rng| {
             let band = BandGenerator::try_new(foot, head, sign);
@@ -140,7 +140,7 @@ fn of_band_letter_walled(
                 Just(band),
                 Just(decomposed_band),
                 Just(max_wall_length),
-                1..max_wall_length,
+                1..=max_wall_length,
             )
         })
         .prop_flat_map(

@@ -14,7 +14,7 @@ pub mod test_cases {
     #[derive(Debug, PartialEq, Eq, Clone, Copy)]
     pub enum MacroData {
         InvalidArtinGenerator(invalid::artin::test_cases::TryNewData),
-        InvalidBand(invalid::band::test_cases::TryNewData),
+        InvalidBandGenerator(invalid::band::test_cases::TryNewData),
     }
 
     #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -44,7 +44,7 @@ pub mod test_cases {
         ]
     }
 
-    pub fn r#macro() -> impl Strategy<Value = Macro> {
+    pub fn letter_macro() -> impl Strategy<Value = Macro> {
         prop_oneof![
             invalid::artin::test_cases::try_new().prop_map(|invalid_artin_generator| {
                 Macro {
@@ -53,7 +53,7 @@ pub mod test_cases {
                 }
             }),
             invalid::band::test_cases::try_new().prop_map(|invalid_band| Macro {
-                data: MacroData::InvalidBand(invalid_band.data),
+                data: MacroData::InvalidBandGenerator(invalid_band.data),
                 error: LetterValidationError::BandValidation(invalid_band.error),
             }),
         ]

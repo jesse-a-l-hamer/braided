@@ -3,7 +3,11 @@ use braided::{Sign, Word};
 use proptest::prelude::*;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub struct MacroFactors(pub [(valid::u16::Data, Option<valid::u16::Data>, isize); 5]);
+pub struct MacroFactor<E: TryInto<isize> + std::fmt::Debug>(
+    pub valid::u16::Data,
+    pub Option<valid::u16::Data>,
+    pub E,
+);
 
 pub fn with_given_artin_length(
     artin_length: u16,
@@ -22,7 +26,7 @@ pub fn with_given_artin_length(
 pub fn macro_data_factor_with_given_head(
     head: u16,
     max_artin_length: Option<u16>,
-) -> impl Strategy<Value = (valid::u16::Data, Option<valid::u16::Data>, isize)> {
+) -> impl Strategy<Value = MacroFactor<isize>> {
     if head < 2 {
         panic!("head must be at least 2.");
     }
@@ -61,9 +65,9 @@ pub fn macro_data_factor_with_given_head(
         })
         .prop_perturb(|(height, foot, head, exponent), mut rng| {
             if height > 1 || rng.random_bool(0.5) {
-                (foot, Some(head), exponent)
+                MacroFactor(foot, Some(head), exponent)
             } else {
-                (foot, None, exponent)
+                MacroFactor(foot, None, exponent)
             }
         })
 }
@@ -71,7 +75,7 @@ pub fn macro_data_factor_with_given_head(
 pub fn macro_data_factor(
     max_head: Option<u16>,
     max_artin_length: Option<u16>,
-) -> impl Strategy<Value = (valid::u16::Data, Option<valid::u16::Data>, isize)> {
+) -> impl Strategy<Value = MacroFactor<isize>> {
     if let Some(max_head) = max_head
         && max_head < 2
     {
@@ -84,37 +88,29 @@ pub fn macro_data_factor(
 pub fn macro_data(
     max_head: Option<u16>,
     max_artin_length: Option<u16>,
-) -> impl Strategy<Value = [(valid::u16::Data, Option<valid::u16::Data>, isize); 5]> {
+) -> impl Strategy<Value = [MacroFactor<isize>; 3]> {
     if let Some(max_head) = max_head
         && max_head < 2
     {
         panic!("Unable to generate nontrivial macro data when max_head < 2.");
     }
     if let Some(max_artin_length) = max_artin_length
-        && max_artin_length < 5
+        && max_artin_length < 3
     {
-        panic!("Max Artin length must be at least 5 to generate this data.")
+        panic!("Max Artin length must be at least 3 to generate this data.")
     }
     [
         macro_data_factor(
             max_head,
-            Some(max_artin_length.unwrap_or(u16::MAX).div_euclid(5)),
+            Some(max_artin_length.unwrap_or(u16::MAX).div_euclid(3)),
         ),
         macro_data_factor(
             max_head,
-            Some(max_artin_length.unwrap_or(u16::MAX).div_euclid(5)),
+            Some(max_artin_length.unwrap_or(u16::MAX).div_euclid(3)),
         ),
         macro_data_factor(
             max_head,
-            Some(max_artin_length.unwrap_or(u16::MAX).div_euclid(5)),
-        ),
-        macro_data_factor(
-            max_head,
-            Some(max_artin_length.unwrap_or(u16::MAX).div_euclid(5)),
-        ),
-        macro_data_factor(
-            max_head,
-            Some(max_artin_length.unwrap_or(u16::MAX).div_euclid(5)),
+            Some(max_artin_length.unwrap_or(u16::MAX).div_euclid(3)),
         ),
     ]
 }
@@ -158,7 +154,7 @@ pub mod test_cases {
     #[derive(Debug, PartialEq, Eq, Clone)]
     pub enum MacroData {
         Trivial,
-        NonTrivial(Box<MacroFactors>),
+        NonTrivial(Box<[MacroFactor<isize>; 3]>),
     }
 
     #[derive(Debug, PartialEq, Eq, Clone)]
@@ -246,7 +242,7 @@ pub mod test_cases {
                 let mut word_data: Vec<(valid::u16::Data, Option<valid::u16::Data>, Sign)> =
                     Vec::new();
 
-                for factor in factors {
+                for factor in &factors[..] {
                     if factor.2 > 0 {
                         word_data.extend(vec![
                             (factor.0, factor.1, Sign::Positive);
@@ -263,7 +259,7 @@ pub mod test_cases {
                 let expected = Word::try_new(word_data);
 
                 Macro {
-                    data: MacroData::NonTrivial(Box::new(MacroFactors(factors))),
+                    data: MacroData::NonTrivial(Box::new(factors)),
                     expected,
                 }
             }),

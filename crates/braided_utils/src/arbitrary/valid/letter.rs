@@ -35,6 +35,28 @@ pub fn data_with_given_head(
     ]
 }
 
+pub fn data_with_given_height(
+    max_head: Option<u16>,
+    height: u16,
+) -> impl Strategy<Value = (valid::u16::Data, Option<valid::u16::Data>, Sign)> {
+    if let Some(max_head) = max_head
+        && max_head < 2
+    {
+        panic!("max_head must be at least 2.")
+    }
+    if height == 1 {
+        prop_oneof![
+            3 => valid::artin::data(None, max_head.map(|h| h - 1))
+                .prop_map(|(foot_idx, sign)| (foot_idx, None, sign)),
+            1 => valid::band::data_with_given_height(1, max_head).prop_map(|(foot_idx, head_idx, sign)| (foot_idx, Some(head_idx), sign)),
+        ].boxed()
+    } else {
+        valid::band::data_with_given_height(height, max_head)
+            .prop_map(|(foot_idx, head_idx, sign)| (foot_idx, Some(head_idx), sign))
+            .boxed()
+    }
+}
+
 pub fn new(
     max_head: Option<u16>,
     max_height: Option<u16>,
@@ -184,7 +206,7 @@ pub fn vector(
     {
         panic!("max_head must be at least 2.")
     }
-    (0..max_artin_length.unwrap_or(u16::MAX))
+    (0..=max_artin_length.unwrap_or(u16::MAX))
         .prop_flat_map(move |artin_length| vector_with_given_artin_length(artin_length, max_head))
 }
 
@@ -231,16 +253,10 @@ pub fn unequal_pair(
         .prop_filter_map(
             "Data from this branch must produce unequal letters.",
             |(left, right)| {
-                let left_foot: u16 = left.0.try_into().unwrap();
-                let left_head: u16 = left
-                    .1
-                    .map(|h| h.try_into().unwrap())
-                    .unwrap_or(left_foot + 1);
-                let right_foot: u16 = right.0.try_into().unwrap();
-                let right_head: u16 = right
-                    .1
-                    .map(|h| h.try_into().unwrap())
-                    .unwrap_or(right_foot + 1);
+                let left_foot: u16 = left.0.into();
+                let left_head: u16 = left.1.map(|h| h.into()).unwrap_or(left_foot + 1);
+                let right_foot: u16 = right.0.into();
+                let right_head: u16 = right.1.map(|h| h.into()).unwrap_or(right_foot + 1);
 
                 if left_foot == right_foot && left_head == right_head && left.2 == right.2 {
                     None

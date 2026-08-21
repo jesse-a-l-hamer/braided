@@ -19,24 +19,23 @@ pub enum Data {
     BraidIndex(BraidIndex),
 }
 
-impl TryInto<u16> for Data {
-    type Error = std::convert::Infallible;
-    fn try_into(self) -> Result<u16, Self::Error> {
-        match self {
-            Self::U8(val) => Ok(val.into()),
-            Self::U16(val) => Ok(val),
-            Self::U32(val) => Ok(val.try_into().unwrap()),
-            Self::U64(val) => Ok(val.try_into().unwrap()),
-            Self::U128(val) => Ok(val.try_into().unwrap()),
-            Self::USize(val) => Ok(val.try_into().unwrap()),
-            Self::I8(val) => Ok(val.try_into().unwrap()),
-            Self::I16(val) => Ok(val.try_into().unwrap()),
-            Self::I32(val) => Ok(val.try_into().unwrap()),
-            Self::I64(val) => Ok(val.try_into().unwrap()),
-            Self::I128(val) => Ok(val.try_into().unwrap()),
-            Self::ISize(val) => Ok(val.try_into().unwrap()),
-            Self::Strand(val) => Ok(val.into()),
-            Self::BraidIndex(val) => Ok(val.into()),
+impl From<Data> for u16 {
+    fn from(value: Data) -> Self {
+        match value {
+            Data::U8(val) => val.into(),
+            Data::U16(val) => val,
+            Data::U32(val) => val.try_into().unwrap(),
+            Data::U64(val) => val.try_into().unwrap(),
+            Data::U128(val) => val.try_into().unwrap(),
+            Data::USize(val) => val.try_into().unwrap(),
+            Data::I8(val) => val.try_into().unwrap(),
+            Data::I16(val) => val.try_into().unwrap(),
+            Data::I32(val) => val.try_into().unwrap(),
+            Data::I64(val) => val.try_into().unwrap(),
+            Data::I128(val) => val.try_into().unwrap(),
+            Data::ISize(val) => val.try_into().unwrap(),
+            Data::Strand(val) => val.into(),
+            Data::BraidIndex(val) => val.into(),
         }
     }
 }
@@ -173,9 +172,6 @@ pub fn data(min: Option<u16>, max: Option<u16>) -> impl Strategy<Value = Data> {
         panic!("min may be no larger than max.");
     }
     let min = min.unwrap_or(1u16);
-    let weight_u8 = if min <= u8::MAX as u16 { 1u32 } else { 0 };
-    let weight_i8 = if min <= i8::MAX as u16 { 1u32 } else { 0 };
-    let weight_i16 = if min <= i16::MAX as u16 { 1u32 } else { 0 };
     let max = max.unwrap_or(u16::MAX);
     let max_u8 = if max <= u8::MAX as u16 {
         max as u8
@@ -192,23 +188,71 @@ pub fn data(min: Option<u16>, max: Option<u16>) -> impl Strategy<Value = Data> {
     } else {
         i16::MAX
     };
-    let weight: u32 = 1;
-    prop_oneof![
-        weight_u8 => ((min as u8)..max_u8).prop_map(Data::U8),
-        weight => (min..max).prop_map(Data::U16),
-        weight => ((min as u32)..(max as u32)).prop_map(Data::U32),
-        weight => ((min as u64)..(max as u64)).prop_map(Data::U64),
-        weight => ((min as u128)..(max as u128)).prop_map(Data::U128),
-        weight => ((min as usize)..(max as usize)).prop_map(Data::USize),
-        weight_i8 => ((min as i8)..max_i8).prop_map(Data::I8),
-        weight_i16 => ((min as i16)..max_i16).prop_map(Data::I16),
-        weight => ((min as i32)..(max as i32)).prop_map(Data::I32),
-        weight => ((min as i64)..(max as i64)).prop_map(Data::I64),
-        weight => ((min as i128)..(max as i128)).prop_map(Data::I128),
-        weight => ((min as isize)..(max as isize)).prop_map(Data::ISize),
-        weight => (min..max)
-            .prop_map(|val| Data::Strand(Strand::try_new(val).unwrap())),
-        weight => (min..max)
-            .prop_map(|val| Data::BraidIndex(BraidIndex::try_new(val).unwrap())),
-    ]
+    if min <= i8::MAX as u16 {
+        prop_oneof![
+            ((min as u8)..=max_u8).prop_map(Data::U8),
+            (min..=max).prop_map(Data::U16),
+            ((min as u32)..=(max as u32)).prop_map(Data::U32),
+            ((min as u64)..=(max as u64)).prop_map(Data::U64),
+            ((min as u128)..=(max as u128)).prop_map(Data::U128),
+            ((min as usize)..=(max as usize)).prop_map(Data::USize),
+            ((min as i8)..=max_i8).prop_map(Data::I8),
+            ((min as i16)..=max_i16).prop_map(Data::I16),
+            ((min as i32)..=(max as i32)).prop_map(Data::I32),
+            ((min as i64)..=(max as i64)).prop_map(Data::I64),
+            ((min as i128)..=(max as i128)).prop_map(Data::I128),
+            ((min as isize)..=(max as isize)).prop_map(Data::ISize),
+            (min..=max).prop_map(|val| Data::Strand(Strand::try_new(val).unwrap())),
+            (min..=max).prop_map(|val| Data::BraidIndex(BraidIndex::try_new(val).unwrap())),
+        ]
+        .boxed()
+    } else if min <= u8::MAX as u16 {
+        prop_oneof![
+            ((min as u8)..=max_u8).prop_map(Data::U8),
+            (min..=max).prop_map(Data::U16),
+            ((min as u32)..=(max as u32)).prop_map(Data::U32),
+            ((min as u64)..=(max as u64)).prop_map(Data::U64),
+            ((min as u128)..=(max as u128)).prop_map(Data::U128),
+            ((min as usize)..=(max as usize)).prop_map(Data::USize),
+            ((min as i16)..=max_i16).prop_map(Data::I16),
+            ((min as i32)..=(max as i32)).prop_map(Data::I32),
+            ((min as i64)..=(max as i64)).prop_map(Data::I64),
+            ((min as i128)..=(max as i128)).prop_map(Data::I128),
+            ((min as isize)..=(max as isize)).prop_map(Data::ISize),
+            (min..=max).prop_map(|val| Data::Strand(Strand::try_new(val).unwrap())),
+            (min..=max).prop_map(|val| Data::BraidIndex(BraidIndex::try_new(val).unwrap())),
+        ]
+        .boxed()
+    } else if min <= i16::MAX as u16 {
+        prop_oneof![
+            (min..=max).prop_map(Data::U16),
+            ((min as u32)..=(max as u32)).prop_map(Data::U32),
+            ((min as u64)..=(max as u64)).prop_map(Data::U64),
+            ((min as u128)..=(max as u128)).prop_map(Data::U128),
+            ((min as usize)..=(max as usize)).prop_map(Data::USize),
+            ((min as i16)..=max_i16).prop_map(Data::I16),
+            ((min as i32)..=(max as i32)).prop_map(Data::I32),
+            ((min as i64)..=(max as i64)).prop_map(Data::I64),
+            ((min as i128)..=(max as i128)).prop_map(Data::I128),
+            ((min as isize)..=(max as isize)).prop_map(Data::ISize),
+            (min..=max).prop_map(|val| Data::Strand(Strand::try_new(val).unwrap())),
+            (min..=max).prop_map(|val| Data::BraidIndex(BraidIndex::try_new(val).unwrap())),
+        ]
+        .boxed()
+    } else {
+        prop_oneof![
+            (min..=max).prop_map(Data::U16),
+            ((min as u32)..=(max as u32)).prop_map(Data::U32),
+            ((min as u64)..=(max as u64)).prop_map(Data::U64),
+            ((min as u128)..=(max as u128)).prop_map(Data::U128),
+            ((min as usize)..=(max as usize)).prop_map(Data::USize),
+            ((min as i32)..=(max as i32)).prop_map(Data::I32),
+            ((min as i64)..=(max as i64)).prop_map(Data::I64),
+            ((min as i128)..=(max as i128)).prop_map(Data::I128),
+            ((min as isize)..=(max as isize)).prop_map(Data::ISize),
+            (min..=max).prop_map(|val| Data::Strand(Strand::try_new(val).unwrap())),
+            (min..=max).prop_map(|val| Data::BraidIndex(BraidIndex::try_new(val).unwrap())),
+        ]
+        .boxed()
+    }
 }

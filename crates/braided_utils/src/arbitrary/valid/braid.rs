@@ -1,4 +1,4 @@
-use crate::arbitrary::valid;
+use crate::arbitrary::valid::{self, word::MacroFactor};
 use braided::{Braid, Sign, Word};
 use proptest::prelude::*;
 
@@ -69,7 +69,7 @@ pub fn data(
 pub fn macro_data(
     max_braid_index: Option<u16>,
     max_artin_length: Option<u16>,
-) -> impl Strategy<Value = (Option<valid::u16::Data>, valid::word::MacroFactors)> {
+) -> impl Strategy<Value = (Option<valid::u16::Data>, [MacroFactor<isize>; 3])> {
     if let Some(braid_index) = max_braid_index
         && braid_index < 2
     {
@@ -84,8 +84,7 @@ pub fn macro_data(
                     Some(braid_index)
                 }
             }),
-            valid::word::macro_data(Some(braid_index.try_into().unwrap()), max_artin_length)
-                .prop_map(valid::word::MacroFactors),
+            valid::word::macro_data(Some(braid_index.into()), max_artin_length),
         )
     })
 }
@@ -132,7 +131,7 @@ pub mod test_cases {
     pub enum MacroData {
         NonTrivial {
             braid_index: Option<valid::u16::Data>,
-            factors: Box<valid::word::MacroFactors>,
+            factors: Box<[valid::word::MacroFactor<isize>; 3]>,
         },
         Trivial {
             braid_index: valid::u16::Data,
@@ -193,7 +192,7 @@ pub mod test_cases {
             .prop_flat_map(move |braid_index| {
                 (
                     Just(braid_index),
-                    valid::word::new(Some(braid_index.try_into().unwrap()), max_artin_length),
+                    valid::word::new(Some(braid_index.into()), max_artin_length),
                 )
             })
             .prop_map(|(braid_index, word)| {
@@ -262,8 +261,7 @@ pub mod test_cases {
                 (Vec::new(), 1u16),
                 |(mut letters, braid_index), (foot, head, sign)| {
                     letters.push(Letter::try_new(*foot, *head, *sign).unwrap());
-                    let minimal_required_braid_index: u16 =
-                        head.unwrap_or(*foot + 1).try_into().unwrap();
+                    let minimal_required_braid_index: u16 = head.unwrap_or(*foot + 1).into();
                     (letters, braid_index.max(minimal_required_braid_index))
                 },
             );
@@ -305,9 +303,10 @@ pub mod test_cases {
     ) -> impl Strategy<Value = Macro> {
         prop_oneof![
             macro_data(max_braid_index, max_artin_length).prop_map(|(braid_index, factors)| {
-                let (word_data, minimal_required_braid_index) = factors.0.iter().fold(
+                let (word_data, minimal_required_braid_index) = factors.iter().fold(
                     (Vec::new(), 1u16),
-                    |(mut word_data, braid_index), (foot, head, exponent)| {
+                    |(mut word_data, braid_index),
+                     valid::word::MacroFactor(foot, head, exponent)| {
                         if *exponent < 0 {
                             word_data.extend(vec![
                                 (*foot, *head, Sign::Negative);
@@ -319,8 +318,7 @@ pub mod test_cases {
                                 exponent.unsigned_abs()
                             ]);
                         }
-                        let minimal_required_braid_index: u16 =
-                            head.unwrap_or(*foot + 1).try_into().unwrap();
+                        let minimal_required_braid_index: u16 = head.unwrap_or(*foot + 1).into();
                         (word_data, braid_index.max(minimal_required_braid_index))
                     },
                 );

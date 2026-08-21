@@ -64,7 +64,7 @@ pub mod test_cases {
     }
 
     pub fn try_from_band() -> impl Strategy<Value = TryFromBand> {
-        (2..(u16::MAX - 1)).prop_flat_map(|height| {
+        (2..=(u16::MAX - 1)).prop_flat_map(|height| {
             valid::band::with_given_height(height, None).prop_map(|band| TryFromBand {
                 data: TryFromBandData::InvalidBand(band),
                 error: ArtinValidationError::FromBand(band),
@@ -73,7 +73,7 @@ pub mod test_cases {
     }
 
     pub fn try_from_letter() -> impl Strategy<Value = TryFromLetter> {
-        (2..(u16::MAX - 1)).prop_flat_map(|height| {
+        (2..=(u16::MAX - 1)).prop_flat_map(|height| {
             valid::band::with_given_height(height, None).prop_map(|band| TryFromLetter {
                 data: TryFromLetterData::InvalidBandLetter(Letter::Band(band)),
                 error: ArtinValidationError::FromBand(band),

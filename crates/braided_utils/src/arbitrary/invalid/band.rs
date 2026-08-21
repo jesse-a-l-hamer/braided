@@ -82,8 +82,8 @@ pub mod test_cases {
     }
     fn try_new_too_tall() -> impl Strategy<Value = TryNew> {
         (
-            ((MAX_BAND_HEIGHT + 1)..(u16::MAX - 1))
-                .prop_flat_map(|height| (Just(height), (1..(u16::MAX - height)))),
+            ((MAX_BAND_HEIGHT + 1)..=(u16::MAX - 1))
+                .prop_flat_map(|height| (Just(height), (1..=(u16::MAX - height)))),
             Just(Sign::Negative).prop_union(Just(Sign::Positive)),
         )
             .prop_map(|((height, foot_idx), sign)| TryNew {
@@ -98,7 +98,7 @@ pub mod test_cases {
     fn try_new_invalid_foot() -> impl Strategy<Value = TryNew> {
         (
             invalid::strand::test_cases::try_new(),
-            1..u16::MAX,
+            2..=u16::MAX,
             Just(Sign::Negative).prop_union(Just(Sign::Positive)),
         )
             .prop_map(|(invalid_foot, head_idx, sign)| TryNew {
@@ -157,7 +157,7 @@ pub mod test_cases {
             })
     }
     fn coalesce_too_many_generators() -> impl Strategy<Value = Coalesce> {
-        ((u16::MAX as usize + 1)..(2 * (u16::MAX as usize)))
+        ((u16::MAX as usize + 1)..=(2 * (u16::MAX as usize)))
             .prop_flat_map(|num_generators| {
                 let mut strategies = Vec::new();
                 for _ in 0..num_generators {

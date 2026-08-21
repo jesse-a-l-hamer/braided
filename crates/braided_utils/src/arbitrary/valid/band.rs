@@ -39,7 +39,7 @@ pub fn data(
     {
         panic!("max_head must be at least 2.")
     }
-    (2u16..max_head.unwrap_or(u16::MAX))
+    (2u16..=max_head.unwrap_or(u16::MAX))
         .prop_flat_map(move |head_idx| {
             (
                 Just(head_idx),
