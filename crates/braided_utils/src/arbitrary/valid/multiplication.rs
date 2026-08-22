@@ -1,6 +1,6 @@
 use crate::arbitrary::valid;
 use braided::{Braid, BraidIndex, BraidResult, Letter, LetterResult, Word, WordResult};
-use proptest::prelude::*;
+use proptest::{bits::u16, prelude::*};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum MulResult {
@@ -30,6 +30,17 @@ impl MulResult {
             },
             Self::BraidResult(_) => self.clone(),
         }
+    }
+    pub fn braid_index(&self) -> BraidIndex {
+        match self {
+            Self::WordResult(_) => {
+                panic!("Braid index only exists for braid multiplication results.")
+            }
+            Self::BraidResult(result) => result.clone_unwrap().braid_index(),
+        }
+    }
+    pub fn trivial(braid_index: u16) -> Self {
+        Self::BraidResult(Braid::try_trivial(braid_index))
     }
 }
 
@@ -115,6 +126,28 @@ impl MulOperand {
             },
             Self::Braid(_) | Self::BraidResult(_) => self.clone(),
             Self::MulResult(operand) => Self::MulResult(operand.as_braid(braid_index)),
+        }
+    }
+
+    fn as_braid_result(&self) -> MulResult {
+        match self {
+            Self::Braid(braid) => MulResult::BraidResult(BraidResult::from(braid.clone())),
+            Self::BraidResult(braid_result) => MulResult::BraidResult(braid_result.clone()),
+            _ => panic!("Only braid-type operands may be converted to braid results."),
+        }
+    }
+
+    fn trivial(braid_index: u16) -> Self {
+        Self::BraidResult(Braid::try_trivial(braid_index))
+    }
+
+    fn inverse(&self) -> Self {
+        match self {
+            Self::Braid(braid) => MulOperand::Braid(braid.clone().inverse()),
+            Self::BraidResult(braid_result) => {
+                MulOperand::BraidResult(BraidResult::from(braid_result.clone_unwrap().inverse()))
+            }
+            _ => panic!("Only braid-type operands may be converted to braid results."),
         }
     }
 }
@@ -390,12 +423,14 @@ pub fn non_cancelling_operands_and_product_as_letters(
                     ]
                     .boxed(),
                 )
-            } else {
+            } else if artin_length == 1 {
                 (
                     Just(braid_index),
                     Just(artin_length),
-                    prop_oneof![0u16..=0, 1u16..=1,].boxed(),
+                    prop_oneof![0u16..=0, 1u16..=1].boxed(),
                 )
+            } else {
+                (Just(braid_index), Just(artin_length), (0u16..=0).boxed())
             }
         })
         .prop_flat_map(|(braid_index, artin_length, lhs_length)| {
@@ -454,9 +489,14 @@ pub fn cancelling_operands_with_product(
         valid::multiplication::MulResult,
     ),
 > {
+    if let Some(artin_length) = max_artin_length
+        && artin_length < 4
+    {
+        panic!("Artin length must be at least 4 to generate this data.")
+    }
     valid::multiplication::non_cancelling_operands_and_product_as_letters(
         max_braid_index,
-        max_artin_length,
+        Some(max_artin_length.unwrap_or(u16::MAX) - 2),
     )
     .prop_filter(
         "Braid index must be greater than 2 to construct testable cancelling products.",
@@ -465,8 +505,12 @@ pub fn cancelling_operands_with_product(
     .prop_flat_map(
         move |(braid_index, lhs_letters, rhs_letters, product_letters)| {
             let max_artin_length = max_artin_length.unwrap_or(u16::MAX);
-            let lhs_length: u16 = lhs_letters.len().try_into().unwrap();
-            let rhs_length: u16 = rhs_letters.len().try_into().unwrap();
+            let lhs_length: u16 = lhs_letters
+                .iter()
+                .fold(0, |acc, letter| acc + letter.artin_length());
+            let rhs_length: u16 = rhs_letters
+                .iter()
+                .fold(0, |acc, letter| acc + letter.artin_length());
             let max_cancelling_length =
                 *[max_artin_length - lhs_length, max_artin_length - rhs_length]
                     .iter()
@@ -531,10 +575,16 @@ pub mod test_cases {
     }
 
     #[derive(Debug, PartialEq, Eq, Clone)]
-    pub struct UnitalityData(pub MulOperand);
+    pub struct UnitalityData {
+        pub operand: MulOperand,
+        pub trivial: MulOperand,
+    }
 
     #[derive(Debug, PartialEq, Eq, Clone)]
-    pub struct InvertabilityData(pub MulOperand);
+    pub struct InvertabilityData {
+        pub operand: MulOperand,
+        pub inverse: MulOperand,
+    }
 
     #[derive(Debug, PartialEq, Eq, Clone)]
     pub struct NonCancellingProduct {
@@ -563,13 +613,13 @@ pub mod test_cases {
     #[derive(Debug, PartialEq, Eq, Clone)]
     pub struct Unitality {
         pub data: UnitalityData,
-        pub expected: bool,
+        pub expected: MulResult,
     }
 
     #[derive(Debug, PartialEq, Eq, Clone)]
     pub struct Invertability {
         pub data: InvertabilityData,
-        pub expected: bool,
+        pub expected: MulResult,
     }
 
     pub fn non_cancelling_product(
@@ -644,19 +694,43 @@ pub mod test_cases {
         max_braid_index: Option<u16>,
         max_artin_length: Option<u16>,
     ) -> impl Strategy<Value = Unitality> {
-        operand(max_braid_index, max_artin_length).prop_map(|operand| Unitality {
-            data: UnitalityData(operand),
-            expected: true,
-        })
+        (1..=max_braid_index.unwrap_or(u16::MAX))
+            .prop_flat_map(move |braid_index| {
+                (
+                    Just(braid_index),
+                    operand_with_fixed_braid_index(braid_index, max_artin_length),
+                )
+            })
+            .prop_map(|(braid_index, operand)| {
+                let operand = operand.as_braid(Some(braid_index));
+                let trivial = MulOperand::trivial(braid_index);
+                let operand_as_result = operand.as_braid_result();
+                Unitality {
+                    data: UnitalityData { operand, trivial },
+                    expected: operand_as_result,
+                }
+            })
     }
 
     pub fn invertability(
         max_braid_index: Option<u16>,
         max_artin_length: Option<u16>,
     ) -> impl Strategy<Value = Invertability> {
-        operand(max_braid_index, max_artin_length).prop_map(|operand| Invertability {
-            data: InvertabilityData(operand),
-            expected: true,
-        })
+        (1..=max_braid_index.unwrap_or(u16::MAX))
+            .prop_flat_map(move |braid_index| {
+                (
+                    Just(braid_index),
+                    operand_with_fixed_braid_index(braid_index, max_artin_length),
+                )
+            })
+            .prop_map(|(braid_index, operand)| {
+                let operand = operand.clone().as_braid(Some(braid_index));
+                let inverse = operand.inverse();
+                let trivial = MulResult::trivial(braid_index);
+                Invertability {
+                    data: InvertabilityData { operand, inverse },
+                    expected: trivial,
+                }
+            })
     }
 }

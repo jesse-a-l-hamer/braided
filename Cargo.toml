@@ -72,3 +72,9 @@ braided_utils = { path = "crates/braided_utils" }
 criterion = { version = "0.8.2", features = ["html_reports"] }
 googletest = "0.14.3"
 proptest.workspace = true
+
+[profile.test.package.proptest]
+opt-level = 3
+
+[profile.test.package.rand_chacha]
+opt-level = 3

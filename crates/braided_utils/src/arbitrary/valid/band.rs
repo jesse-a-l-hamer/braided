@@ -7,17 +7,13 @@ pub fn data_with_given_height(
     max_head: Option<u16>,
 ) -> impl Strategy<Value = (valid::u16::Data, valid::u16::Data, Sign)> {
     if let Some(max_head) = max_head
-        && max_head < 2
+        && max_head < height + 1
     {
-        panic!("max_head must be at least 2.")
+        panic!("max_head must be at least height + 1.")
     }
-    let min_head = 1 + height.div_ceil(2);
-    let max_head = [height + 1, max_head.unwrap_or(u16::MAX)]
-        .iter()
-        .min()
-        .cloned();
+    let min_head = 1 + height;
     (
-        min_head..=max_head.unwrap(),
+        min_head..=max_head.unwrap_or(u16::MAX),
         prop_oneof![Just(Sign::Positive), Just(Sign::Negative)],
     )
         .prop_flat_map(move |(head_idx, sign)| {

@@ -111,21 +111,31 @@ pub fn vector_with_given_artin_length_band_only(
     {
         panic!("max_head must be at least 2.")
     }
+    if artin_length == 0 {
+        return Just(Vec::new()).boxed();
+    }
     crate::arbitrary::utils::partition_into_odd_numbers(
         artin_length,
-        *[artin_length, 2 * max_head.unwrap_or(u16::MAX) - 3]
-            .iter()
-            .min()
-            .unwrap(),
+        (*[
+            artin_length as usize,
+            2usize * (max_head.unwrap_or(u16::MAX) as usize) - 3,
+        ]
+        .iter()
+        .min()
+        .unwrap())
+        .try_into()
+        .unwrap(),
     )
     .prop_flat_map(move |partition| {
         let mut band_generator_strategies = Vec::new();
-        for height in partition {
+        for artin_length in partition {
+            let height = artin_length.div_ceil(2);
             band_generator_strategies.push(valid::band::with_given_height(height, max_head));
         }
         band_generator_strategies
     })
     .prop_map(|band_generators| band_generators.iter().map(|b| Letter::from(*b)).collect())
+    .boxed()
 }
 
 pub fn vector_of_data_with_given_artin_length(
