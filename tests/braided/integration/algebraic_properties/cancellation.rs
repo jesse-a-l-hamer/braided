@@ -1,10 +1,31 @@
 //! Integration tests to ensure algebraic operations cancel as expected.
 
+use braided::{braid, letter, word};
+use braided_utils::arbitrary::valid;
 use braided_utils::telemetry::start_tracing;
 use googletest::matchers::eq;
-use googletest::{expect_that, gtest};
+use googletest::{assert_that, expect_that, gtest};
+use proptest::prelude::*;
 
-use braided::{braid, letter, word};
+#[test]
+fn cancelling_multiplication_of_valid_operands_succeeds() {
+    start_tracing();
+    let mut test_runner = prop::test_runner::TestRunner::default();
+
+    test_runner
+        .run(
+            &valid::multiplication::test_cases::cancelling_product(None, None),
+            |test_case| {
+                let data = test_case.data;
+                let expected = test_case.expected;
+
+                assert_that!(data.left * data.right, eq(&expected));
+
+                Ok(())
+            },
+        )
+        .unwrap();
+}
 
 #[gtest]
 fn multiplication_of_letter_and_letter_cancels_as_expected() {
