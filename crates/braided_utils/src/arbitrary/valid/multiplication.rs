@@ -39,9 +39,6 @@ impl MulResult {
             Self::BraidResult(result) => result.clone_unwrap().braid_index(),
         }
     }
-    pub fn trivial(braid_index: u16) -> Self {
-        Self::BraidResult(Braid::try_trivial(braid_index))
-    }
 }
 
 impl From<WordResult> for MulResult {
@@ -139,16 +136,6 @@ impl MulOperand {
 
     fn trivial(braid_index: u16) -> Self {
         Self::BraidResult(Braid::try_trivial(braid_index))
-    }
-
-    fn inverse(&self) -> Self {
-        match self {
-            Self::Braid(braid) => MulOperand::Braid(braid.clone().inverse()),
-            Self::BraidResult(braid_result) => {
-                MulOperand::BraidResult(BraidResult::from(braid_result.clone_unwrap().inverse()))
-            }
-            _ => panic!("Only braid-type operands may be converted to braid results."),
-        }
     }
 }
 
@@ -396,7 +383,7 @@ pub fn operands_and_product_from_letters(
         })
 }
 
-pub fn non_cancelling_operands_and_product_as_letters(
+pub fn operands_and_product_as_letters(
     max_braid_index: Option<u16>,
     max_artin_length: Option<u16>,
 ) -> impl Strategy<Value = (u16, Vec<Letter>, Vec<Letter>, Vec<Letter>)> {
@@ -444,16 +431,6 @@ pub fn non_cancelling_operands_and_product_as_letters(
             )
         })
         .prop_map(|(braid_index, lhs_letters, rhs_letters)| {
-            let mut lhs_letters = lhs_letters;
-
-            // ensure no cancellation will occur at the word boundary
-            if let Some(lhs_last) = lhs_letters.last_mut()
-                && let Some(rhs_first) = rhs_letters.first()
-                && *lhs_last == rhs_first.inverse()
-            {
-                *lhs_last = (*lhs_last).inverse();
-            }
-
             (
                 braid_index,
                 lhs_letters.clone(),
@@ -463,11 +440,11 @@ pub fn non_cancelling_operands_and_product_as_letters(
         })
 }
 
-pub fn non_cancelling_operands_and_product(
+pub fn operands_and_product(
     max_braid_index: Option<u16>,
     max_artin_length: Option<u16>,
 ) -> impl Strategy<Value = (MulOperand, MulOperand, MulResult)> {
-    non_cancelling_operands_and_product_as_letters(max_braid_index, max_artin_length).prop_flat_map(
+    operands_and_product_as_letters(max_braid_index, max_artin_length).prop_flat_map(
         |(braid_index, lhs_letters, rhs_letters, product_letters)| {
             operands_and_product_from_letters(
                 braid_index,
@@ -479,84 +456,11 @@ pub fn non_cancelling_operands_and_product(
     )
 }
 
-pub fn cancelling_operands_with_product(
-    max_braid_index: Option<u16>,
-    max_artin_length: Option<u16>,
-) -> impl Strategy<
-    Value = (
-        valid::multiplication::MulOperand,
-        valid::multiplication::MulOperand,
-        valid::multiplication::MulResult,
-    ),
-> {
-    if let Some(artin_length) = max_artin_length
-        && artin_length < 4
-    {
-        panic!("Artin length must be at least 4 to generate this data.")
-    }
-    valid::multiplication::non_cancelling_operands_and_product_as_letters(
-        max_braid_index,
-        Some(max_artin_length.unwrap_or(u16::MAX) - 2),
-    )
-    .prop_filter(
-        "Braid index must be greater than 2 to construct testable cancelling products.",
-        |(braid_index, _, _, _)| *braid_index > 2u16,
-    )
-    .prop_flat_map(
-        move |(braid_index, lhs_letters, rhs_letters, product_letters)| {
-            let max_artin_length = max_artin_length.unwrap_or(u16::MAX);
-            let lhs_length: u16 = lhs_letters
-                .iter()
-                .fold(0, |acc, letter| acc + letter.artin_length());
-            let rhs_length: u16 = rhs_letters
-                .iter()
-                .fold(0, |acc, letter| acc + letter.artin_length());
-            let max_cancelling_length =
-                *[max_artin_length - lhs_length, max_artin_length - rhs_length]
-                    .iter()
-                    .min()
-                    .unwrap();
-            (
-                Just(braid_index),
-                Just(lhs_letters),
-                Just(rhs_letters),
-                Just(product_letters),
-                (1..=max_cancelling_length).prop_flat_map(move |cancelling_length| {
-                    valid::letter::vector_with_given_artin_length(
-                        cancelling_length,
-                        Some(braid_index),
-                    )
-                }),
-            )
-        },
-    )
-    .prop_flat_map(
-        |(braid_index, lhs_letters, rhs_letters, product_letters, cancelling_letters)| {
-            let inverse_cancelling_letters = cancelling_letters
-                .iter()
-                .rev()
-                .map(|l| l.inverse())
-                .collect();
-            valid::multiplication::operands_and_product_from_letters(
-                braid_index,
-                [lhs_letters, cancelling_letters.clone()].concat(),
-                [inverse_cancelling_letters, rhs_letters].concat(),
-                product_letters,
-            )
-        },
-    )
-}
 pub mod test_cases {
     use super::*;
 
     #[derive(Debug, PartialEq, Eq, Clone)]
-    pub struct NonCancellingProductData {
-        pub left: MulOperand,
-        pub right: MulOperand,
-    }
-
-    #[derive(Debug, PartialEq, Eq, Clone)]
-    pub struct CancellingProductData {
+    pub struct MultiplicationData {
         pub left: MulOperand,
         pub right: MulOperand,
     }
@@ -581,20 +485,8 @@ pub mod test_cases {
     }
 
     #[derive(Debug, PartialEq, Eq, Clone)]
-    pub struct InvertabilityData {
-        pub operand: MulOperand,
-        pub inverse: MulOperand,
-    }
-
-    #[derive(Debug, PartialEq, Eq, Clone)]
-    pub struct NonCancellingProduct {
-        pub data: NonCancellingProductData,
-        pub expected: MulResult,
-    }
-
-    #[derive(Debug, PartialEq, Eq, Clone)]
-    pub struct CancellingProduct {
-        pub data: CancellingProductData,
+    pub struct Multiplication {
+        pub data: MultiplicationData,
         pub expected: MulResult,
     }
 
@@ -616,31 +508,13 @@ pub mod test_cases {
         pub expected: MulResult,
     }
 
-    #[derive(Debug, PartialEq, Eq, Clone)]
-    pub struct Invertability {
-        pub data: InvertabilityData,
-        pub expected: MulResult,
-    }
-
-    pub fn non_cancelling_product(
+    pub fn multiplication(
         max_braid_index: Option<u16>,
         max_artin_length: Option<u16>,
-    ) -> impl Strategy<Value = NonCancellingProduct> {
-        non_cancelling_operands_and_product(max_braid_index, max_artin_length).prop_map(
-            |(left, right, expected)| NonCancellingProduct {
-                data: NonCancellingProductData { left, right },
-                expected,
-            },
-        )
-    }
-
-    pub fn cancelling_product(
-        max_braid_index: Option<u16>,
-        max_artin_length: Option<u16>,
-    ) -> impl Strategy<Value = CancellingProduct> {
-        cancelling_operands_with_product(max_braid_index, max_artin_length).prop_map(
-            |(left, right, expected)| CancellingProduct {
-                data: CancellingProductData { left, right },
+    ) -> impl Strategy<Value = Multiplication> {
+        operands_and_product(max_braid_index, max_artin_length).prop_map(
+            |(left, right, expected)| Multiplication {
+                data: MultiplicationData { left, right },
                 expected,
             },
         )
@@ -708,28 +582,6 @@ pub mod test_cases {
                 Unitality {
                     data: UnitalityData { operand, trivial },
                     expected: operand_as_result,
-                }
-            })
-    }
-
-    pub fn invertability(
-        max_braid_index: Option<u16>,
-        max_artin_length: Option<u16>,
-    ) -> impl Strategy<Value = Invertability> {
-        (1..=max_braid_index.unwrap_or(u16::MAX))
-            .prop_flat_map(move |braid_index| {
-                (
-                    Just(braid_index),
-                    operand_with_fixed_braid_index(braid_index, max_artin_length),
-                )
-            })
-            .prop_map(|(braid_index, operand)| {
-                let operand = operand.clone().as_braid(Some(braid_index));
-                let inverse = operand.inverse();
-                let trivial = MulResult::trivial(braid_index);
-                Invertability {
-                    data: InvertabilityData { operand, inverse },
-                    expected: trivial,
                 }
             })
     }

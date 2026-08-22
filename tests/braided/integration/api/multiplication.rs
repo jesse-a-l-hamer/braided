@@ -17,7 +17,7 @@ fn non_cancelling_multiplication_of_valid_operands_succeeds() {
 
     test_runner
         .run(
-            &valid::multiplication::test_cases::non_cancelling_product(None, None),
+            &valid::multiplication::test_cases::multiplication(None, None),
             |test_case| {
                 let data = test_case.data;
                 let expected = test_case.expected;
