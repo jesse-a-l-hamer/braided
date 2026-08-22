@@ -54,22 +54,7 @@ impl std::ops::Mul for Word {
     #[tracing::instrument(level = "info")]
     fn mul(self, rhs: Self) -> Self::Output {
         tracing::debug!("Attempting to multiply {:?} x {:?}", self, rhs);
-        let radius =
-            match self
-                .iter()
-                .rev()
-                .zip(rhs.iter())
-                .try_fold(0usize, |radius, (left, &right)| {
-                    if left.inverse() == right {
-                        Ok(radius + 1)
-                    } else {
-                        Err(radius)
-                    }
-                }) {
-                Ok(radius) => radius,
-                Err(radius) => radius,
-            };
-        Self::try_from_letters(&[&self[..self.len() - radius], &rhs[radius..]].concat())
+        Self::try_from_letters(&[&self[..], &rhs[..]].concat())
     }
 }
 

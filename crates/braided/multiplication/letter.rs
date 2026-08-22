@@ -6,34 +6,14 @@ impl std::ops::Mul for Letter {
     fn mul(self, rhs: Self) -> Self::Output {
         tracing::debug!("Attempting to multiply {:?} x {:?}", self, rhs);
         match (self, rhs) {
-            (Self::Artin(lhs), Self::Artin(rhs)) => {
-                if lhs == rhs.inverse() {
-                    WordResult::from(Word::trivial())
-                } else {
-                    Word::try_from_letters(&[lhs, rhs])
-                }
-            }
+            (Self::Artin(lhs), Self::Artin(rhs)) => Word::try_from_letters(&[lhs, rhs]),
             (Self::Artin(lhs), Self::Band(rhs)) => {
-                if rhs.inverse() == lhs.into() {
-                    WordResult::from(Word::trivial())
-                } else {
-                    Word::try_from_letters(&[Self::Artin(lhs), Self::Band(rhs)])
-                }
+                Word::try_from_letters(&[Self::Artin(lhs), Self::Band(rhs)])
             }
             (Self::Band(lhs), Self::Artin(rhs)) => {
-                if lhs.inverse() == rhs.into() {
-                    WordResult::from(Word::trivial())
-                } else {
-                    Word::try_from_letters(&[Self::Band(lhs), Self::Artin(rhs)])
-                }
+                Word::try_from_letters(&[Self::Band(lhs), Self::Artin(rhs)])
             }
-            (Self::Band(lhs), Self::Band(rhs)) => {
-                if lhs == rhs.inverse() {
-                    WordResult::from(Word::trivial())
-                } else {
-                    Word::try_from_letters(&[lhs, rhs])
-                }
-            }
+            (Self::Band(lhs), Self::Band(rhs)) => Word::try_from_letters(&[lhs, rhs]),
         }
     }
 }
