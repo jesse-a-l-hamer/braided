@@ -53,10 +53,6 @@ name = "coalescence_by_band_number"
 
 [[bench]]
 harness = false
-name = "multiplication_by_cancellation"
-
-[[bench]]
-harness = false
 name = "multiplication_by_length"
 
 [[bench]]
