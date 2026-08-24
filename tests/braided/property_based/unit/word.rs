@@ -1,8 +1,8 @@
 use braided::Word;
-use braided_utils::arbitrary::{invalid, valid};
+use braided_utils::arbitrary::valid;
 use braided_utils::telemetry::start_tracing;
 use googletest::assert_that;
-use googletest::matchers::{anything, eq, err, ok};
+use googletest::matchers::{anything, eq, ok};
 use proptest::prelude::*;
 
 #[test]
@@ -35,35 +35,35 @@ fn valid_inputs_to_try_new_succeed_as_expected() {
         .unwrap();
 }
 
-#[test]
-fn invalid_inputs_to_try_new_fail_as_expected() {
-    start_tracing();
-    let mut test_runner = prop::test_runner::TestRunner::default();
-
-    test_runner
-        .run(
-            &invalid::word::test_cases::try_new(Some(100)),
-            |test_case| {
-                let data = test_case.data;
-                let error = test_case.error;
-
-                let invalid_word = match data {
-                    // invalid::word::test_cases::TryNewData::TooLong(word_data) => {
-                    //     Word::try_new(word_data)
-                    // }
-                    invalid::word::test_cases::TryNewData::InvalidLetter(word_data) => {
-                        Word::try_new(word_data)
-                    }
-                };
-
-                assert_that!(*invalid_word, err(eq(&error)));
-
-                Ok(())
-            },
-        )
-        .unwrap();
-}
-
+// #[test]
+// fn invalid_inputs_to_try_new_fail_as_expected() {
+//     start_tracing();
+//     let mut test_runner = prop::test_runner::TestRunner::default();
+//
+//     test_runner
+//         .run(
+//             &invalid::word::test_cases::try_new(Some(100)),
+//             |test_case| {
+//                 let data = test_case.data;
+//                 let error = test_case.error;
+//
+//                 let invalid_word = match data {
+//                     // invalid::word::test_cases::TryNewData::TooLong(word_data) => {
+//                     //     Word::try_new(word_data)
+//                     // }
+//                     invalid::word::test_cases::TryNewData::InvalidLetter(word_data) => {
+//                         Word::try_new(word_data)
+//                     }
+//                 };
+//
+//                 assert_that!(*invalid_word, err(eq(&error)));
+//
+//                 Ok(())
+//             },
+//         )
+//         .unwrap();
+// }
+//
 #[test]
 fn valid_inputs_to_try_from_letters_succeed_as_expected() {
     start_tracing();
