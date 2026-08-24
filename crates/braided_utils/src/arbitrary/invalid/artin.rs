@@ -13,14 +13,10 @@ pub mod test_cases {
     }
 
     #[derive(Debug, PartialEq, Eq, Clone, Copy)]
-    pub enum TryFromBandData {
-        InvalidBand(BandGenerator),
-    }
+    pub struct TryFromBandData(pub BandGenerator);
 
     #[derive(Debug, PartialEq, Eq, Clone, Copy)]
-    pub enum TryFromLetterData {
-        InvalidBandLetter(Letter),
-    }
+    pub struct TryFromLetterData(pub Letter);
 
     #[derive(Debug, PartialEq, Eq, Clone, Copy)]
     pub struct TryNew {
@@ -64,18 +60,18 @@ pub mod test_cases {
     }
 
     pub fn try_from_band() -> impl Strategy<Value = TryFromBand> {
-        (2..=(u16::MAX - 1)).prop_flat_map(|height| {
+        (2..=u16::MAX.div_ceil(2)).prop_flat_map(|height| {
             valid::band::with_given_height(height, None).prop_map(|band| TryFromBand {
-                data: TryFromBandData::InvalidBand(band),
+                data: TryFromBandData(band),
                 error: ArtinValidationError::FromBand(band),
             })
         })
     }
 
     pub fn try_from_letter() -> impl Strategy<Value = TryFromLetter> {
-        (2..=(u16::MAX - 1)).prop_flat_map(|height| {
+        (2..=u16::MAX.div_ceil(2)).prop_flat_map(|height| {
             valid::band::with_given_height(height, None).prop_map(|band| TryFromLetter {
-                data: TryFromLetterData::InvalidBandLetter(Letter::Band(band)),
+                data: TryFromLetterData(Letter::Band(band)),
                 error: ArtinValidationError::FromBand(band),
             })
         })

@@ -12,6 +12,11 @@ pub fn of_band_generator(
     {
         panic!("max_head must be at least 2.")
     }
+    if let Some(max_artin_length) = max_artin_length
+        && max_artin_length < 1
+    {
+        panic!("max_artin_length must be positive.")
+    }
     valid::band::data(max_head, max_height, max_artin_length)
         .prop_flat_map(|(foot, head, sign)| {
             let foot: u16 = foot.into();
@@ -136,23 +141,39 @@ fn of_band_letter_walled(
         .prop_flat_map(move |(band, decomposed_band)| {
             let max_wall_length = max_artin_length.unwrap_or(u16::MAX)
                 - <usize as TryInto<u16>>::try_into(decomposed_band.len()).unwrap();
+            if max_wall_length < 2 {
+                panic!("max_wall_length must be at least 2.")
+            }
             (
                 Just(band),
                 Just(decomposed_band),
                 Just(max_wall_length),
-                1..=max_wall_length,
+                1..=(max_wall_length - 1),
             )
         })
         .prop_flat_map(
             move |(band, decomposed_band, max_total_wall_length, max_left_wall_length)| {
+                let left_wall_letter = *decomposed_band.first().unwrap();
+                let right_wall_letter = *decomposed_band.last().unwrap();
+                if max_total_wall_length == 0 {
+                    panic!("max_total_wall_length must be positive")
+                }
+                if max_left_wall_length == 0 {
+                    panic!("max_left_wall_length must be positive")
+                }
                 let max_right_wall_length = max_total_wall_length - max_left_wall_length;
+                if max_right_wall_length == 0 {
+                    panic!("max_right_wall_length must be positive")
+                }
                 (
                     Just(band),
                     Just(decomposed_band),
                     Just(max_left_wall_length),
                     Just(max_right_wall_length),
-                    valid::letter::new(max_head, max_height, Some(max_left_wall_length)),
-                    valid::letter::new(max_head, max_height, Some(max_right_wall_length)),
+                    Just(left_wall_letter),
+                    Just(right_wall_letter),
+                    // valid::letter::new(max_head, max_height, Some(max_left_wall_length)),
+                    // valid::letter::new(max_head, max_height, Some(max_right_wall_length)),
                 )
             },
         )
@@ -245,22 +266,22 @@ enum PruningSafety {
 
 fn get_pruning_safety(
     first: Letter,
-    first_left_wall: &[Letter],
+    first_left_letter: Option<Letter>,
     first_right_wall: &[Letter],
     second: Letter,
     second_left_wall: &[Letter],
     second_right_wall: &[Letter],
 ) -> PruningSafety {
-    let first_left_letter = first_left_wall.first().unwrap();
+    let check_first = first_left_letter.is_some();
     let first_right_letter = first_right_wall.first().unwrap();
     let second_left_letter = second_left_wall.first().unwrap();
     let second_right_letter = second_right_wall.first().unwrap();
 
-    if pair_extends_band(first, *first_left_letter, *second_left_letter)
+    if (check_first && pair_extends_band(first, first_left_letter.unwrap(), *second_left_letter))
         || pair_extends_band(second, *first_right_letter, *second_right_letter)
     {
         PruningSafety::None
-    } else if pair_extends_band(first, *first_left_letter, second)
+    } else if (check_first && pair_extends_band(first, first_left_letter.unwrap(), second))
         || pair_extends_band(second, first, *second_right_letter)
     {
         PruningSafety::Partial
@@ -273,6 +294,7 @@ pub fn of_word(
     max_head: Option<u16>,
     max_height: Option<u16>,
     max_artin_length: Option<u16>,
+    prune: bool,
 ) -> impl Strategy<Value = (Word, Word)> {
     if let Some(max_head) = max_head
         && max_head < 2
@@ -280,10 +302,13 @@ pub fn of_word(
         panic!("max_head must be at least 2.")
     }
     of_band_letter_walled_multiple(max_head, max_height, max_artin_length).prop_perturb(
-        |mut walled_coalescences, mut rng| {
+        move |mut walled_coalescences, mut rng| {
             let mut walled_coalescences = walled_coalescences.iter_mut().peekable();
             let mut coalescence: Vec<Letter> = Vec::new();
             let mut decomposed: Vec<Letter> = Vec::new();
+            let mut first_left_letter: Option<Letter> = None;
+
+            let initial = walled_coalescences.peek_mut();
 
             if rng.random_bool(0.5)
                 && let Some(WalledBandLetterCoalescence {
@@ -291,9 +316,17 @@ pub fn of_word(
                     decomposed_band: _,
                     left_wall: initial_left_wall,
                     right_wall: _,
-                }) = walled_coalescences.peek_mut()
+                }) = initial
             {
                 *initial_left_wall = Vec::new();
+            } else if let Some(WalledBandLetterCoalescence {
+                band: _,
+                decomposed_band: _,
+                left_wall: initial_left_wall,
+                right_wall: _,
+            }) = initial
+            {
+                first_left_letter = Some(*initial_left_wall.first().unwrap());
             }
 
             while let Some(WalledBandLetterCoalescence {
@@ -303,40 +336,44 @@ pub fn of_word(
                 right_wall,
             }) = walled_coalescences.next()
             {
-                if let Some(WalledBandLetterCoalescence {
-                    band: next_band,
-                    decomposed_band: _,
-                    left_wall: next_left_wall,
-                    right_wall: next_right_wall,
-                }) = walled_coalescences.peek_mut()
+                if prune
+                    && let Some(WalledBandLetterCoalescence {
+                        band: next_band,
+                        decomposed_band: _,
+                        left_wall: next_left_wall,
+                        right_wall: next_right_wall,
+                    }) = walled_coalescences.peek_mut()
                 {
                     match get_pruning_safety(
                         *band,
-                        left_wall,
+                        first_left_letter,
                         right_wall,
                         *next_band,
                         next_left_wall,
                         next_right_wall,
                     ) {
-                        PruningSafety::None => {}
+                        PruningSafety::None => {
+                            first_left_letter = next_left_wall.first().cloned();
+                        }
                         PruningSafety::Partial => {
                             if rng.random_bool(0.5) && rng.random_bool(0.5) {
                                 *right_wall = Vec::new();
+                                first_left_letter = next_left_wall.first().cloned();
                             } else if rng.random_bool(0.5) && rng.random_bool(0.5) {
                                 *next_left_wall = Vec::new();
+                                first_left_letter = right_wall.first().cloned();
                             }
                         }
                         PruningSafety::Full => {
                             if rng.random_bool(0.5) {
                                 *right_wall = Vec::new();
                                 *next_left_wall = Vec::new();
+                                first_left_letter = Some(*band);
                             }
                         }
                     }
-                } else {
-                    if rng.random_bool(0.5) {
-                        *right_wall = Vec::new();
-                    }
+                } else if prune && rng.random_bool(0.5) {
+                    *right_wall = Vec::new();
                 }
 
                 coalescence.extend(left_wall.clone());
@@ -349,8 +386,8 @@ pub fn of_word(
             }
 
             (
-                Word::try_from_letters(&coalescence[..]).clone_unwrap(),
                 Word::try_from_letters(&decomposed[..]).clone_unwrap(),
+                Word::try_from_letters(&coalescence[..]).clone_unwrap(),
             )
         },
     )
@@ -477,10 +514,13 @@ pub mod test_cases {
         max_head: Option<u16>,
         max_height: Option<u16>,
         max_artin_length: Option<u16>,
+        prune: bool,
     ) -> impl Strategy<Value = CoalesceWord> {
-        of_word(max_head, max_height, max_artin_length).prop_map(|(word, expected)| CoalesceWord {
-            data: CoalesceWordData(word),
-            expected,
+        of_word(max_head, max_height, max_artin_length, prune).prop_map(|(word, expected)| {
+            CoalesceWord {
+                data: CoalesceWordData(word),
+                expected,
+            }
         })
     }
 
@@ -488,10 +528,13 @@ pub mod test_cases {
         max_head: Option<u16>,
         max_height: Option<u16>,
         max_artin_length: Option<u16>,
+        prune: bool,
     ) -> impl Strategy<Value = DecomposeWord> {
-        of_word(max_head, max_height, max_artin_length).prop_map(|(expected, word)| DecomposeWord {
-            data: DecomposeWordData(word),
-            expected,
+        of_word(max_head, max_height, max_artin_length, prune).prop_map(|(expected, word)| {
+            DecomposeWord {
+                data: DecomposeWordData(word),
+                expected,
+            }
         })
     }
 
@@ -499,8 +542,9 @@ pub mod test_cases {
         max_braid_index: Option<u16>,
         max_height: Option<u16>,
         max_artin_length: Option<u16>,
+        prune: bool,
     ) -> impl Strategy<Value = CoalesceBraid> {
-        of_word(max_braid_index, max_height, max_artin_length).prop_map(
+        of_word(max_braid_index, max_height, max_artin_length, prune).prop_map(
             |(decomposed_word, expected_word)| {
                 let braid_index = decomposed_word.minimal_required_braid_index();
                 CoalesceBraid {
@@ -517,8 +561,9 @@ pub mod test_cases {
         max_braid_index: Option<u16>,
         max_height: Option<u16>,
         max_artin_length: Option<u16>,
+        prune: bool,
     ) -> impl Strategy<Value = DecomposeBraid> {
-        of_word(max_braid_index, max_height, max_artin_length).prop_map(
+        of_word(max_braid_index, max_height, max_artin_length, prune).prop_map(
             |(expected_word, coalesced_word)| {
                 let braid_index = coalesced_word.minimal_required_braid_index();
                 DecomposeBraid {

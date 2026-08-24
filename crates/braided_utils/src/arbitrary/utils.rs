@@ -20,22 +20,26 @@ pub fn partition_into_odd_numbers(
     let partition_length_strategy = if partition_value.is_multiple_of(2) {
         (1..=partition_value / 2).prop_map(|k| 2 * k).boxed()
     } else {
-        (1..=partition_value.div_euclid(2))
+        (0..=partition_value.div_euclid(2))
             .prop_map(|k| 2 * k + 1)
             .boxed()
     };
     partition_length_strategy
         .prop_flat_map(move |partition_length| {
-            let elem_upper_bound = if max_partition_elem.is_multiple_of(2) {
+            let max_partition_elem =
+                max_partition_elem.min(partition_value - (partition_length - 1));
+            let half_elem_max = if max_partition_elem.is_multiple_of(2) {
                 max_partition_elem / 2 - 1
             } else {
                 max_partition_elem.div_euclid(2)
             };
-            vec![1..=elem_upper_bound; partition_length as usize]
+            vec![0..=half_elem_max; partition_length as usize]
         })
-        .prop_map(move |partition| {
-            let mut partition: Vec<usize> =
-                partition.iter().map(|k| (2 * k + 1) as usize).collect();
+        .prop_map(move |half_partition_elems| {
+            let mut partition: Vec<usize> = half_partition_elems
+                .iter()
+                .map(|k| (2 * k + 1) as usize)
+                .collect();
             let mut sum = partition.iter().sum::<usize>();
 
             if sum > partition_value.into() {

@@ -258,12 +258,18 @@ pub mod test_cases {
     }
 
     #[derive(Debug, PartialEq, Eq, Clone)]
-    pub enum MacroData {
-        ExponentFailsISizeCoercion(valid::word::MacroFactor<usize>),
-        ExponentFailsU16Coercion(valid::word::MacroFactor<invalid::u16::FailedU16ConversionData>),
-        InvalidLetter([valid::word::MacroFactor<isize>; 3]),
-        TooLong([valid::word::MacroFactor<isize>; 3]),
-    }
+    pub struct MacroExponentFailsISizeCoercionData(pub valid::word::MacroFactor<usize>);
+
+    #[derive(Debug, PartialEq, Eq, Clone)]
+    pub struct MacroExponentFailsU16CoercionData(
+        pub valid::word::MacroFactor<invalid::u16::FailedU16ConversionData>,
+    );
+
+    #[derive(Debug, PartialEq, Eq, Clone)]
+    pub struct MacroInvalidLetterData(pub [valid::word::MacroFactor<isize>; 3]);
+
+    #[derive(Debug, PartialEq, Eq, Clone)]
+    pub struct MacroTooLongData(pub [valid::word::MacroFactor<isize>; 3]);
 
     #[derive(Debug, PartialEq, Eq, Clone)]
     pub struct TryNew {
@@ -278,8 +284,26 @@ pub mod test_cases {
     }
 
     #[derive(Debug, PartialEq, Eq, Clone)]
-    pub struct Macro {
-        pub data: MacroData,
+    pub struct MacroExponentFailsISizeCoercion {
+        pub data: MacroExponentFailsISizeCoercionData,
+        pub error: WordValidationError,
+    }
+
+    #[derive(Debug, PartialEq, Eq, Clone)]
+    pub struct MacroExponentFailsU16Coercion {
+        pub data: MacroExponentFailsU16CoercionData,
+        pub error: WordValidationError,
+    }
+
+    #[derive(Debug, PartialEq, Eq, Clone)]
+    pub struct MacroInvalidLetter {
+        pub data: MacroInvalidLetterData,
+        pub error: WordValidationError,
+    }
+
+    #[derive(Debug, PartialEq, Eq, Clone)]
+    pub struct MacroTooLong {
+        pub data: MacroTooLongData,
         pub error: WordValidationError,
     }
 
@@ -354,36 +378,34 @@ pub mod test_cases {
         prop_oneof![try_from_letters_too_long()]
     }
 
-    fn macro_exponent_fails_isize_coercion() -> impl Strategy<Value = Macro> {
-        macro_data_exponent_fails_isize_coercion_with_error().prop_map(|(factor, error)| Macro {
-            data: MacroData::ExponentFailsISizeCoercion(factor),
+    pub fn macro_exponent_fails_isize_coercion()
+    -> impl Strategy<Value = MacroExponentFailsISizeCoercion> {
+        macro_data_exponent_fails_isize_coercion_with_error().prop_map(|(factor, error)| {
+            MacroExponentFailsISizeCoercion {
+                data: MacroExponentFailsISizeCoercionData(factor),
+                error,
+            }
+        })
+    }
+    pub fn macro_exponent_fails_u16_coercion()
+    -> impl Strategy<Value = MacroExponentFailsU16Coercion> {
+        macro_data_exponent_fails_u16_coercion_with_error().prop_map(|(factor, error)| {
+            MacroExponentFailsU16Coercion {
+                data: MacroExponentFailsU16CoercionData(factor),
+                error,
+            }
+        })
+    }
+    pub fn macro_invalid_letter() -> impl Strategy<Value = MacroInvalidLetter> {
+        macro_data_invalid_letter_with_error().prop_map(|(factors, error)| MacroInvalidLetter {
+            data: MacroInvalidLetterData(factors),
             error,
         })
     }
-    fn macro_exponent_fails_u16_coercion() -> impl Strategy<Value = Macro> {
-        macro_data_exponent_fails_u16_coercion_with_error().prop_map(|(factor, error)| Macro {
-            data: MacroData::ExponentFailsU16Coercion(factor),
+    pub fn macro_too_long() -> impl Strategy<Value = MacroTooLong> {
+        macro_data_too_long_with_error().prop_map(|(factors, error)| MacroTooLong {
+            data: MacroTooLongData(factors),
             error,
         })
-    }
-    fn macro_invalid_letter() -> impl Strategy<Value = Macro> {
-        macro_data_invalid_letter_with_error().prop_map(|(factors, error)| Macro {
-            data: MacroData::InvalidLetter(factors),
-            error,
-        })
-    }
-    fn macro_too_long() -> impl Strategy<Value = Macro> {
-        macro_data_too_long_with_error().prop_map(|(factors, error)| Macro {
-            data: MacroData::TooLong(factors),
-            error,
-        })
-    }
-    pub fn word_macro() -> impl Strategy<Value = Macro> {
-        prop_oneof![
-            macro_exponent_fails_isize_coercion(),
-            macro_exponent_fails_u16_coercion(),
-            macro_invalid_letter(),
-            macro_too_long(),
-        ]
     }
 }

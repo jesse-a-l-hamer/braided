@@ -138,16 +138,39 @@ pub mod test_cases {
     }
 
     #[derive(Debug, PartialEq, Eq, Clone)]
-    pub enum MacroData {
-        IndexTooSmall(valid::u16::Data, [valid::word::MacroFactor<isize>; 3]),
-        InvalidIndex(
-            invalid::index::test_cases::TryNewData,
-            [valid::word::MacroFactor<isize>; 3],
-        ),
-        InvalidWord(
-            Option<valid::u16::Data>,
-            invalid::word::test_cases::MacroData,
-        ),
+    pub struct MacroIndexTooSmallData {
+        pub braid_index: valid::u16::Data,
+        pub factors: [valid::word::MacroFactor<isize>; 3],
+    }
+
+    #[derive(Debug, PartialEq, Eq, Clone)]
+    pub struct MacroInvalidIndexData {
+        pub braid_index: invalid::index::test_cases::TryNewData,
+        pub factors: [valid::word::MacroFactor<isize>; 3],
+    }
+
+    #[derive(Debug, PartialEq, Eq, Clone)]
+    pub struct MacroInvalidWordExponentFailsISizeCoercionData {
+        pub braid_index: Option<valid::u16::Data>,
+        pub factors: valid::word::MacroFactor<usize>,
+    }
+
+    #[derive(Debug, PartialEq, Eq, Clone)]
+    pub struct MacroInvalidWordExponentFailsU16CoercionData {
+        pub braid_index: Option<valid::u16::Data>,
+        pub factors: valid::word::MacroFactor<invalid::u16::FailedU16ConversionData>,
+    }
+
+    #[derive(Debug, PartialEq, Eq, Clone)]
+    pub struct MacroInvalidWordInvalidLetterData {
+        pub braid_index: Option<valid::u16::Data>,
+        pub factors: [valid::word::MacroFactor<isize>; 3],
+    }
+
+    #[derive(Debug, PartialEq, Eq, Clone)]
+    pub struct MacroInvalidWordTooLongData {
+        pub braid_index: Option<valid::u16::Data>,
+        pub factors: [valid::word::MacroFactor<isize>; 3],
     }
 
     #[derive(Debug, PartialEq, Eq, Clone)]
@@ -175,8 +198,38 @@ pub mod test_cases {
     }
 
     #[derive(Debug, PartialEq, Eq, Clone)]
-    pub struct Macro {
-        pub data: MacroData,
+    pub struct MacroIndexTooSmall {
+        pub data: MacroIndexTooSmallData,
+        pub error: BraidValidationError,
+    }
+
+    #[derive(Debug, PartialEq, Eq, Clone)]
+    pub struct MacroInvalidIndex {
+        pub data: MacroInvalidIndexData,
+        pub error: BraidValidationError,
+    }
+
+    #[derive(Debug, PartialEq, Eq, Clone)]
+    pub struct MacroInvalidWordExponentFailsISizeCoercion {
+        pub data: MacroInvalidWordExponentFailsISizeCoercionData,
+        pub error: BraidValidationError,
+    }
+
+    #[derive(Debug, PartialEq, Eq, Clone)]
+    pub struct MacroInvalidWordExponentFailsU16Coercion {
+        pub data: MacroInvalidWordExponentFailsU16CoercionData,
+        pub error: BraidValidationError,
+    }
+
+    #[derive(Debug, PartialEq, Eq, Clone)]
+    pub struct MacroInvalidWordInvalidLetter {
+        pub data: MacroInvalidWordInvalidLetterData,
+        pub error: BraidValidationError,
+    }
+
+    #[derive(Debug, PartialEq, Eq, Clone)]
+    pub struct MacroInvalidWordTooLong {
+        pub data: MacroInvalidWordTooLongData,
         pub error: BraidValidationError,
     }
 
@@ -415,50 +468,108 @@ pub mod test_cases {
         prop_oneof![try_trivial_invalid_index()]
     }
 
-    fn macro_index_too_small(
+    pub fn macro_index_too_small(
         max_braid_index: Option<u16>,
         max_artin_length: Option<u16>,
-    ) -> impl Strategy<Value = Macro> {
+    ) -> impl Strategy<Value = MacroIndexTooSmall> {
         macro_data_index_too_small(max_braid_index, max_artin_length).prop_map(
-            |(braid_index, factors, error)| Macro {
-                data: MacroData::IndexTooSmall(braid_index, factors),
+            |(braid_index, factors, error)| MacroIndexTooSmall {
+                data: MacroIndexTooSmallData {
+                    braid_index,
+                    factors,
+                },
                 error,
             },
         )
     }
-    fn macro_invalid_index(
+    pub fn macro_invalid_index(
         max_braid_index: Option<u16>,
         max_artin_length: Option<u16>,
-    ) -> impl Strategy<Value = Macro> {
+    ) -> impl Strategy<Value = MacroInvalidIndex> {
         (
             invalid::index::test_cases::try_new(),
             valid::word::macro_data(max_braid_index, max_artin_length),
         )
-            .prop_map(|(invalid_braid_index, word_data)| Macro {
-                data: MacroData::InvalidIndex(invalid_braid_index.data, word_data),
-                error: BraidValidationError::IndexValidation(invalid_braid_index.error),
+            .prop_map(|(braid_index, factors)| MacroInvalidIndex {
+                data: MacroInvalidIndexData {
+                    braid_index: braid_index.data,
+                    factors,
+                },
+                error: BraidValidationError::IndexValidation(braid_index.error),
             })
     }
-    fn macro_invalid_word(max_braid_index: Option<u16>) -> impl Strategy<Value = Macro> {
+    pub fn macro_invalid_word_exponent_fails_isize_coercion(
+        max_braid_index: Option<u16>,
+    ) -> impl Strategy<Value = MacroInvalidWordExponentFailsISizeCoercion> {
         valid::u16::data(Some(2), max_braid_index).prop_flat_map(|braid_index| {
             (
                 Just(Some(braid_index)).prop_union(Just(None)),
-                invalid::word::test_cases::word_macro(),
+                invalid::word::test_cases::macro_exponent_fails_isize_coercion(),
             )
-                .prop_map(|(braid_index, invalid_word)| Macro {
-                    data: MacroData::InvalidWord(braid_index, invalid_word.data),
-                    error: BraidValidationError::WordValidation(invalid_word.error),
+                .prop_map(|(braid_index, invalid_word)| {
+                    MacroInvalidWordExponentFailsISizeCoercion {
+                        data: MacroInvalidWordExponentFailsISizeCoercionData {
+                            braid_index,
+                            factors: invalid_word.data.0,
+                        },
+                        error: BraidValidationError::WordValidation(invalid_word.error),
+                    }
                 })
         })
     }
-    pub fn braid_macro(
+    pub fn macro_invalid_word_exponent_fails_u16_coercion(
         max_braid_index: Option<u16>,
-        max_artin_length: Option<u16>,
-    ) -> impl Strategy<Value = Macro> {
-        prop_oneof![
-            macro_index_too_small(max_braid_index, max_artin_length),
-            macro_invalid_index(max_braid_index, max_artin_length),
-            macro_invalid_word(max_braid_index),
-        ]
+    ) -> impl Strategy<Value = MacroInvalidWordExponentFailsU16Coercion> {
+        valid::u16::data(Some(2), max_braid_index).prop_flat_map(|braid_index| {
+            (
+                Just(Some(braid_index)).prop_union(Just(None)),
+                invalid::word::test_cases::macro_exponent_fails_u16_coercion(),
+            )
+                .prop_map(|(braid_index, invalid_word)| {
+                    MacroInvalidWordExponentFailsU16Coercion {
+                        data: MacroInvalidWordExponentFailsU16CoercionData {
+                            braid_index,
+                            factors: invalid_word.data.0,
+                        },
+                        error: BraidValidationError::WordValidation(invalid_word.error),
+                    }
+                })
+        })
+    }
+    pub fn macro_invalid_word_invalid_letter(
+        max_braid_index: Option<u16>,
+    ) -> impl Strategy<Value = MacroInvalidWordInvalidLetter> {
+        valid::u16::data(Some(2), max_braid_index).prop_flat_map(|braid_index| {
+            (
+                Just(Some(braid_index)).prop_union(Just(None)),
+                invalid::word::test_cases::macro_invalid_letter(),
+            )
+                .prop_map(|(braid_index, invalid_word)| {
+                    MacroInvalidWordInvalidLetter {
+                        data: MacroInvalidWordInvalidLetterData {
+                            braid_index,
+                            factors: invalid_word.data.0,
+                        },
+                        error: BraidValidationError::WordValidation(invalid_word.error),
+                    }
+                })
+        })
+    }
+    pub fn macro_invalid_word_too_long(
+        max_braid_index: Option<u16>,
+    ) -> impl Strategy<Value = MacroInvalidWordTooLong> {
+        valid::u16::data(Some(2), max_braid_index).prop_flat_map(|braid_index| {
+            (
+                Just(Some(braid_index)).prop_union(Just(None)),
+                invalid::word::test_cases::macro_too_long(),
+            )
+                .prop_map(|(braid_index, invalid_word)| MacroInvalidWordTooLong {
+                    data: MacroInvalidWordTooLongData {
+                        braid_index,
+                        factors: invalid_word.data.0,
+                    },
+                    error: BraidValidationError::WordValidation(invalid_word.error),
+                })
+        })
     }
 }

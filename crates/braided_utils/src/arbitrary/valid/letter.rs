@@ -12,6 +12,11 @@ pub fn data(
     {
         panic!("max_head must be at least 2.")
     }
+    if let Some(max_artin_length) = max_artin_length
+        && max_artin_length < 1
+    {
+        panic!("max_artin_length must be positive.")
+    }
     prop_oneof![
         valid::artin::data(None, max_head.map(|h| h - 1))
             .prop_map(|(foot_idx, sign)| (foot_idx, None, sign)),
@@ -66,6 +71,11 @@ pub fn new(
         && max_head < 2
     {
         panic!("max_head must be at least 2.")
+    }
+    if let Some(max_artin_length) = max_artin_length
+        && max_artin_length < 1
+    {
+        panic!("max_artin_length must be positive.")
     }
     data(max_head, max_height, max_artin_length)
         .prop_map(|(foot, head, sign)| Letter::try_new(foot, head, sign).unwrap())

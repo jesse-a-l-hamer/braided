@@ -8,6 +8,18 @@ pub enum AdditionOperand {
     Strand(Strand),
 }
 
+impl std::ops::Add for AdditionOperand {
+    type Output = StrandResult;
+    fn add(self, rhs: Self) -> Self::Output {
+        match (self, rhs) {
+            (Self::U16(lhs), Self::U16(rhs)) => Strand::try_new(lhs + rhs),
+            (Self::U16(lhs), Self::Strand(rhs)) => lhs + rhs,
+            (Self::Strand(lhs), Self::U16(rhs)) => lhs + rhs,
+            (Self::Strand(lhs), Self::Strand(rhs)) => lhs + rhs,
+        }
+    }
+}
+
 impl From<AdditionOperand> for u16 {
     fn from(value: AdditionOperand) -> Self {
         match value {
@@ -21,6 +33,18 @@ impl From<AdditionOperand> for u16 {
 pub enum SubtractionOperand {
     U16(u16),
     Strand(Strand),
+}
+
+impl std::ops::Sub for SubtractionOperand {
+    type Output = StrandResult;
+    fn sub(self, rhs: Self) -> Self::Output {
+        match (self, rhs) {
+            (Self::U16(lhs), Self::U16(rhs)) => Strand::try_new(lhs - rhs),
+            (Self::U16(lhs), Self::Strand(rhs)) => lhs - rhs,
+            (Self::Strand(lhs), Self::U16(rhs)) => lhs - rhs,
+            (Self::Strand(lhs), Self::Strand(rhs)) => lhs - rhs,
+        }
+    }
 }
 
 impl From<SubtractionOperand> for u16 {
@@ -110,9 +134,9 @@ pub fn subtraction_data(
                 }
                 SubtractionOperand::Strand(_) => {
                     if rng.random_bool(0.5) {
-                        SubtractionOperand::U16(left - difference)
+                        SubtractionOperand::U16(left)
                     } else {
-                        SubtractionOperand::Strand(Strand::try_new(left - difference).unwrap())
+                        SubtractionOperand::Strand(Strand::try_new(left).unwrap())
                     }
                 }
             };

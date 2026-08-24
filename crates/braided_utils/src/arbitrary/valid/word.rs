@@ -199,9 +199,16 @@ pub mod test_cases {
                 .collect::<Vec<Letter>>();
             let expected_is_trivial = expected_letters.is_empty();
             let expected_letter_length: u16 = expected_letters.len().try_into().unwrap();
-            let expected_artin_length: u16 = expected_letters
-                .iter()
-                .fold(0, |acc, &letter| acc + letter.artin_length());
+            let expected_artin_length: u16 = expected_letters.iter().fold(0u16, |acc, &letter| {
+                if letter.artin_length() <= u16::MAX - acc {
+                    acc + letter.artin_length()
+                } else {
+                    panic!(
+                        "Gonna overflow: acc = {acc}; letter.artin_length() = {}",
+                        letter.artin_length()
+                    )
+                }
+            });
             let expected_minimal_required_braid_index = expected_letters
                 .iter()
                 .fold(BraidIndex::try_new(1).unwrap(), |acc, &letter| {
