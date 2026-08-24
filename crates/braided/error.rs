@@ -720,12 +720,6 @@ pub enum StrandValidationError {
 ///     Err(WordValidationError::TooLong(2 * (u16::MAX as usize))),
 /// );
 ///
-/// // Note: you can still multiply two long words than cancel into a short one
-/// assert_eq!(
-///     *(&long_word * long_word.inverse()),
-///     Ok(Word::trivial())
-/// );
-///
 /// // Failure can also occur when multiplying a word by a letter with large Artin length
 /// let tall_letter = Letter::try_new(1, Some(2u16.pow(15) + 1), Sign::Negative).unwrap();
 /// let short_word = Word::try_new(

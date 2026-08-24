@@ -224,19 +224,6 @@ use crate::{
 /// let word = Word::try_new(word_data.to_vec());
 ///
 /// assert_eq!(word * letter, Word::try_new(data.clone()));
-///
-///
-/// // Cancellation is also performed automatically:
-///
-/// let word = Word::try_new(vec![
-///     (1, None::<u16>, Sign::Positive),
-///     (2, Some(5), Sign::Negative),
-/// ]);
-/// let left_letter_inverse = Letter::try_new(1, None::<u16>, Sign::Negative);
-/// let right_letter_inverse = Letter::try_new(2, Some(5), Sign::Positive);
-///
-/// assert_eq!(left_letter_inverse * &word, Word::try_new(vec![(2, Some(5), Sign::Negative)]));
-/// assert_eq!(word * right_letter_inverse, Word::try_new(vec![(1, None::<u16>, Sign::Positive)]));
 /// ```
 ///
 /// 2. Multiplying two [words](Word):
@@ -256,15 +243,6 @@ use crate::{
 /// let right_word = Word::try_new(right_word_data.to_vec());
 ///
 /// assert_eq!(&left_word * &right_word, Word::try_new(data));
-///
-/// // Cancellation is automatically performed:
-/// let left_word_inverse = left_word.clone_unwrap().inverse();
-/// let right_word_inverse = right_word.clone_unwrap().inverse();
-///
-/// assert_eq!(
-///     *(right_word_inverse * left_word_inverse * left_word * right_word),
-///     Ok(Word::trivial()),
-/// )
 /// ```
 ///
 /// # Accessors and Basic Properties

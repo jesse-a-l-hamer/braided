@@ -114,29 +114,6 @@ use crate::{
 /// }
 /// ```
 ///
-/// Inverses behave as the name suggests:
-///
-/// ```
-/// use braided::{Letter, Sign, Word};
-///
-/// let l1 = Letter::try_new(1, None::<u16>, Sign::Positive).unwrap();
-/// let l2 = Letter::try_new(2, Some(4), Sign::Negative).unwrap();
-/// let l3 = Letter::try_new(1, Some(2), Sign::Negative).unwrap();
-///
-/// let product_data = [
-///     [l1, l1.inverse()],
-///     [l1.inverse(), l1],
-///     [l2, l2.inverse()],
-///     [l2.inverse(), l2],
-///     [l1, l3],
-///     [l3, l1],
-/// ];
-///
-/// for pair in product_data {
-///     assert_eq!(*(pair[0] * pair[1]), Ok(Word::trivial()));
-/// }
-/// ```
-///
 /// Beware that multiplication of two letters is fallible, with failure possible in the case of two
 /// [band letters](Letter::Band) whose total [Artin length](Letter::artin_length) exceeds the
 /// maximum value [`u16::MAX`]:

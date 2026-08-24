@@ -44,18 +44,6 @@
 //! // We can also define words directly using the word! macro:
 //! assert_eq!(combined_word, word![[1; 1], [2; -2], [1 => 3; 1]]);
 //!
-//! // Multiplication automatically cancels adjacent pairs of opposite-sign letters:
-//! // (Note that the multiplication is associative!)
-//! assert_eq!(
-//!     artin_letter * band_letter * letter![2; +], // word * letter is valid
-//!     word![[1; 1]], // multiplication always produces a word, even if the result is one letter
-//! );
-//!
-//! // Words can be formally inverted, and the multiplication detects this:
-//! let some_word = word![[1; 2], [2 => 5; -7], [3; 3], [1 => 4; 2]].clone_unwrap();
-//! assert_eq!(&some_word * some_word.inverse(), word![]); // the product is trivial
-//! assert_eq!(some_word.inverse() * some_word, word![]); // the product is trivial
-//!
 //! // A braid consists of a braid index and a word:
 //! let my_9_braid = braid![(9); [1; 2], [2 => 5; -7], [3; 3], [1 => 4; 2]];
 //!
@@ -318,30 +306,6 @@
 //! # }
 //! ```
 //!
-//! Currently, braid multiplication will automatically cancel as many cancellable pairs that occur
-//! at the boundary as possible (however, this does not occur during braid construction, meaning
-//! that if one of the two operands is not fully "simplified", then the product needn't be fully
-//! "simplified" either):
-//!
-//! ```
-//! # #[macro_use] extern crate braided;
-//! # fn main() {
-//! use braided::braid;
-//!
-//! let some_3_braid = braid![(); [1; 1], [2 => 3; -2]];
-//!
-//! assert_eq!(
-//!     braid![(3); [1; -1]] * &some_3_braid,
-//!     braid![(); [2 => 3; -2]],
-//! );
-//!
-//! assert_eq!(
-//!     some_3_braid * braid![(); [2; 1]], // Height-1 band letters can be treated as Artin
-//!     braid![(); [1; 1], [2 => 3; -1]],
-//! );
-//! # }
-//! ```
-//!
 //! The multiplicative identity is the _trivial braid_ of a given [braid index](BraidIndex), which
 //! is the braid of the given index whose [word](Word) is empty. Geometrically, the trivial braid
 //! with `N` strands amounts to `N` parallel strands, with no crossings between them. We construct a
@@ -379,11 +343,12 @@
 //!     braid.inverse(),
 //!     braid![(); [3; -1], [4; 7], [2 => 5; 3], [1 => 3; -4]].clone_unwrap()
 //! );
-//!
-//! assert_eq!(&braid * braid.inverse(), braid![(5)]);
-//! assert_eq!(braid.inverse() * braid, braid![(5)]);
 //! # }
 //! ```
+//!
+//! Note however that there is currently no simplification mechanism (though this will eventually be
+//! fixed). Thus inverses are purely formal at the moment---the multiplication of a braid with its
+//! inverse will not (at the moment) simplify to a trivial braid.
 //!
 //! Thus concludes our brief introduction to defining and manipulating braids in `braided`! There's
 //! much more to explore in the library, and much more to braids that I plan to implement into the
@@ -419,12 +384,12 @@
 //!   - [x] [`braid!`]
 //! - [x] Multiplication
 //!   - [x] impl [`std::ops::Mul`] for [`Letter`], [`Word`], [`Braid`], and their borrowed variants.
-//!   - [x] implement auto-cancellation for multiplication
 //!   - [x] impl [`std::ops::Mul`] for [`LetterResult`], [`WordResult`],[`BraidResult`], and their
 //!     borrowed variants.
 //! - [ ] A `BraidMove` trait that encodes the notion of a geometric/algebraic manipulation
 //!   transforming one braid into another in some controlled way.
 //! - [ ] Concrete types implementing `BraidMove`:
+//!   - [ ] Simplification/cancellation
 //!   - [ ] Far commutativity
 //!   - [ ] Braid relations
 //!   - [ ] Band slides
