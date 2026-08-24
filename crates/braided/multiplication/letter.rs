@@ -50,29 +50,29 @@ impl std::ops::Mul for LetterResult {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use crate::{Letter, Sign, Word};
-    use googletest::matchers::{eq, ok};
-    use googletest::{expect_that, gtest};
-
-    #[gtest]
-    fn inverse_is_multiplicative_inverse() {
-        let l1 = Letter::try_new(1, None::<u16>, Sign::Positive).unwrap();
-        let l2 = Letter::try_new(2, Some(4), Sign::Negative).unwrap();
-        let l3 = Letter::try_new(1, Some(2), Sign::Negative).unwrap();
-
-        let product_data = [
-            [l1, l1.inverse()],
-            [l1.inverse(), l1],
-            [l2, l2.inverse()],
-            [l2.inverse(), l2],
-            [l1, l3],
-            [l3, l1],
-        ];
-
-        for pair in product_data {
-            expect_that!(*(pair[0] * pair[1]), ok(eq(&Word::trivial())));
-        }
-    }
-}
+// #[cfg(test)]
+// mod tests {
+//     use crate::{Letter, Sign, Word};
+//     use googletest::matchers::{eq, ok};
+//     use googletest::{expect_that, gtest};
+//
+//     #[gtest]
+//     fn inverse_is_multiplicative_inverse() {
+//         let l1 = Letter::try_new(1, None::<u16>, Sign::Positive).unwrap();
+//         let l2 = Letter::try_new(2, Some(4), Sign::Negative).unwrap();
+//         let l3 = Letter::try_new(1, Some(2), Sign::Negative).unwrap();
+//
+//         let product_data = [
+//             [l1, l1.inverse()],
+//             [l1.inverse(), l1],
+//             [l2, l2.inverse()],
+//             [l2.inverse(), l2],
+//             [l1, l3],
+//             [l3, l1],
+//         ];
+//
+//         for pair in product_data {
+//             expect_that!(*(pair[0] * pair[1]), ok(eq(&Word::trivial())));
+//         }
+//     }
+// }

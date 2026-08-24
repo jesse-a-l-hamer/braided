@@ -192,7 +192,12 @@ pub mod test_cases {
             .prop_flat_map(move |braid_index| {
                 (
                     Just(braid_index),
-                    valid::word::new(Some(braid_index.try_into().unwrap()), max_artin_length),
+                    if 1u16 < braid_index.try_into().unwrap() {
+                        valid::word::new(Some(braid_index.try_into().unwrap()), max_artin_length)
+                            .boxed()
+                    } else {
+                        Just(Word::trivial()).boxed()
+                    },
                 )
             })
             .prop_map(|(braid_index, word)| {

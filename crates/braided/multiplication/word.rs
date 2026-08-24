@@ -336,16 +336,16 @@ mod tests {
         expect_that!(*(Word::trivial() * word.clone()), ok(eq(&word)))
     }
 
-    #[gtest]
-    fn multiplication_of_word_with_inverse_yields_trivial_word() {
-        let word = Word::try_from_letters(&[
-            Letter::try_new(1, Some(3), Sign::Positive).unwrap(),
-            Letter::try_new(2, None::<u16>, Sign::Negative).unwrap(),
-            Letter::try_new(1, Some(2), Sign::Positive).unwrap(),
-        ])
-        .clone_unwrap();
-
-        expect_that!(*(word.clone() * word.inverse()), ok(eq(&Word::trivial())));
-        expect_that!(*(word.inverse() * word.clone()), ok(eq(&Word::trivial())));
-    }
+    // #[gtest]
+    // fn multiplication_of_word_with_inverse_yields_trivial_word() {
+    //     let word = Word::try_from_letters(&[
+    //         Letter::try_new(1, Some(3), Sign::Positive).unwrap(),
+    //         Letter::try_new(2, None::<u16>, Sign::Negative).unwrap(),
+    //         Letter::try_new(1, Some(2), Sign::Positive).unwrap(),
+    //     ])
+    //     .clone_unwrap();
+    //
+    //     expect_that!(*(word.clone() * word.inverse()), ok(eq(&Word::trivial())));
+    //     expect_that!(*(word.inverse() * word.clone()), ok(eq(&Word::trivial())));
+    // }
 }

@@ -11,7 +11,7 @@ fn closure_holds_as_expected() {
 
     test_runner
         .run(
-            &valid::multiplication::test_cases::closure(Some(10), Some(10)),
+            &valid::multiplication::test_cases::closure(None, Some(100)),
             |test_case| {
                 let data = test_case.data;
                 let expected = test_case.expected;
@@ -31,7 +31,7 @@ fn associativity_holds_as_expected() {
 
     test_runner
         .run(
-            &valid::multiplication::test_cases::associativity(Some(10), Some(10)),
+            &valid::multiplication::test_cases::associativity(None, Some(100)),
             |test_case| {
                 let data = test_case.data;
                 let a = data.left;
@@ -58,7 +58,7 @@ fn unitality_holds_as_expected() {
 
     test_runner
         .run(
-            &valid::multiplication::test_cases::unitality(None, None),
+            &valid::multiplication::test_cases::unitality(None, Some(100)),
             |test_case| {
                 let operand = test_case.data.operand;
                 let trivial = test_case.data.trivial;

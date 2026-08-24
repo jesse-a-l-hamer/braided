@@ -13,7 +13,7 @@ fn multiplication_of_valid_operands_succeeds() {
 
     test_runner
         .run(
-            &valid::multiplication::test_cases::multiplication(None, None),
+            &valid::multiplication::test_cases::multiplication(None, Some(1000)),
             |test_case| {
                 let data = test_case.data;
                 let expected = test_case.expected;

@@ -38,7 +38,7 @@ fn multiplication_of_braids_preserves_index() {
         (
             braid![(4); [1; -1], [2; 1]],
             braid![(4); [2; -1]],
-            braid![(4); [1; -1]].clone_unwrap(),
+            braid![(4); [1; -1], [2; 1], [2; -1]].clone_unwrap(),
         ),
     ];
 

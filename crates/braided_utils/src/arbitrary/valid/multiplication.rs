@@ -404,7 +404,7 @@ pub fn operands_and_product_as_letters(
                     prop_oneof![
                         1 => 0u16..=0,
                         4 => 1u16..=1,
-                        20 => 2..=(artin_length-2),
+                        20 => 2..=(artin_length-2).max(2),
                         4 => (artin_length-1)..=(artin_length-1),
                         1 => artin_length..=artin_length,
                     ]
