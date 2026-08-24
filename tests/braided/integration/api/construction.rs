@@ -1,687 +1,178 @@
 //! Integration tests to check macro-based construction interface.
 
 use braided::{
-    Braid, BraidResult, BraidValidationError, LetterResult, Sign, Word, WordResult,
-    WordValidationError, braid, letter, word,
+    ArtinGenerator, BandGenerator, Braid, BraidResult, BraidValidationError, Letter, LetterResult,
+    LetterValidationError, Sign, Word, WordResult, WordValidationError, braid, letter, word,
 };
-use braided_utils::arbitrary::invalid;
-use braided_utils::arbitrary::valid;
 use braided_utils::telemetry::start_tracing;
-use googletest::matchers::{eq, err};
+use googletest::matchers::{eq, err, ok};
 use googletest::{assert_that, expect_that, gtest};
-use proptest::prelude::*;
 
-#[test]
-fn valid_inputs_to_letter_macro_succeed_as_expected() {
+//letter!
+#[gtest]
+fn macro_letter_constructs_valid_letters() {
     start_tracing();
-    let mut test_runner = prop::test_runner::TestRunner::default();
-    test_runner
-        .run(
-            &valid::letter::test_cases::letter_macro(None, None, None),
-            |test_case| {
-                let data = test_case.data;
-                let expected = test_case.expected;
+    let letters = [
+        (letter![1 => 3; +], 1, Some(3), Sign::Positive),
+        (letter![2 => 5; -], 2, Some(5), Sign::Negative),
+        (letter![1; +], 1, None, Sign::Positive),
+        (letter![2; -], 2, None, Sign::Negative),
+    ];
+    for (letter, foot, head, sign) in letters {
+        expect_that!(letter, eq(Letter::try_new(foot, head, sign)))
+    }
+}
+#[gtest]
+fn macro_letter_fails_to_construct_invalid_letters() {
+    start_tracing();
+    let invalid_letters: [(LetterResult, LetterValidationError); 4] = [
+        (
+            letter![-1; +],
+            LetterValidationError::from(ArtinGenerator::try_new(-1, Sign::Positive).err().unwrap()),
+        ),
+        (
+            letter![0 => 4; -],
+            LetterValidationError::from(
+                BandGenerator::try_new(0, 4, Sign::Negative).err().unwrap(),
+            ),
+        ),
+        (
+            letter![(u16::MAX as usize) + 1; -],
+            LetterValidationError::from(
+                ArtinGenerator::try_new(u16::MAX as u32 + 1, Sign::Negative)
+                    .err()
+                    .unwrap(),
+            ),
+        ),
+        (
+            letter![4 => 1; +],
+            LetterValidationError::from(
+                BandGenerator::try_new(4, 1, Sign::Positive).err().unwrap(),
+            ),
+        ),
+    ];
 
-                let letter = if let Some(head) = data.head {
-                    match data.sign {
-                        Sign::Positive => letter![data.foot => head; +],
-                        Sign::Negative => letter![data.foot => head; -],
-                    }
-                } else {
-                    match data.sign {
-                        Sign::Positive => letter![data.foot; +],
-                        Sign::Negative => letter![data.foot; -],
-                    }
-                };
+    for (invalid_letter, error) in invalid_letters {
+        expect_that!(*invalid_letter, err(eq(error)))
+    }
+}
 
-                assert_that!(letter, eq(expected));
-                Ok(())
-            },
+// word!
+#[test]
+fn macro_word_empty_produces_trivial_word() {
+    start_tracing();
+    let trivial = word![];
+    assert_that!(*trivial, ok(eq(&Word::trivial())))
+}
+#[gtest]
+fn macro_word_constructs_exponent_of_single_artin() {
+    start_tracing();
+    let words: [(WordResult, u16, i32); 2] = [(word![[1; 3]], 1, 3), (word![[2; -4]], 2, -4)];
+    for (word, foot, exp) in words {
+        let letter = if exp < 0 {
+            letter![foot; -].unwrap()
+        } else {
+            letter![foot; +].unwrap()
+        };
+        expect_that!(
+            *word,
+            ok(eq(&Word::try_from_letters(&vec![
+                letter;
+                exp.unsigned_abs()
+                    as usize
+            ])
+            .clone_unwrap()))
         )
-        .unwrap();
+    }
 }
-
-#[test]
-fn invalid_inputs_to_letter_macro_fail_as_expected() {
+#[gtest]
+fn macro_word_constructs_exponent_of_single_band() {
     start_tracing();
-    let mut test_runner = prop::test_runner::TestRunner::default();
-    test_runner
-        .run(&invalid::letter::test_cases::letter_macro(), |test_case| {
-            let data = test_case.data;
-            let error = test_case.error;
-            let letter: LetterResult = match data {
-                invalid::letter::test_cases::MacroData::InvalidArtinGenerator(
-                    invalid_artin_data,
-                ) => match invalid_artin_data {
-                    invalid::artin::test_cases::TryNewData::InvalidHead(foot, sign) => match sign {
-                        Sign::Positive => letter![foot; +],
-                        Sign::Negative => letter![foot; -],
-                    },
-                    invalid::artin::test_cases::TryNewData::InvalidStrand(
-                        invalid_strand_data,
-                        sign,
-                    ) => match invalid_strand_data {
-                        invalid::strand::test_cases::TryNewData::Zero(foot) => match sign {
-                            Sign::Positive => letter![foot; +],
-                            Sign::Negative => letter![foot; -],
-                        },
-                        invalid::strand::test_cases::TryNewData::InvalidU16(foot) => match sign {
-                            Sign::Positive => letter![foot; +],
-                            Sign::Negative => letter![foot; -],
-                        },
-                    },
-                },
-                invalid::letter::test_cases::MacroData::InvalidBandGenerator(invalid_band_data) => {
-                    match invalid_band_data {
-                        invalid::band::test_cases::TryNewData::FootOnHead(foot, sign) => match sign
-                        {
-                            Sign::Positive => letter![foot => foot; +],
-                            Sign::Negative => letter![foot => foot; -],
-                        },
-                        invalid::band::test_cases::TryNewData::FootOverHead {
-                            foot,
-                            head,
-                            sign,
-                        } => match sign {
-                            Sign::Positive => letter![foot => head; +],
-                            Sign::Negative => letter![foot => head; -],
-                        },
-                        invalid::band::test_cases::TryNewData::TooTall { foot, head, sign } => {
-                            match sign {
-                                Sign::Positive => letter![foot => head; +],
-                                Sign::Negative => letter![foot => head; -],
-                            }
-                        }
-                        invalid::band::test_cases::TryNewData::InvalidFoot { foot, head, sign } => {
-                            match foot {
-                                invalid::strand::test_cases::TryNewData::Zero(foot) => match sign {
-                                    Sign::Positive => letter![foot => head; +],
-                                    Sign::Negative => letter![foot => head; -],
-                                },
-                                invalid::strand::test_cases::TryNewData::InvalidU16(foot) => {
-                                    match sign {
-                                        Sign::Positive => letter![foot => head; +],
-                                        Sign::Negative => letter![foot => head; -],
-                                    }
-                                }
-                            }
-                        }
-                        invalid::band::test_cases::TryNewData::InvalidHead { foot, head, sign } => {
-                            match head {
-                                invalid::strand::test_cases::TryNewData::Zero(head) => match sign {
-                                    Sign::Positive => letter![foot => head; +],
-                                    Sign::Negative => letter![foot => head; -],
-                                },
-                                invalid::strand::test_cases::TryNewData::InvalidU16(head) => {
-                                    match sign {
-                                        Sign::Positive => letter![foot => head; +],
-                                        Sign::Negative => letter![foot => head; -],
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            };
-
-            assert_that!(*letter, err(eq(error)));
-            Ok(())
-        })
-        .unwrap();
-}
-
-#[test]
-fn valid_inputs_to_word_macro_succeed_as_expected() {
-    start_tracing();
-    let mut test_runner = prop::test_runner::TestRunner::default();
-    test_runner
-        .run(
-            &valid::word::test_cases::word_macro(None, None),
-            |test_case| {
-                let data = test_case.data;
-                let expected = test_case.expected;
-
-                let word: WordResult = match data {
-                    valid::word::test_cases::MacroData::Trivial => word![],
-                    valid::word::test_cases::MacroData::NonTrivial(factors) => {
-                        let factors = *factors;
-                        let feet = (factors[0].0, factors[1].0, factors[2].0);
-                        let heads = (factors[0].1, factors[1].1, factors[2].1);
-                        let signs = (factors[0].2, factors[1].2, factors[2].2);
-
-                        match heads {
-                            (Some(h1), Some(h2), Some(h3)) => word![
-                                [feet.0 => h1; signs.0],
-                                [feet.1 => h2; signs.1],
-                                [feet.2 => h3; signs.2]
-                            ],
-                            (Some(h1), Some(h2), None) => word![
-                                [feet.0 => h1; signs.0], [feet.1 => h2; signs.1], [feet.2; signs.2]
-                            ],
-                            (Some(h1), None, Some(h3)) => word![
-                                [feet.0 => h1; signs.0], [feet.1; signs.1], [feet.2 => h3; signs.2]
-                            ],
-                            (Some(h1), None, None) => word![
-                                [feet.0 => h1; signs.0], [feet.1; signs.1], [feet.2; signs.2]
-                            ],
-                            (None, Some(h2), Some(h3)) => word![
-                                [feet.0; signs.0], [feet.1 => h2; signs.1], [feet.2 => h3; signs.2]
-                            ],
-                            (None, Some(h2), None) => word![
-                                [feet.0; signs.0], [feet.1 => h2; signs.1], [feet.2; signs.2]
-                            ],
-                            (None, None, Some(h3)) => word![
-                                [feet.0; signs.0], [feet.1; signs.1], [feet.2 => h3; signs.2]
-                            ],
-                            (None, None, None) => {
-                                word![[feet.0; signs.0], [feet.1; signs.1], [feet.2; signs.2]]
-                            }
-                        }
-                    }
-                };
-
-                assert_that!(word, eq(&expected));
-                Ok(())
-            },
+    let words: [(WordResult, u16, u16, i32); 2] = [
+        (word![[1 => 4; 3]], 1, 4, 3),
+        (word![[2 => 7; -4]], 2, 7, -4),
+    ];
+    for (word, foot, head, exp) in words {
+        let letter = if exp < 0 {
+            letter![foot => head; -].unwrap()
+        } else {
+            letter![foot => head; +].unwrap()
+        };
+        expect_that!(
+            *word,
+            ok(eq(&Word::try_from_letters(&vec![
+                letter;
+                exp.unsigned_abs()
+                    as usize
+            ])
+            .clone_unwrap()))
         )
-        .unwrap();
+    }
 }
-
-// #[test]
-// fn invalid_inputs_to_word_macro_fail_as_expected() {
-//     start_tracing();
-//     let mut test_runner = prop::test_runner::TestRunner::default();
-//     test_runner
-//         .run(&invalid::word::test_cases::word_macro(), |test_case| {
-//             let data = test_case.data;
-//             let error = test_case.error;
-//
-//             let word: WordResult = match data {
-//                 invalid::word::test_cases::MacroData::ExponentFailsISizeCoercion(factor) => {
-//                     match factor.1 {
-//                         Some(head) => word![[factor.0 => head; factor.2]],
-//                         None => word![[factor.0; factor.2]],
-//                     }
-//                 }
-//                 invalid::word::test_cases::MacroData::ExponentFailsU16Coercion(factor) => {
-//                     match factor.1 {
-//                         Some(head) => word![[factor.0 => head; factor.2]],
-//                         None => word![[factor.0; factor.2]],
-//                     }
-//                 }
-//                 invalid::word::test_cases::MacroData::InvalidLetter(factors)
-//                 | invalid::word::test_cases::MacroData::TooLong(factors) => {
-//                     let feet = (factors[0].0, factors[1].0, factors[2].0);
-//                     let heads = (factors[0].1, factors[1].1, factors[2].1);
-//                     let signs = (factors[0].2, factors[1].2, factors[2].2);
-//
-//                     match heads {
-//                         (Some(h1), Some(h2), Some(h3)) => word![
-//                             [feet.0 => h1; signs.0],
-//                             [feet.1 => h2; signs.1],
-//                             [feet.2 => h3; signs.2]
-//                         ],
-//                         (Some(h1), Some(h2), None) => word![
-//                             [feet.0 => h1; signs.0], [feet.1 => h2; signs.1], [feet.2; signs.2]
-//                         ],
-//                         (Some(h1), None, Some(h3)) => word![
-//                             [feet.0 => h1; signs.0], [feet.1; signs.1], [feet.2 => h3; signs.2]
-//                         ],
-//                         (Some(h1), None, None) => word![
-//                             [feet.0 => h1; signs.0], [feet.1; signs.1], [feet.2; signs.2]
-//                         ],
-//                         (None, Some(h2), Some(h3)) => word![
-//                             [feet.0; signs.0], [feet.1 => h2; signs.1], [feet.2 => h3; signs.2]
-//                         ],
-//                         (None, Some(h2), None) => word![
-//                             [feet.0; signs.0], [feet.1 => h2; signs.1], [feet.2; signs.2]
-//                         ],
-//                         (None, None, Some(h3)) => word![
-//                             [feet.0; signs.0], [feet.1; signs.1], [feet.2 => h3; signs.2]
-//                         ],
-//                         (None, None, None) => {
-//                             word![[feet.0; signs.0], [feet.1; signs.1], [feet.2; signs.2]]
-//                         }
-//                     }
-//                 }
-//             };
-//
-//             assert_that!(*word, err(eq(&error)));
-//             Ok(())
-//         })
-//         .unwrap();
-// }
-
-#[test]
-fn valid_inputs_to_braid_macro_succeed_as_expected() {
+#[gtest]
+fn macro_word_constructs_word_when_leading_letter_is_artin() {
     start_tracing();
-    let mut test_runner = prop::test_runner::TestRunner::default();
-    test_runner
-        .run(
-            &valid::braid::test_cases::braid_macro(None, None),
-            |test_case| {
-                let data = test_case.data;
-                let expected = test_case.expected;
-
-                let braid: BraidResult = match data {
-                    valid::braid::test_cases::MacroData::Trivial { braid_index } => {
-                        braid![(braid_index)]
-                    }
-                    valid::braid::test_cases::MacroData::NonTrivial {
-                        braid_index,
-                        factors,
-                    } => {
-                        let feet = (factors[0].0, factors[1].0, factors[2].0);
-                        let heads = (factors[0].1, factors[1].1, factors[2].1);
-                        let signs = (factors[0].2, factors[1].2, factors[2].2);
-
-                        match braid_index {
-                            Some(braid_index) => match heads {
-                                (Some(h1), Some(h2), Some(h3)) => braid![(braid_index);
-                                    [feet.0 => h1; signs.0],
-                                    [feet.1 => h2; signs.1],
-                                    [feet.2 => h3; signs.2]
-                                ],
-                                (Some(h1), Some(h2), None) => braid![(braid_index);
-                                    [feet.0 => h1; signs.0],
-                                    [feet.1 => h2; signs.1],
-                                    [feet.2; signs.2]
-                                ],
-                                (Some(h1), None, Some(h3)) => braid![(braid_index);
-                                    [feet.0 => h1; signs.0],
-                                    [feet.1; signs.1],
-                                    [feet.2 => h3; signs.2]
-                                ],
-                                (Some(h1), None, None) => braid![(braid_index);
-                                    [feet.0 => h1; signs.0],
-                                    [feet.1; signs.1],
-                                    [feet.2; signs.2]
-                                ],
-                                (None, Some(h2), Some(h3)) => braid![(braid_index);
-                                    [feet.0; signs.0],
-                                    [feet.1 => h2; signs.1],
-                                    [feet.2 => h3; signs.2]
-                                ],
-                                (None, Some(h2), None) => braid![(braid_index);
-                                    [feet.0; signs.0],
-                                    [feet.1 => h2; signs.1],
-                                    [feet.2; signs.2]
-                                ],
-                                (None, None, Some(h3)) => braid![(braid_index);
-                                    [feet.0; signs.0],
-                                    [feet.1; signs.1],
-                                    [feet.2 => h3; signs.2]
-                                ],
-                                (None, None, None) => braid![(braid_index);
-                                    [feet.0; signs.0],
-                                    [feet.1; signs.1],
-                                    [feet.2; signs.2]
-                                ],
-                            },
-                            None => match heads {
-                                (Some(h1), Some(h2), Some(h3)) => braid![ ();
-                                    [feet.0 => h1; signs.0],
-                                    [feet.1 => h2; signs.1],
-                                    [feet.2 => h3; signs.2]
-                                ],
-                                (Some(h1), Some(h2), None) => braid![();
-                                    [feet.0 => h1; signs.0],
-                                    [feet.1 => h2; signs.1],
-                                    [feet.2; signs.2]
-                                ],
-                                (Some(h1), None, Some(h3)) => braid![();
-                                    [feet.0 => h1; signs.0],
-                                    [feet.1; signs.1],
-                                    [feet.2 => h3; signs.2]
-                                ],
-                                (Some(h1), None, None) => braid![();
-                                    [feet.0 => h1; signs.0],
-                                    [feet.1; signs.1],
-                                    [feet.2; signs.2]
-                                ],
-                                (None, Some(h2), Some(h3)) => braid![();
-                                    [feet.0; signs.0],
-                                    [feet.1 => h2; signs.1],
-                                    [feet.2 => h3; signs.2]
-                                ],
-                                (None, Some(h2), None) => braid![();
-                                    [feet.0; signs.0],
-                                    [feet.1 => h2; signs.1],
-                                    [feet.2; signs.2]
-                                ],
-                                (None, None, Some(h3)) => braid![();
-                                    [feet.0; signs.0],
-                                    [feet.1; signs.1],
-                                    [feet.2 => h3; signs.2]
-                                ],
-                                (None, None, None) => braid![();
-                                    [feet.0; signs.0],
-                                    [feet.1; signs.1],
-                                    [feet.2; signs.2]
-                                ],
-                            },
-                        }
-                    }
-                };
-
-                assert_that!(braid, eq(&expected));
-                Ok(())
-            },
+    let word_with_positive_leading_artin = word![[1; 2], [2 => 4; -1], [3 => 4; -3], [2; 3]];
+    expect_that!(
+        *word_with_positive_leading_artin,
+        ok(eq(&Word::try_from_letters(
+            &[
+                vec![letter![1; +].unwrap(); 2],
+                vec![letter![2 => 4; -].unwrap(); 1],
+                vec![letter![3 => 4; -].unwrap(); 3],
+                vec![letter![2; +].unwrap(); 3],
+            ]
+            .concat()
         )
-        .unwrap();
+        .clone_unwrap()))
+    );
+    let word_with_negative_leading_artin = word![[1; -2], [2 => 4; -1], [3 => 4; -3], [2; 3]];
+    expect_that!(
+        *word_with_negative_leading_artin,
+        ok(eq(&Word::try_from_letters(
+            &[
+                vec![letter![1; -].unwrap(); 2],
+                vec![letter![2 => 4; -].unwrap(); 1],
+                vec![letter![3 => 4; -].unwrap(); 3],
+                vec![letter![2; +].unwrap(); 3],
+            ]
+            .concat()
+        )
+        .clone_unwrap()))
+    );
 }
-
-// #[test]
-// fn invalid_inputs_to_braid_macro_fail_as_expected() {
-//     start_tracing();
-//     let mut test_runner = prop::test_runner::TestRunner::default();
-//     test_runner
-//         .run(
-//             &invalid::braid::test_cases::braid_macro(None, None),
-//             |test_case| {
-//                 let data = test_case.data;
-//                 let error = test_case.error;
-//
-//                 let braid: BraidResult = match data {
-//                     invalid::braid::test_cases::MacroData::IndexTooSmall(braid_index, factors) => {
-//                         let feet = (factors[0].0, factors[1].0, factors[2].0);
-//                         let heads = (factors[0].1, factors[1].1, factors[2].1);
-//                         let signs = (factors[0].2, factors[1].2, factors[2].2);
-//
-//                         match heads {
-//                             (Some(h1), Some(h2), Some(h3)) => braid![(braid_index);
-//                                 [feet.0 => h1; signs.0],
-//                                 [feet.1 => h2; signs.1],
-//                                 [feet.2 => h3; signs.2]
-//                             ],
-//                             (Some(h1), Some(h2), None) => braid![(braid_index);
-//                                 [feet.0 => h1; signs.0],
-//                                 [feet.1 => h2; signs.1],
-//                                 [feet.2; signs.2]
-//                             ],
-//                             (Some(h1), None, Some(h3)) => braid![(braid_index);
-//                                 [feet.0 => h1; signs.0],
-//                                 [feet.1; signs.1],
-//                                 [feet.2 => h3; signs.2]
-//                             ],
-//                             (Some(h1), None, None) => braid![(braid_index);
-//                                 [feet.0 => h1; signs.0],
-//                                 [feet.1; signs.1],
-//                                 [feet.2; signs.2]
-//                             ],
-//                             (None, Some(h2), Some(h3)) => braid![(braid_index);
-//                                 [feet.0; signs.0],
-//                                 [feet.1 => h2; signs.1],
-//                                 [feet.2 => h3; signs.2]
-//                             ],
-//                             (None, Some(h2), None) => braid![(braid_index);
-//                                 [feet.0; signs.0],
-//                                 [feet.1 => h2; signs.1],
-//                                 [feet.2; signs.2]
-//                             ],
-//                             (None, None, Some(h3)) => braid![(braid_index);
-//                                 [feet.0; signs.0],
-//                                 [feet.1; signs.1],
-//                                 [feet.2 => h3; signs.2]
-//                             ],
-//                             (None, None, None) => braid![(braid_index);
-//                                 [feet.0; signs.0],
-//                                 [feet.1; signs.1],
-//                                 [feet.2; signs.2]
-//                             ],
-//                         }
-//                     }
-//                     invalid::braid::test_cases::MacroData::InvalidIndex(braid_index, factors) => {
-//                         match braid_index {
-//                             invalid::index::test_cases::TryNewData::Zero(braid_index) => {
-//                                 let feet = (factors[0].0, factors[1].0, factors[2].0);
-//                                 let heads = (factors[0].1, factors[1].1, factors[2].1);
-//                                 let signs = (factors[0].2, factors[1].2, factors[2].2);
-//
-//                                 match heads {
-//                                     (Some(h1), Some(h2), Some(h3)) => braid![(braid_index);
-//                                         [feet.0 => h1; signs.0],
-//                                         [feet.1 => h2; signs.1],
-//                                         [feet.2 => h3; signs.2]
-//                                     ],
-//                                     (Some(h1), Some(h2), None) => braid![(braid_index);
-//                                         [feet.0 => h1; signs.0],
-//                                         [feet.1 => h2; signs.1],
-//                                         [feet.2; signs.2]
-//                                     ],
-//                                     (Some(h1), None, Some(h3)) => braid![(braid_index);
-//                                         [feet.0 => h1; signs.0],
-//                                         [feet.1; signs.1],
-//                                         [feet.2 => h3; signs.2]
-//                                     ],
-//                                     (Some(h1), None, None) => braid![(braid_index);
-//                                         [feet.0 => h1; signs.0],
-//                                         [feet.1; signs.1],
-//                                         [feet.2; signs.2]
-//                                     ],
-//                                     (None, Some(h2), Some(h3)) => braid![(braid_index);
-//                                         [feet.0; signs.0],
-//                                         [feet.1 => h2; signs.1],
-//                                         [feet.2 => h3; signs.2]
-//                                     ],
-//                                     (None, Some(h2), None) => braid![(braid_index);
-//                                         [feet.0; signs.0],
-//                                         [feet.1 => h2; signs.1],
-//                                         [feet.2; signs.2]
-//                                     ],
-//                                     (None, None, Some(h3)) => braid![(braid_index);
-//                                         [feet.0; signs.0],
-//                                         [feet.1; signs.1],
-//                                         [feet.2 => h3; signs.2]
-//                                     ],
-//                                     (None, None, None) => braid![(braid_index);
-//                                         [feet.0; signs.0],
-//                                         [feet.1; signs.1],
-//                                         [feet.2; signs.2]
-//                                     ],
-//                                 }
-//                             }
-//                             invalid::index::test_cases::TryNewData::InvalidU16(braid_index) => {
-//                                 let feet = (factors[0].0, factors[1].0, factors[2].0);
-//                                 let heads = (factors[0].1, factors[1].1, factors[2].1);
-//                                 let signs = (factors[0].2, factors[1].2, factors[2].2);
-//
-//                                 match heads {
-//                                     (Some(h1), Some(h2), Some(h3)) => braid![(braid_index);
-//                                         [feet.0 => h1; signs.0],
-//                                         [feet.1 => h2; signs.1],
-//                                         [feet.2 => h3; signs.2]
-//                                     ],
-//                                     (Some(h1), Some(h2), None) => braid![(braid_index);
-//                                         [feet.0 => h1; signs.0],
-//                                         [feet.1 => h2; signs.1],
-//                                         [feet.2; signs.2]
-//                                     ],
-//                                     (Some(h1), None, Some(h3)) => braid![(braid_index);
-//                                         [feet.0 => h1; signs.0],
-//                                         [feet.1; signs.1],
-//                                         [feet.2 => h3; signs.2]
-//                                     ],
-//                                     (Some(h1), None, None) => braid![(braid_index);
-//                                         [feet.0 => h1; signs.0],
-//                                         [feet.1; signs.1],
-//                                         [feet.2; signs.2]
-//                                     ],
-//                                     (None, Some(h2), Some(h3)) => braid![(braid_index);
-//                                         [feet.0; signs.0],
-//                                         [feet.1 => h2; signs.1],
-//                                         [feet.2 => h3; signs.2]
-//                                     ],
-//                                     (None, Some(h2), None) => braid![(braid_index);
-//                                         [feet.0; signs.0],
-//                                         [feet.1 => h2; signs.1],
-//                                         [feet.2; signs.2]
-//                                     ],
-//                                     (None, None, Some(h3)) => braid![(braid_index);
-//                                         [feet.0; signs.0],
-//                                         [feet.1; signs.1],
-//                                         [feet.2 => h3; signs.2]
-//                                     ],
-//                                     (None, None, None) => braid![(braid_index);
-//                                         [feet.0; signs.0],
-//                                         [feet.1; signs.1],
-//                                         [feet.2; signs.2]
-//                                     ],
-//                                 }
-//                             }
-//                         }
-//                     }
-//                     invalid::braid::test_cases::MacroData::InvalidWord(braid_index, factors) => {
-//                         match braid_index {
-//                             None => match factors {
-//                                 invalid::word::test_cases::MacroData::ExponentFailsISizeCoercion(
-//                                     factor
-//                                 ) => {
-//                                     match factor.1 {
-//                                         Some(head) => braid![(); [factor.0 => head; factor.2]],
-//                                         None => braid![(); [factor.0; factor.2]],
-//                                     }
-//                                 }
-//                                 invalid::word::test_cases::MacroData::ExponentFailsU16Coercion(
-//                                     factor
-//                                 ) => {
-//                                     match factor.1 {
-//                                         Some(head) => braid![(); [factor.0 => head; factor.2]],
-//                                         None => braid![(); [factor.0; factor.2]],
-//                                     }
-//                                 }
-//                                 invalid::word::test_cases::MacroData::InvalidLetter(factors)
-//                                 | invalid::word::test_cases::MacroData::TooLong(factors) => {
-//                                     let feet = (factors[0].0, factors[1].0, factors[2].0);
-//                                     let heads = (factors[0].1, factors[1].1, factors[2].1);
-//                                     let signs = (factors[0].2, factors[1].2, factors[2].2);
-//
-//                                     match heads {
-//                                         (Some(h1), Some(h2), Some(h3)) => braid![ ();
-//                                             [feet.0 => h1; signs.0],
-//                                             [feet.1 => h2; signs.1],
-//                                             [feet.2 => h3; signs.2]
-//                                         ],
-//                                         (Some(h1), Some(h2), None) => braid![();
-//                                             [feet.0 => h1; signs.0],
-//                                             [feet.1 => h2; signs.1],
-//                                             [feet.2; signs.2]
-//                                         ],
-//                                         (Some(h1), None, Some(h3)) => braid![();
-//                                             [feet.0 => h1; signs.0],
-//                                             [feet.1; signs.1],
-//                                             [feet.2 => h3; signs.2]
-//                                         ],
-//                                         (Some(h1), None, None) => braid![();
-//                                             [feet.0 => h1; signs.0],
-//                                             [feet.1; signs.1],
-//                                             [feet.2; signs.2]
-//                                         ],
-//                                         (None, Some(h2), Some(h3)) => braid![();
-//                                             [feet.0; signs.0],
-//                                             [feet.1 => h2; signs.1],
-//                                             [feet.2 => h3; signs.2]
-//                                         ],
-//                                         (None, Some(h2), None) => braid![();
-//                                             [feet.0; signs.0],
-//                                             [feet.1 => h2; signs.1],
-//                                             [feet.2; signs.2]
-//                                         ],
-//                                         (None, None, Some(h3)) => braid![();
-//                                             [feet.0; signs.0],
-//                                             [feet.1; signs.1],
-//                                             [feet.2 => h3; signs.2]
-//                                         ],
-//                                         (None, None, None) => braid![();
-//                                             [feet.0; signs.0],
-//                                             [feet.1; signs.1],
-//                                             [feet.2; signs.2]
-//                                         ],
-//                                     }
-//                                 }
-//                             },
-//                             Some(braid_index) => match factors {
-//                                 invalid::word::test_cases::MacroData::ExponentFailsISizeCoercion(
-//                                     factor
-//                                 ) => {
-//                                     match factor.1 {
-//                                         Some(head) => braid![(braid_index);
-//                                             [factor.0 => head; factor.2]
-//                                         ],
-//                                         None => braid![(braid_index); [factor.0; factor.2]],
-//                                     }
-//                                 }
-//                                 invalid::word::test_cases::MacroData::ExponentFailsU16Coercion(
-//                                     factor
-//                                 ) => {
-//                                     match factor.1 {
-//                                         Some(head) => braid![(braid_index);
-//                                             [factor.0 => head; factor.2]
-//                                         ],
-//                                         None => braid![(braid_index); [factor.0; factor.2]],
-//                                     }
-//                                 }
-//                                 invalid::word::test_cases::MacroData::InvalidLetter(factors)
-//                                 | invalid::word::test_cases::MacroData::TooLong(factors) => {
-//                                     let feet = (factors[0].0, factors[1].0, factors[2].0);
-//                                     let heads = (factors[0].1, factors[1].1, factors[2].1);
-//                                     let signs = (factors[0].2, factors[1].2, factors[2].2);
-//
-//                                     match heads {
-//                                         (Some(h1), Some(h2), Some(h3)) => braid![(braid_index);
-//                                             [feet.0 => h1; signs.0],
-//                                             [feet.1 => h2; signs.1],
-//                                             [feet.2 => h3; signs.2]
-//                                         ],
-//                                         (Some(h1), Some(h2), None) => braid![(braid_index);
-//                                             [feet.0 => h1; signs.0],
-//                                             [feet.1 => h2; signs.1],
-//                                             [feet.2; signs.2]
-//                                         ],
-//                                         (Some(h1), None, Some(h3)) => braid![(braid_index);
-//                                             [feet.0 => h1; signs.0],
-//                                             [feet.1; signs.1],
-//                                             [feet.2 => h3; signs.2]
-//                                         ],
-//                                         (Some(h1), None, None) => braid![(braid_index);
-//                                             [feet.0 => h1; signs.0],
-//                                             [feet.1; signs.1],
-//                                             [feet.2; signs.2]
-//                                         ],
-//                                         (None, Some(h2), Some(h3)) => braid![(braid_index);
-//                                             [feet.0; signs.0],
-//                                             [feet.1 => h2; signs.1],
-//                                             [feet.2 => h3; signs.2]
-//                                         ],
-//                                         (None, Some(h2), None) => braid![(braid_index);
-//                                             [feet.0; signs.0],
-//                                             [feet.1 => h2; signs.1],
-//                                             [feet.2; signs.2]
-//                                         ],
-//                                         (None, None, Some(h3)) => braid![(braid_index);
-//                                             [feet.0; signs.0],
-//                                             [feet.1; signs.1],
-//                                             [feet.2 => h3; signs.2]
-//                                         ],
-//                                         (None, None, None) => braid![(braid_index);
-//                                             [feet.0; signs.0],
-//                                             [feet.1; signs.1],
-//                                             [feet.2; signs.2]
-//                                         ],
-//                                     }
-//                                 }
-//                             },
-//                         }
-//                     }
-//                 };
-//
-//                 assert_that!(*braid, err(eq(&error)));
-//                 Ok(())
-//             },
-//         )
-//         .unwrap();
-// }
-
+#[gtest]
+fn macro_word_constructs_word_when_leading_letter_is_band() {
+    start_tracing();
+    let word_with_positive_leading_band = word![[2 => 4; 1], [1; 2], [3 => 4; -3], [2; 3]];
+    expect_that!(
+        *word_with_positive_leading_band,
+        ok(eq(&Word::try_from_letters(
+            &[
+                vec![letter![2 => 4; +].unwrap(); 1],
+                vec![letter![1; +].unwrap(); 2],
+                vec![letter![3 => 4; -].unwrap(); 3],
+                vec![letter![2; +].unwrap(); 3],
+            ]
+            .concat()
+        )
+        .clone_unwrap()))
+    );
+    let word_with_negative_leading_band = word![[2 => 4; -1], [1; 2], [3 => 4; -3], [2; 3]];
+    expect_that!(
+        *word_with_negative_leading_band,
+        ok(eq(&Word::try_from_letters(
+            &[
+                vec![letter![2 => 4; -].unwrap(); 1],
+                vec![letter![1; +].unwrap(); 2],
+                vec![letter![3 => 4; -].unwrap(); 3],
+                vec![letter![2; +].unwrap(); 3],
+            ]
+            .concat()
+        )
+        .clone_unwrap()))
+    )
+}
 #[gtest]
 fn macro_word_fails_to_construct_invalid_words() {
     start_tracing();
@@ -763,6 +254,37 @@ fn macro_word_fails_to_construct_invalid_words() {
     }
 }
 
+// braid!
+#[test]
+fn macro_braid_constructs_trivial_braid_of_given_index() {
+    start_tracing();
+    let braid = braid![(10)];
+    assert_that!(*braid, ok(eq(&Braid::try_trivial(10).clone_unwrap())))
+}
+#[test]
+fn macro_braid_constructs_nontrivial_braid_of_given_index() {
+    start_tracing();
+    let braid = braid![(10); [2 => 4; -1], [1; 2], [3 => 4; -3], [2; 3]];
+    assert_that!(
+        *braid,
+        ok(eq(&Braid::try_from_data(
+            Some(10),
+            word![[2 => 4; -1], [1; 2], [3 => 4; -3], [2; 3]].clone_unwrap()
+        )
+        .clone_unwrap()))
+    )
+}
+#[test]
+fn macro_braid_constructs_nontrivial_braid_of_inferred_index() {
+    start_tracing();
+    let braid = braid![(); [2 => 4; -1], [1; 2], [3 => 4; -3], [2; 3]];
+    assert_that!(
+        *braid,
+        ok(eq(&Braid::from(
+            word![[2 => 4; -1], [1; 2], [3 => 4; -3], [2; 3]].clone_unwrap()
+        )))
+    )
+}
 #[gtest]
 fn macro_braid_fails_to_construct_invalid_braids() {
     start_tracing();

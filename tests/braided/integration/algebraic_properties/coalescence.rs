@@ -1,10 +1,9 @@
 //! Integration tests which check that band coalescence works as expected.
 
+use braided::{braid, word};
 use braided_utils::telemetry::start_tracing;
 use googletest::matchers::eq;
 use googletest::{expect_that, gtest};
-
-use braided::{braid, word};
 
 #[gtest]
 fn coalescence_works_as_expected_on_words() {
