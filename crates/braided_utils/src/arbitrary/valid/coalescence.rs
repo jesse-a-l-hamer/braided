@@ -19,8 +19,8 @@ pub fn of_band_generator(
     }
     valid::band::data(max_head, max_height, max_artin_length)
         .prop_flat_map(|(foot, head, sign)| {
-            let foot: u16 = foot.into();
-            let head: u16 = head.into();
+            let foot: u16 = foot.try_into().unwrap();
+            let head: u16 = head.try_into().unwrap();
             (Just(foot), Just(head), Just(sign), foot..=(head - 1))
         })
         .prop_perturb(|(foot, head, sign, crossing_foot), mut rng| {

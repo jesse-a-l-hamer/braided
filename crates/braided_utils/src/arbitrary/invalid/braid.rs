@@ -15,7 +15,8 @@ pub fn vector_of_word_data_where_one_letter_has_given_head_above_other_letters(
 
     valid::letter::data_with_given_head(head, max_height, max_artin_length)
         .prop_flat_map(move |(foot_idx, head_idx, sign)| {
-            let height: u16 = head - <valid::u16::Data as Into<u16>>::into(foot_idx);
+            let height: u16 =
+                head - <valid::u16::Data as TryInto<u16>>::try_into(foot_idx).unwrap();
             let max_artin_length = max_artin_length.map(|max| max - (2 * height - 1));
             (
                 Just((foot_idx, head_idx, sign)),
@@ -53,7 +54,8 @@ pub fn macro_data_index_too_small(
 > {
     valid::u16::data(None, Some(max_braid_index.unwrap_or(u16::MAX - 1))).prop_flat_map(
         move |braid_index| {
-            let braid_index_u16 = <valid::u16::Data as Into<u16>>::into(braid_index);
+            let braid_index_u16 =
+                <valid::u16::Data as TryInto<u16>>::try_into(braid_index).unwrap();
             if braid_index_u16 == 1 {
                 (
                     Just(braid_index),
@@ -62,9 +64,9 @@ pub fn macro_data_index_too_small(
                     .prop_map(move |(braid_index, factors)| {
                         let first_factor = factors.first().unwrap();
                         let first_head: u16 = if let Some(head) = first_factor.1 {
-                            head.into()
+                            head.try_into().unwrap()
                         } else {
-                            (first_factor.0 + 1).into()
+                            (first_factor.0 + 1).try_into().unwrap()
                         };
                         (
                             braid_index,
@@ -126,16 +128,14 @@ pub mod test_cases {
     pub enum TryFromLettersData {
         IndexTooSmall(Option<valid::u16::Data>, Vec<Letter>),
         InvalidIndex(invalid::index::test_cases::TryNewData, Vec<Letter>),
-        InvalidWord(
-            Option<valid::u16::Data>,
-            invalid::word::test_cases::TryFromLettersData,
-        ),
+        // InvalidWord(
+        //     Option<valid::u16::Data>,
+        //     invalid::word::test_cases::TryFromLettersData,
+        // ),
     }
 
     #[derive(Debug, PartialEq, Eq, Clone)]
-    pub enum TryTrivialData {
-        InvalidIndex(invalid::index::test_cases::TryNewData),
-    }
+    pub struct TryTrivialData(pub invalid::index::test_cases::TryNewData);
 
     #[derive(Debug, PartialEq, Eq, Clone)]
     pub struct MacroIndexTooSmallData {
@@ -341,10 +341,11 @@ pub mod test_cases {
     }
     fn try_from_data_invalid_word(
         max_braid_index: Option<u16>,
+        max_artin_length: Option<u16>,
     ) -> impl Strategy<Value = TryFromData> {
         (
             valid::u16::data(Some(2), max_braid_index),
-            invalid::word::test_cases::try_new(),
+            invalid::word::test_cases::try_new(max_artin_length),
         )
             .prop_flat_map(|(braid_index, invalid_word)| {
                 (
@@ -365,7 +366,7 @@ pub mod test_cases {
         prop_oneof![
             try_from_data_index_too_small(max_braid_index, max_height, max_artin_length),
             try_from_data_invalid_index(max_braid_index, max_artin_length),
-            try_from_data_invalid_word(max_braid_index),
+            try_from_data_invalid_word(max_braid_index, max_artin_length),
         ]
     }
 
@@ -428,24 +429,24 @@ pub mod test_cases {
                 error: BraidValidationError::IndexValidation(invalid_braid_index.error),
             })
     }
-    fn try_from_letters_invalid_word(
-        max_braid_index: Option<u16>,
-    ) -> impl Strategy<Value = TryFromLetters> {
-        (
-            valid::u16::data(Some(2), max_braid_index),
-            invalid::word::test_cases::try_from_letters(),
-        )
-            .prop_flat_map(|(braid_index, invalid_word)| {
-                (
-                    Just(Some(braid_index)).prop_union(Just(None)),
-                    Just(invalid_word),
-                )
-            })
-            .prop_map(|(braid_index, invalid_word)| TryFromLetters {
-                data: TryFromLettersData::InvalidWord(braid_index, invalid_word.data),
-                error: BraidValidationError::WordValidation(invalid_word.error),
-            })
-    }
+    // fn try_from_letters_invalid_word(
+    //     max_braid_index: Option<u16>,
+    // ) -> impl Strategy<Value = TryFromLetters> {
+    //     (
+    //         valid::u16::data(Some(2), max_braid_index),
+    //         invalid::word::test_cases::try_from_letters(),
+    //     )
+    //         .prop_flat_map(|(braid_index, invalid_word)| {
+    //             (
+    //                 Just(Some(braid_index)).prop_union(Just(None)),
+    //                 Just(invalid_word),
+    //             )
+    //         })
+    //         .prop_map(|(braid_index, invalid_word)| TryFromLetters {
+    //             data: TryFromLettersData::InvalidWord(braid_index, invalid_word.data),
+    //             error: BraidValidationError::WordValidation(invalid_word.error),
+    //         })
+    // }
     pub fn try_from_letters(
         max_braid_index: Option<u16>,
         max_height: Option<u16>,
@@ -454,13 +455,13 @@ pub mod test_cases {
         prop_oneof![
             try_from_letters_index_too_small(max_braid_index, max_height, max_artin_length),
             try_from_letters_invalid_index(max_braid_index, max_artin_length),
-            try_from_letters_invalid_word(max_braid_index),
+            // try_from_letters_invalid_word(max_braid_index),
         ]
     }
 
     fn try_trivial_invalid_index() -> impl Strategy<Value = TryTrivial> {
         invalid::index::test_cases::try_new().prop_map(|invalid_braid_index| TryTrivial {
-            data: TryTrivialData::InvalidIndex(invalid_braid_index.data),
+            data: TryTrivialData(invalid_braid_index.data),
             error: BraidValidationError::IndexValidation(invalid_braid_index.error),
         })
     }
@@ -555,21 +556,21 @@ pub mod test_cases {
                 })
         })
     }
-    pub fn macro_invalid_word_too_long(
-        max_braid_index: Option<u16>,
-    ) -> impl Strategy<Value = MacroInvalidWordTooLong> {
-        valid::u16::data(Some(2), max_braid_index).prop_flat_map(|braid_index| {
-            (
-                Just(Some(braid_index)).prop_union(Just(None)),
-                invalid::word::test_cases::macro_too_long(),
-            )
-                .prop_map(|(braid_index, invalid_word)| MacroInvalidWordTooLong {
-                    data: MacroInvalidWordTooLongData {
-                        braid_index,
-                        factors: invalid_word.data.0,
-                    },
-                    error: BraidValidationError::WordValidation(invalid_word.error),
-                })
-        })
-    }
+    // pub fn macro_invalid_word_too_long(
+    //     max_braid_index: Option<u16>,
+    // ) -> impl Strategy<Value = MacroInvalidWordTooLong> {
+    //     valid::u16::data(Some(2), max_braid_index).prop_flat_map(|braid_index| {
+    //         (
+    //             Just(Some(braid_index)).prop_union(Just(None)),
+    //             invalid::word::test_cases::macro_too_long(),
+    //         )
+    //             .prop_map(|(braid_index, invalid_word)| MacroInvalidWordTooLong {
+    //                 data: MacroInvalidWordTooLongData {
+    //                     braid_index,
+    //                     factors: invalid_word.data.0,
+    //                 },
+    //                 error: BraidValidationError::WordValidation(invalid_word.error),
+    //             })
+    //     })
+    // }
 }

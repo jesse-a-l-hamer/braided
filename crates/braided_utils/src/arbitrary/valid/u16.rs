@@ -19,23 +19,45 @@ pub enum Data {
     BraidIndex(BraidIndex),
 }
 
-impl From<Data> for u16 {
-    fn from(value: Data) -> Self {
+// impl From<Data> for u16 {
+//     fn from(value: Data) -> Self {
+//         match value {
+//             Data::U8(val) => val.into(),
+//             Data::U16(val) => val,
+//             Data::U32(val) => val.try_into().unwrap(),
+//             Data::U64(val) => val.try_into().unwrap(),
+//             Data::U128(val) => val.try_into().unwrap(),
+//             Data::USize(val) => val.try_into().unwrap(),
+//             Data::I8(val) => val.try_into().unwrap(),
+//             Data::I16(val) => val.try_into().unwrap(),
+//             Data::I32(val) => val.try_into().unwrap(),
+//             Data::I64(val) => val.try_into().unwrap(),
+//             Data::I128(val) => val.try_into().unwrap(),
+//             Data::ISize(val) => val.try_into().unwrap(),
+//             Data::Strand(val) => val.into(),
+//             Data::BraidIndex(val) => val.into(),
+//         }
+//     }
+// }
+
+impl TryFrom<Data> for u16 {
+    type Error = std::num::TryFromIntError;
+    fn try_from(value: Data) -> Result<Self, Self::Error> {
         match value {
-            Data::U8(val) => val.into(),
-            Data::U16(val) => val,
-            Data::U32(val) => val.try_into().unwrap(),
-            Data::U64(val) => val.try_into().unwrap(),
-            Data::U128(val) => val.try_into().unwrap(),
-            Data::USize(val) => val.try_into().unwrap(),
-            Data::I8(val) => val.try_into().unwrap(),
-            Data::I16(val) => val.try_into().unwrap(),
-            Data::I32(val) => val.try_into().unwrap(),
-            Data::I64(val) => val.try_into().unwrap(),
-            Data::I128(val) => val.try_into().unwrap(),
-            Data::ISize(val) => val.try_into().unwrap(),
-            Data::Strand(val) => val.into(),
-            Data::BraidIndex(val) => val.into(),
+            Data::U8(val) => Ok(val.into()),
+            Data::U16(val) => Ok(val),
+            Data::U32(val) => val.try_into(),
+            Data::U64(val) => val.try_into(),
+            Data::U128(val) => val.try_into(),
+            Data::USize(val) => val.try_into(),
+            Data::I8(val) => val.try_into(),
+            Data::I16(val) => val.try_into(),
+            Data::I32(val) => val.try_into(),
+            Data::I64(val) => val.try_into(),
+            Data::I128(val) => val.try_into(),
+            Data::ISize(val) => val.try_into(),
+            Data::Strand(val) => Ok(val.into()),
+            Data::BraidIndex(val) => Ok(val.into()),
         }
     }
 }

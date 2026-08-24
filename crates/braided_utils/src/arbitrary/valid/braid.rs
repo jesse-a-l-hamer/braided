@@ -84,7 +84,7 @@ pub fn macro_data(
                     Some(braid_index)
                 }
             }),
-            valid::word::macro_data(Some(braid_index.into()), max_artin_length),
+            valid::word::macro_data(Some(braid_index.try_into().unwrap()), max_artin_length),
         )
     })
 }
@@ -192,7 +192,7 @@ pub mod test_cases {
             .prop_flat_map(move |braid_index| {
                 (
                     Just(braid_index),
-                    valid::word::new(Some(braid_index.into()), max_artin_length),
+                    valid::word::new(Some(braid_index.try_into().unwrap()), max_artin_length),
                 )
             })
             .prop_map(|(braid_index, word)| {
@@ -261,7 +261,8 @@ pub mod test_cases {
                 (Vec::new(), 1u16),
                 |(mut letters, braid_index), (foot, head, sign)| {
                     letters.push(Letter::try_new(*foot, *head, *sign).unwrap());
-                    let minimal_required_braid_index: u16 = head.unwrap_or(*foot + 1).into();
+                    let minimal_required_braid_index: u16 =
+                        head.unwrap_or(*foot + 1).try_into().unwrap();
                     (letters, braid_index.max(minimal_required_braid_index))
                 },
             );
@@ -318,7 +319,8 @@ pub mod test_cases {
                                 exponent.unsigned_abs()
                             ]);
                         }
-                        let minimal_required_braid_index: u16 = head.unwrap_or(*foot + 1).into();
+                        let minimal_required_braid_index: u16 =
+                            head.unwrap_or(*foot + 1).try_into().unwrap();
                         (word_data, braid_index.max(minimal_required_braid_index))
                     },
                 );

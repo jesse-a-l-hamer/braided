@@ -273,10 +273,16 @@ pub fn unequal_pair(
         .prop_filter_map(
             "Data from this branch must produce unequal letters.",
             |(left, right)| {
-                let left_foot: u16 = left.0.into();
-                let left_head: u16 = left.1.map(|h| h.into()).unwrap_or(left_foot + 1);
-                let right_foot: u16 = right.0.into();
-                let right_head: u16 = right.1.map(|h| h.into()).unwrap_or(right_foot + 1);
+                let left_foot: u16 = left.0.try_into().unwrap();
+                let left_head: u16 = left
+                    .1
+                    .map(|h| h.try_into().unwrap())
+                    .unwrap_or(left_foot + 1);
+                let right_foot: u16 = right.0.try_into().unwrap();
+                let right_head: u16 = right
+                    .1
+                    .map(|h| h.try_into().unwrap())
+                    .unwrap_or(right_foot + 1);
 
                 if left_foot == right_foot && left_head == right_head && left.2 == right.2 {
                     None
