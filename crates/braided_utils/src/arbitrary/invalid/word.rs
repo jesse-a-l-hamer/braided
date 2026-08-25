@@ -277,60 +277,60 @@ pub fn macro_data_invalid_letter_with_error()
         })
 }
 
-// pub fn macro_data_too_long_with_error()
-// -> impl Strategy<Value = ([valid::word::MacroFactor<isize>; 3], WordValidationError)> {
-//     (1..=u16::MAX.div_euclid(4), 1..=u16::MAX.div_euclid(4))
-//         .prop_flat_map(|(h1, h2)| {
-//             (
-//                 1..=u16::MAX.div_euclid(2 * (2 * h1 - 1)),
-//                 1..=u16::MAX.div_euclid(2 * (2 * h2 - 1)),
-//                 Just(h1),
-//                 Just(h2),
-//             )
-//         })
-//         .prop_flat_map(|(e1, e2, h1, h2)| {
-//             (
-//                 Just(h1),
-//                 Just(e1),
-//                 Just(h2),
-//                 Just(e2),
-//                 (u16::MAX - h1 * e1 - h2 * e2 + 1)..=u16::MAX,
-//             )
-//         })
-//         .prop_flat_map(|(h1, e1, h2, e2, e3)| {
-//             (
-//                 Just((h1 * e1) as usize + (h2 * e2) as usize + e3 as usize),
-//                 Just((e1, e2, e3)),
-//                 valid::letter::data_with_given_height(None, h1),
-//                 valid::letter::data_with_given_height(None, h2),
-//                 valid::letter::data_with_given_height(None, 1),
-//             )
-//         })
-//         .prop_flat_map(|(total_length, exponents, l1, l2, l3)| {
-//             let error = WordValidationError::TooLong(total_length);
-//
-//             let e1 = match l1.2 {
-//                 Sign::Negative => -(exponents.0 as isize),
-//                 Sign::Positive => exponents.0 as isize,
-//             };
-//             let e2 = match l2.2 {
-//                 Sign::Negative => -(exponents.1 as isize),
-//                 Sign::Positive => exponents.1 as isize,
-//             };
-//             let e3 = match l3.2 {
-//                 Sign::Negative => -(exponents.2 as isize),
-//                 Sign::Positive => exponents.2 as isize,
-//             };
-//
-//             let factors = [
-//                 valid::word::MacroFactor(l1.0, l1.1, e1),
-//                 valid::word::MacroFactor(l2.0, l2.1, e2),
-//                 valid::word::MacroFactor(l3.0, l3.1, e3),
-//             ];
-//
-//             (Just(factors).prop_shuffle(), Just(error))
-//         })
-// }
+pub fn macro_data_too_long_with_error()
+-> impl Strategy<Value = ([valid::word::MacroFactor<isize>; 3], WordValidationError)> {
+    (1..=u16::MAX.div_euclid(4), 1..=u16::MAX.div_euclid(4))
+        .prop_flat_map(|(h1, h2)| {
+            (
+                1..=u16::MAX.div_euclid(2 * (2 * h1 - 1)),
+                1..=u16::MAX.div_euclid(2 * (2 * h2 - 1)),
+                Just(h1),
+                Just(h2),
+            )
+        })
+        .prop_flat_map(|(e1, e2, h1, h2)| {
+            (
+                Just(h1),
+                Just(e1),
+                Just(h2),
+                Just(e2),
+                (u16::MAX - h1 * e1 - h2 * e2 + 1)..=u16::MAX,
+            )
+        })
+        .prop_flat_map(|(h1, e1, h2, e2, e3)| {
+            (
+                Just((h1 * e1) as usize + (h2 * e2) as usize + e3 as usize),
+                Just((e1, e2, e3)),
+                valid::letter::data_with_given_height(None, h1),
+                valid::letter::data_with_given_height(None, h2),
+                valid::letter::data_with_given_height(None, 1),
+            )
+        })
+        .prop_flat_map(|(total_length, exponents, l1, l2, l3)| {
+            let error = WordValidationError::TooLong(total_length);
+
+            let e1 = match l1.2 {
+                Sign::Negative => -(exponents.0 as isize),
+                Sign::Positive => exponents.0 as isize,
+            };
+            let e2 = match l2.2 {
+                Sign::Negative => -(exponents.1 as isize),
+                Sign::Positive => exponents.1 as isize,
+            };
+            let e3 = match l3.2 {
+                Sign::Negative => -(exponents.2 as isize),
+                Sign::Positive => exponents.2 as isize,
+            };
+
+            let factors = [
+                valid::word::MacroFactor(l1.0, l1.1, e1),
+                valid::word::MacroFactor(l2.0, l2.1, e2),
+                valid::word::MacroFactor(l3.0, l3.1, e3),
+            ];
+
+            (Just(factors).prop_shuffle(), Just(error))
+        })
+}
 
 pub mod test_cases {
     use super::*;
@@ -338,7 +338,7 @@ pub mod test_cases {
     #[derive(Debug, PartialEq, Eq, Clone)]
     pub enum TryNewData {
         InvalidLetter(Vec<(valid::u16::Data, Option<valid::u16::Data>, Sign)>),
-        // TooLong(Vec<(valid::u16::Data, Option<valid::u16::Data>, Sign)>),
+        TooLong(Vec<(valid::u16::Data, Option<valid::u16::Data>, Sign)>),
     }
 
     #[derive(Debug, PartialEq, Eq, Clone)]
@@ -355,8 +355,8 @@ pub mod test_cases {
     #[derive(Debug, PartialEq, Eq, Clone)]
     pub struct MacroInvalidLetterData(pub [valid::word::MacroFactor<isize>; 3]);
 
-    // #[derive(Debug, PartialEq, Eq, Clone)]
-    // pub struct MacroTooLongData(pub [valid::word::MacroFactor<isize>; 3]);
+    #[derive(Debug, PartialEq, Eq, Clone)]
+    pub struct MacroTooLongData(pub [valid::word::MacroFactor<isize>; 3]);
 
     #[derive(Debug, PartialEq, Eq, Clone)]
     pub struct TryNew {
@@ -388,11 +388,11 @@ pub mod test_cases {
         pub error: WordValidationError,
     }
 
-    // #[derive(Debug, PartialEq, Eq, Clone)]
-    // pub struct MacroTooLong {
-    //     pub data: MacroTooLongData,
-    //     pub error: WordValidationError,
-    // }
+    #[derive(Debug, PartialEq, Eq, Clone)]
+    pub struct MacroTooLong {
+        pub data: MacroTooLongData,
+        pub error: WordValidationError,
+    }
 
     fn try_new_invalid_letter(max_artin_length: Option<u16>) -> impl Strategy<Value = TryNew> {
         data_with_invalid_letter(max_artin_length).prop_map(|(word_data, error)| TryNew {
@@ -400,56 +400,53 @@ pub mod test_cases {
             error: WordValidationError::LetterValidation(error),
         })
     }
-    // fn try_new_too_long() -> impl Strategy<Value = TryNew> {
-    //     let too_long_length: usize = u16::MAX as usize + 1;
-    //     (1..=u16::MAX)
-    //         .prop_flat_map(move |first_artin_length| {
-    //             (
-    //                 valid::letter::vector_of_data_with_given_artin_length(first_artin_length, None),
-    //                 valid::letter::vector_of_data_with_given_artin_length(
-    //                     too_long_length as u16 - first_artin_length,
-    //                     None,
-    //                 ),
-    //             )
-    //         })
-    //         .prop_map(move |(letters_1, letters_2)| {
-    //             let all_letters = [letters_1, letters_2].concat();
-    //             TryNew {
-    //                 data: TryNewData::TooLong(all_letters),
-    //                 error: WordValidationError::TooLong(too_long_length),
-    //             }
-    //         })
-    // }
+    fn try_new_too_long() -> impl Strategy<Value = TryNew> {
+        let too_long_length: usize = u16::MAX as usize + 1;
+        (1..=u16::MAX)
+            .prop_flat_map(move |first_artin_length| {
+                (
+                    valid::letter::vector_of_data_with_given_artin_length(first_artin_length, None),
+                    valid::letter::vector_of_data_with_given_artin_length(
+                        too_long_length as u16 - first_artin_length,
+                        None,
+                    ),
+                )
+            })
+            .prop_map(move |(letters_1, letters_2)| {
+                let all_letters = [letters_1, letters_2].concat();
+                TryNew {
+                    data: TryNewData::TooLong(all_letters),
+                    error: WordValidationError::TooLong(too_long_length),
+                }
+            })
+    }
     pub fn try_new(max_artin_length: Option<u16>) -> impl Strategy<Value = TryNew> {
-        prop_oneof![
-            try_new_invalid_letter(max_artin_length),
-            // try_new_too_long(),
-        ]
+        prop_oneof![try_new_invalid_letter(max_artin_length), try_new_too_long(),]
     }
 
-    // fn try_from_letters_too_long() -> impl Strategy<Value = TryFromLetters> {
-    //     let too_long_length: usize = u16::MAX as usize + 1;
-    //     (1..=u16::MAX)
-    //         .prop_flat_map(move |first_artin_length| {
-    //             (
-    //                 valid::letter::vector_with_given_artin_length(first_artin_length, None),
-    //                 valid::letter::vector_with_given_artin_length(
-    //                     too_long_length as u16 - first_artin_length,
-    //                     None,
-    //                 ),
-    //             )
-    //         })
-    //         .prop_map(move |(letters_1, letters_2)| {
-    //             let all_letters = [letters_1, letters_2].concat();
-    //             TryFromLetters {
-    //                 data: TryFromLettersData(all_letters),
-    //                 error: WordValidationError::TooLong(too_long_length),
-    //             }
-    //         })
-    // }
-    // pub fn try_from_letters() -> impl Strategy<Value = TryFromLetters> {
-    //     prop_oneof![try_from_letters_too_long()]
-    // }
+    fn try_from_letters_too_long() -> impl Strategy<Value = TryFromLetters> {
+        let too_long_length: usize = u16::MAX as usize + 1;
+        (1..=u16::MAX)
+            .prop_flat_map(move |first_artin_length| {
+                (
+                    valid::letter::vector_with_given_artin_length(first_artin_length, None),
+                    valid::letter::vector_with_given_artin_length(
+                        too_long_length as u16 - first_artin_length,
+                        None,
+                    ),
+                )
+            })
+            .prop_map(move |(letters_1, letters_2)| {
+                let all_letters = [letters_1, letters_2].concat();
+                TryFromLetters {
+                    data: TryFromLettersData(all_letters),
+                    error: WordValidationError::TooLong(too_long_length),
+                }
+            })
+    }
+    pub fn try_from_letters() -> impl Strategy<Value = TryFromLetters> {
+        prop_oneof![try_from_letters_too_long()]
+    }
 
     pub fn macro_exponent_fails_isize_coercion()
     -> impl Strategy<Value = MacroExponentFailsISizeCoercion> {
@@ -475,10 +472,10 @@ pub mod test_cases {
             error,
         })
     }
-    // pub fn macro_too_long() -> impl Strategy<Value = MacroTooLong> {
-    //     macro_data_too_long_with_error().prop_map(|(factors, error)| MacroTooLong {
-    //         data: MacroTooLongData(factors),
-    //         error,
-    //     })
-    // }
+    pub fn macro_too_long() -> impl Strategy<Value = MacroTooLong> {
+        macro_data_too_long_with_error().prop_map(|(factors, error)| MacroTooLong {
+            data: MacroTooLongData(factors),
+            error,
+        })
+    }
 }

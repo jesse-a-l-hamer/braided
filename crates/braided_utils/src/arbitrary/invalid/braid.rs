@@ -128,10 +128,10 @@ pub mod test_cases {
     pub enum TryFromLettersData {
         IndexTooSmall(Option<valid::u16::Data>, Vec<Letter>),
         InvalidIndex(invalid::index::test_cases::TryNewData, Vec<Letter>),
-        // InvalidWord(
-        //     Option<valid::u16::Data>,
-        //     invalid::word::test_cases::TryFromLettersData,
-        // ),
+        InvalidWord(
+            Option<valid::u16::Data>,
+            invalid::word::test_cases::TryFromLettersData,
+        ),
     }
 
     #[derive(Debug, PartialEq, Eq, Clone)]
@@ -429,24 +429,24 @@ pub mod test_cases {
                 error: BraidValidationError::IndexValidation(invalid_braid_index.error),
             })
     }
-    // fn try_from_letters_invalid_word(
-    //     max_braid_index: Option<u16>,
-    // ) -> impl Strategy<Value = TryFromLetters> {
-    //     (
-    //         valid::u16::data(Some(2), max_braid_index),
-    //         invalid::word::test_cases::try_from_letters(),
-    //     )
-    //         .prop_flat_map(|(braid_index, invalid_word)| {
-    //             (
-    //                 Just(Some(braid_index)).prop_union(Just(None)),
-    //                 Just(invalid_word),
-    //             )
-    //         })
-    //         .prop_map(|(braid_index, invalid_word)| TryFromLetters {
-    //             data: TryFromLettersData::InvalidWord(braid_index, invalid_word.data),
-    //             error: BraidValidationError::WordValidation(invalid_word.error),
-    //         })
-    // }
+    fn try_from_letters_invalid_word(
+        max_braid_index: Option<u16>,
+    ) -> impl Strategy<Value = TryFromLetters> {
+        (
+            valid::u16::data(Some(2), max_braid_index),
+            invalid::word::test_cases::try_from_letters(),
+        )
+            .prop_flat_map(|(braid_index, invalid_word)| {
+                (
+                    Just(Some(braid_index)).prop_union(Just(None)),
+                    Just(invalid_word),
+                )
+            })
+            .prop_map(|(braid_index, invalid_word)| TryFromLetters {
+                data: TryFromLettersData::InvalidWord(braid_index, invalid_word.data),
+                error: BraidValidationError::WordValidation(invalid_word.error),
+            })
+    }
     pub fn try_from_letters(
         max_braid_index: Option<u16>,
         max_height: Option<u16>,
@@ -455,7 +455,7 @@ pub mod test_cases {
         prop_oneof![
             try_from_letters_index_too_small(max_braid_index, max_height, max_artin_length),
             try_from_letters_invalid_index(max_braid_index, max_artin_length),
-            // try_from_letters_invalid_word(max_braid_index),
+            try_from_letters_invalid_word(max_braid_index),
         ]
     }
 
