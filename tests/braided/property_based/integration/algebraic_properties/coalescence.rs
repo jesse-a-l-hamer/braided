@@ -12,7 +12,7 @@ fn valid_band_generator_coalescence_succeeds_as_expected() {
 
     test_runner
         .run(
-            &valid::coalescence::test_cases::coalesce_band(None, None, Some(100)),
+            &valid::coalescence::test_cases::coalesce_band(Some(100), Some(100), Some(100)),
             |test_case| {
                 let data = test_case.data.0;
                 let expected = test_case.expected;
@@ -32,7 +32,7 @@ fn word_coalescence_computes_as_expected() {
 
     test_runner
         .run(
-            &valid::coalescence::test_cases::coalesce_word(None, None, Some(100), true),
+            &valid::coalescence::test_cases::coalesce_word(Some(100), Some(100), Some(100), true),
             |test_case| {
                 let data = test_case.data.0;
                 let expected = test_case.expected;
@@ -52,7 +52,7 @@ fn braid_coalescence_computes_as_expected() {
 
     test_runner
         .run(
-            &valid::coalescence::test_cases::coalesce_braid(None, None, Some(100), true),
+            &valid::coalescence::test_cases::coalesce_braid(Some(100), Some(100), Some(100), true),
             |test_case| {
                 let data = test_case.data.0;
                 let expected = test_case.expected;
