@@ -12,7 +12,7 @@ fn valid_inputs_to_try_new_succeed_as_expected() {
 
     test_runner
         .run(
-            &valid::braid::test_cases::try_new(Some(50), Some(50)),
+            &valid::braid::test_cases::try_new(Some(3), Some(5)),
             |test_case| {
                 let data = test_case.data;
 

@@ -93,7 +93,7 @@ pub fn with_given_head(
         .prop_map(|(foot, head, sign)| Letter::try_new(foot, head, sign).unwrap())
 }
 
-pub fn vector_with_given_length_artin_only(
+pub fn vector_of_artin_letters_with_given_length(
     num_generators: usize,
     max_foot: Option<u16>,
 ) -> impl Strategy<Value = Vec<Letter>> {
@@ -111,7 +111,7 @@ pub fn vector_with_given_length_artin_only(
         .prop_map(|artin_generators| artin_generators.iter().map(|&a| Letter::from(a)).collect())
 }
 
-pub fn vector_with_given_artin_length_band_only(
+pub fn vector_of_band_letters_with_given_artin_length(
     artin_length: u16,
     max_head: Option<u16>,
 ) -> impl Strategy<Value = Vec<Letter>> {
@@ -121,31 +121,16 @@ pub fn vector_with_given_artin_length_band_only(
     {
         panic!("max_head must be at least 2.")
     }
-    if artin_length == 0 {
-        return Just(Vec::new()).boxed();
-    }
-    crate::arbitrary::utils::partition_into_odd_numbers(
+    crate::arbitrary::valid::band::vector_of_band_data_with_given_artin_length(
         artin_length,
-        (*[
-            artin_length as usize,
-            2usize * (max_head.unwrap_or(u16::MAX) as usize) - 3,
-        ]
-        .iter()
-        .min()
-        .unwrap())
-        .try_into()
-        .unwrap(),
+        max_head,
     )
-    .prop_flat_map(move |partition| {
-        let mut band_generator_strategies = Vec::new();
-        for artin_length in partition {
-            let height = artin_length.div_ceil(2);
-            band_generator_strategies.push(valid::band::with_given_height(height, max_head));
-        }
-        band_generator_strategies
+    .prop_map(|band_generator_data| {
+        band_generator_data
+            .iter()
+            .map(|(foot, head, sign)| Letter::try_new(*foot, Some(*head), *sign).unwrap())
+            .collect()
     })
-    .prop_map(|band_generators| band_generators.iter().map(|b| Letter::from(*b)).collect())
-    .boxed()
 }
 
 pub fn vector_of_data_with_given_artin_length(
@@ -202,11 +187,11 @@ pub fn vector_with_given_artin_length(
     (0..=artin_length)
         .prop_flat_map(move |num_artins| {
             (
-                valid::letter::vector_with_given_length_artin_only(
+                valid::letter::vector_of_artin_letters_with_given_length(
                     num_artins as usize,
                     max_head.map(|h| h - 1),
                 ),
-                valid::letter::vector_with_given_artin_length_band_only(
+                valid::letter::vector_of_band_letters_with_given_artin_length(
                     artin_length - num_artins,
                     max_head,
                 ),

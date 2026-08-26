@@ -65,10 +65,7 @@ pub fn vector_of_data_with_given_length(
     {
         panic!("max_foot must be positive to generate this data.");
     }
-    prop::collection::vec(
-        valid::artin::data(None, max_foot),
-        num_generators..=num_generators,
-    )
+    vec![valid::artin::data(None, max_foot).boxed(); num_generators]
 }
 
 pub mod test_cases {
