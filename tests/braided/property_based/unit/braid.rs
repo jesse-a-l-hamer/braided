@@ -12,7 +12,7 @@ fn valid_inputs_to_try_new_succeed_as_expected() {
 
     test_runner
         .run(
-            &valid::braid::test_cases::try_new(None, Some(100)),
+            &valid::braid::test_cases::try_new(Some(50), Some(50)),
             |test_case| {
                 let data = test_case.data;
 
@@ -45,7 +45,7 @@ fn valid_inputs_to_try_from_data_succeed_as_expected() {
 
     test_runner
         .run(
-            &valid::braid::test_cases::try_from_data(None, Some(100)),
+            &valid::braid::test_cases::try_from_data(Some(50), Some(50)),
             |test_case| {
                 let data = test_case.data;
                 let expected = test_case.expected;
@@ -67,7 +67,7 @@ fn valid_inputs_to_try_from_letters_succeed_as_expected() {
 
     test_runner
         .run(
-            &valid::braid::test_cases::try_from_letters(None, Some(100)),
+            &valid::braid::test_cases::try_from_letters(Some(50), Some(50)),
             |test_case| {
                 let data = test_case.data;
                 let expected = test_case.expected;
@@ -88,13 +88,16 @@ fn valid_inputs_to_try_trivial_succeed_as_expected() {
     let mut test_runner = prop::test_runner::TestRunner::default();
 
     test_runner
-        .run(&valid::braid::test_cases::try_trivial(None), |test_case| {
-            let data = test_case.data.0;
-            let expected = test_case.expected;
+        .run(
+            &valid::braid::test_cases::try_trivial(Some(50)),
+            |test_case| {
+                let data = test_case.data.0;
+                let expected = test_case.expected;
 
-            assert_that!(Braid::try_trivial(data), eq(&expected));
-            Ok(())
-        })
+                assert_that!(Braid::try_trivial(data), eq(&expected));
+                Ok(())
+            },
+        )
         .unwrap();
 }
 
@@ -105,7 +108,7 @@ fn inverse_computes_as_expected() {
 
     test_runner
         .run(
-            &valid::braid::test_cases::inverse(None, Some(100)),
+            &valid::braid::test_cases::inverse(Some(50), Some(50)),
             |test_case| {
                 let data = test_case.data.0;
                 let expected = test_case.expected;
