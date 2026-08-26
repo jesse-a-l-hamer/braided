@@ -108,8 +108,8 @@ macro_rules! letter {
 /// particular, because each [band letter](crate::Letter::Band) is composed of `1 + 2*(height - 1)`,
 /// where `height = band.head - band.foot`, it is possible to have an word whose
 /// [Artin length](crate::Word::artin_length) exceeds [`u16::MAX`], even when its
-/// [letter length](crate::Word::length) does not. More information on the fallibility of this
-/// macro can be found in the _**Errors**_ section below.
+/// [letter length](crate::Word::letter_length) does not. More information on the fallibility of
+/// this macro can be found in the _**Errors**_ section below.
 ///
 /// <div class="warning">
 ///

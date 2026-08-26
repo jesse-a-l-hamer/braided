@@ -641,9 +641,9 @@ impl Word {
     }
     /// Returns the _equivalent_ number of [Artin letters](Letter::Artin) within the [`Word`].
     ///
-    /// One should be careful not to confuse this method with [Word::length], which returns the
-    /// number of [letters](Letter) (whether [Artin](Letter::Artin) or [band](Letter::Band)) in the
-    /// [`Word`]. Nor should one confuse the return value of this method with the raw count of
+    /// One should be careful not to confuse this method with [Word::letter_length], which returns
+    /// the number of [letters](Letter) (whether [Artin](Letter::Artin) or [band](Letter::Band)) in
+    /// the [`Word`]. Nor should one confuse the return value of this method with the raw count of
     /// [Artin letters](Letter::Artin) in the word (a value for which we expose no method): instead,
     /// this method returns the raw count of [Artin letters](Letter::Artin), _plus_ the equivalent
     /// number of [Artin letters](Letter::Artin) contained within each [Band letter](Letter::Band).
