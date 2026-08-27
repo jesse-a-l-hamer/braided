@@ -8,55 +8,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [0.3.0](https://github.com/jesse-a-l-hamer/braided/compare/v0.2.1...v0.3.0) - 2026-08-27
 
-### Added
-
-- run /init in opencode to generate AGENTS.md
-- *(multiplication)* [**breaking**] auto-cancellation has been removed from multiplication, as this breaks associativity
-- implement functions to generate arbitrary values in separate crate `test_utils`
-
-### Fixed
-
-- *(braided_utils::arbitrary::utils)* rewrote parts of partition_into_odd_numbers to fix some edge cases
-- *(braided_utils::arbitrary::valid)* fixed coalesce and decompose test-case generators
-- *(tests)* remove more broken tests relying on cancellation and fixup remaining arbitrary tests
-- *(braided)* fix doctests which were broken after removing multiplication auto-cancelling
-- *(braided_utils::arbitrary)* fix several invalid range bugs in arbitrary functions
-- *(braided)* fix broken doctests
-- *(braided)* fix some tests which were broken after changes to `word!` macro
-- *(braided::macros)* fix bug in `word!` macro where we try to cast exponent to `i32` instead of `isize`
-- *(braided_utils::arbitrary::valid::coalescence)* enforce correct Artin length bounds
-
-### Other
-
-- *(property_based::unit::{braid,word})* reparametrize tests to cover a more relevant portion of the input space
-- *(property_based::unit::braid)* reduce braid size in property-based tests
-- remove empty files to fix formatting
-- *(macros,word)* fix broken links
-- *(property_based::unit::{braid, word})* comment out `invalid_*` tests
-- *(changelog)* update unreleased notes
-- *(tests::braided::property_based::unit)* uncomment invalid construction unit tests for braid and word to attempt a fix
-- *(property_based::integration::algebraic_properties::coalescence)* uncomment tests
-- *(property_based::unit)* remove any word or braid "invalid"-type tests
-- *(tests::property_based)* remove "TooLong"-type property-based invalid tests
-- *(tests)* move property-based tests into their own testing module
-- *(benches)* remove multiplication_by_cancellation benchmark
-- *(braided_utils::arbitrary,tests)* remove all tests and helpers dealing with cancellation and invertability
-- *(integration::algebraic_properties::cancellation)* add property-based test for cancelling multiplication
-- *(integration::algebraic_properties::group_axioms)* add property-based tests for group axioms
-- *(integration::api::multiplication)* add property-based test for non-cancelling multiplication
-- *(tests::integration::api::construction)* refactor all tests except invalid word and invalid braid to use property testing approach
-- *(tests)* move existing integration tests into tests/integration/ and create skeleton tests/unit/ structure
-- *(tests)* move telemery module from tests/ into crates/braided_utils/
-- *(braided::word)* [**breaking**] rename `Word::length` to `Word::letter_length` for better clarity and consistency
-- *(braided::generators::band)* [**breaking**] rename `BandGenerator::coalesce` to `BandGenerator::try_coalesce` to reflect fallibility
-- *(braided)* make generators and generators::band modules public but hide from docs
-- *(braided::{error, generators::band})* fix broken links
-- Merge branch 'develop' into test/introduce_proptest
-- exclude release-plz.toml from packaging
-- rename `test_utils` to `braided_utils`
-- add release-plz.toml and set `release = false` on `test_utils` package
-- converted repository into a workspace, put `braided` source aside `test_utils` in `crates/` directory
-
 This release is a foundational refactor of the library's internals and test infrastructure, aimed at
 long term health and correctness. The headline change is a behavioral one: **auto-cancellation has
 been removed from the multiplication operation**, as it was breaking associativity. In particular,
@@ -93,6 +44,34 @@ A related set of API and infrastructure changes include:
     which depended on the (now removed) behavior of auto-cancellation.
   - Fixed a bug in the `word!` macro where we were attempting to cast exponents to `i32` instead
     of `isize`.
+
+### Added
+
+- run /init in opencode to generate AGENTS.md
+- _(multiplication)_ [**breaking**] auto-cancellation has been removed from multiplication, as this breaks associativity
+- implement functions to generate arbitrary values in separate crate `braided_utils`
+- refactor project structure into workspace
+
+### Fixed
+
+- _(braided::macros)_ fix bug in `word!` macro where we try to cast exponent to `i32` instead of `isize`
+- _(braided)_ fix some tests which were broken after changes to `word!` macro
+
+### Other
+
+- _(macros,word)_ fix broken links
+- _(tests)_ move property-based tests into their own testing module
+- _(benches)_ remove multiplication_by_cancellation benchmark
+- _(tests::integration::api::construction)_ refactor all tests except invalid word and invalid braid to use property testing approach
+- _(tests)_ move existing integration tests into tests/integration/ and create skeleton tests/unit/ structure
+- _(tests)_ move telemery module from tests/ into crates/braided_utils/
+- _(braided::word)_ [**breaking**] rename `Word::length` to `Word::letter_length` for better clarity and consistency
+- _(braided::generators::band)_ [**breaking**] rename `BandGenerator::coalesce` to `BandGenerator::try_coalesce` to reflect fallibility
+- _(braided)_ make generators and generators::band modules public but hide from docs
+- _(braided::{error, generators::band})_ fix broken links
+- Merge branch 'develop' into test/introduce_proptest
+- exclude release-plz.toml from packaging
+- add release-plz.toml and set `release = false` on `braided_utils` package
 
 ## [0.2.1](https://github.com/jesse-a-l-hamer/braided/compare/v0.2.0...v0.2.1) - 2026-08-11
 
