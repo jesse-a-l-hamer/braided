@@ -1,8 +1,8 @@
 [package]
 name = "braided"
-version = "0.2.1"
-edition = "2024"
-rust-version = "1.97"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
 description = "A library for defining and manipulating mathematical braids"
 documentation = "https://docs.rs/braided"
 readme = "README.md"
@@ -13,10 +13,31 @@ keywords = ["braids", "knots", "topology"]
 categories = ["mathematics"]
 exclude = [
   ".github/",
+  "release-plz.toml",
 ]
+
+[workspace]
+resolver = "3"
+members = ["crates/braided_utils"]
+default-members = ["."]
+
+[workspace.package]
+version = "0.2.1"
+edition = "2024"
+rust-version = "1.97"
+
+[workspace.dependencies]
+proptest = "1.11.0"
+tracing = { version = "0.1.44", features = ["log"] }
+tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 
 [lib]
 bench = false
+path = "crates/braided/lib.rs"
+
+[[test]]
+name = "braided_tests"
+path = "tests/braided/main.rs"
 
 [[bench]]
 harness = false
@@ -32,10 +53,6 @@ name = "coalescence_by_band_number"
 
 [[bench]]
 harness = false
-name = "multiplication_by_cancellation"
-
-[[bench]]
-harness = false
 name = "multiplication_by_length"
 
 [[bench]]
@@ -44,9 +61,16 @@ name = "multiplication_by_type"
 
 [dependencies]
 thiserror = "2.0.19"
-tracing = { version = "0.1.44", features = ["log"] }
+tracing.workspace = true
 
 [dev-dependencies]
+braided_utils = { path = "crates/braided_utils" }
 criterion = { version = "0.8.2", features = ["html_reports"] }
 googletest = "0.14.3"
-tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
+proptest.workspace = true
+
+[profile.test.package.proptest]
+opt-level = 3
+
+[profile.test.package.rand_chacha]
+opt-level = 3
