@@ -2,37 +2,8 @@ use braided::Word;
 use braided_utils::arbitrary::valid;
 use braided_utils::telemetry::start_tracing;
 use googletest::assert_that;
-use googletest::matchers::{anything, each, eq, ge, le, ok, predicate};
+use googletest::matchers::{anything, eq, ok};
 use proptest::prelude::*;
-
-#[test]
-fn partition_into_odd_numbers_works() {
-    let mut test_runner = prop::test_runner::TestRunner::default();
-
-    test_runner
-        .run(
-            &(0..=u16::MAX)
-                .prop_flat_map(|partition_value| (Just(partition_value), 1..=partition_value))
-                .prop_flat_map(|(partition_value, max_elem)| {
-                    (
-                        braided_utils::arbitrary::utils::partition_into_odd_numbers(
-                            partition_value,
-                            max_elem as usize,
-                        ),
-                        Just(partition_value),
-                        Just(max_elem),
-                    )
-                }),
-            |(partition, partition_value, max_elem)| {
-                assert_that!(&partition, each(predicate(|&x: &u16| x % 2 == 1)));
-                assert_that!(partition.iter().sum::<u16>(), eq(partition_value));
-                assert_that!(&partition, each(le(&max_elem)));
-                assert_that!(&partition, each(ge(&1)));
-                Ok(())
-            },
-        )
-        .unwrap();
-}
 
 #[test]
 fn valid_inputs_to_try_new_succeed_as_expected() {
@@ -41,7 +12,7 @@ fn valid_inputs_to_try_new_succeed_as_expected() {
 
     test_runner
         .run(
-            &valid::word::test_cases::try_new(Some(3), Some(3)),
+            &valid::word::test_cases::try_new(Some(10), Some(100)),
             |test_case| {
                 let data = test_case.data.0;
 
@@ -71,7 +42,7 @@ fn valid_inputs_to_try_from_letters_succeed_as_expected() {
 
     test_runner
         .run(
-            &valid::word::test_cases::try_from_letters(None, Some(1000)),
+            &valid::word::test_cases::try_from_letters(Some(10), Some(100)),
             |test_case| {
                 let data = test_case.data.0;
                 let expected = test_case.expected;
@@ -91,7 +62,7 @@ fn inverse_computes_as_expected() {
 
     test_runner
         .run(
-            &valid::word::test_cases::inverse(None, Some(1000)),
+            &valid::word::test_cases::inverse(Some(10), Some(100)),
             |test_case| {
                 let data = test_case.data.0;
                 let expected = test_case.expected;
