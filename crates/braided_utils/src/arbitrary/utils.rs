@@ -53,11 +53,8 @@ pub fn partition_into_odd_numbers(
             }
         })
         .prop_flat_map(move |partition_length| {
-            let max_partition_elem = max_partition_elem.min(if partition_value.is_multiple_of(2) {
-                partition_value - (partition_length - 1)
-            } else {
-                partition_value - partition_length
-            });
+            let max_partition_elem =
+                max_partition_elem.min(partition_value - (partition_length - 1));
 
             (
                 Just(max_partition_elem),
