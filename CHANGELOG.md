@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [0.3.0](https://github.com/jesse-a-l-hamer/braided/compare/v0.2.1...v0.3.0) - 2026-08-27
+
 This release is a foundational refactor of the library's internals and test infrastructure, aimed at
 long term health and correctness. The headline change is a behavioral one: **auto-cancellation has
 been removed from the multiplication operation**, as it was breaking associativity. In particular,
@@ -42,6 +44,34 @@ A related set of API and infrastructure changes include:
     which depended on the (now removed) behavior of auto-cancellation.
   - Fixed a bug in the `word!` macro where we were attempting to cast exponents to `i32` instead
     of `isize`.
+
+### Added
+
+- run /init in opencode to generate AGENTS.md
+- _(multiplication)_ [**breaking**] auto-cancellation has been removed from multiplication, as this breaks associativity
+- implement functions to generate arbitrary values in separate crate `braided_utils`
+- refactor project structure into workspace
+
+### Fixed
+
+- _(braided::macros)_ fix bug in `word!` macro where we try to cast exponent to `i32` instead of `isize`
+- _(braided)_ fix some tests which were broken after changes to `word!` macro
+
+### Other
+
+- _(macros,word)_ fix broken links
+- _(tests)_ move property-based tests into their own testing module
+- _(benches)_ remove multiplication_by_cancellation benchmark
+- _(tests::integration::api::construction)_ refactor all tests except invalid word and invalid braid to use property testing approach
+- _(tests)_ move existing integration tests into tests/integration/ and create skeleton tests/unit/ structure
+- _(tests)_ move telemery module from tests/ into crates/braided_utils/
+- _(braided::word)_ [**breaking**] rename `Word::length` to `Word::letter_length` for better clarity and consistency
+- _(braided::generators::band)_ [**breaking**] rename `BandGenerator::coalesce` to `BandGenerator::try_coalesce` to reflect fallibility
+- _(braided)_ make generators and generators::band modules public but hide from docs
+- _(braided::{error, generators::band})_ fix broken links
+- Merge branch 'develop' into test/introduce_proptest
+- exclude release-plz.toml from packaging
+- add release-plz.toml and set `release = false` on `braided_utils` package
 
 ## [0.2.1](https://github.com/jesse-a-l-hamer/braided/compare/v0.2.0...v0.2.1) - 2026-08-11
 
