@@ -61,7 +61,7 @@ checksum = "b588b76d00fde79687d7646a9b5bdf3cc0f655e0bbd080335a95d7e96f3587da"
 
 [[package]]
 name = "braided"
-version = "0.2.1"
+version = "0.3.0"
 dependencies = [
  "braided_utils",
  "criterion",
@@ -73,7 +73,7 @@ dependencies = [
 
 [[package]]
 name = "braided_utils"
-version = "0.2.1"
+version = "0.3.0"
 dependencies = [
  "braided",
  "proptest",
