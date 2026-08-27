@@ -134,20 +134,24 @@ pub fn vector_of_band_data_with_given_artin_length(
     {
         panic!("max_head must be at least 2.")
     }
-    let max_elem_size = max_head
-        .map(|h| 2 * (h as usize).max(1) - 1)
+    let max_band_artin_length = max_head
+        .map(|h| 2 * (h as usize).max(2) - 3)
         .unwrap_or(artin_length as usize);
-    crate::arbitrary::utils::partition_into_odd_numbers(artin_length, max_elem_size).prop_flat_map(
-        move |partition| {
+    crate::arbitrary::utils::partition_into_odd_numbers(artin_length, max_band_artin_length)
+        .prop_flat_map(move |partition| {
             let mut band_generator_data_strategies = Vec::new();
             for band_artin_length in partition {
                 let height = band_artin_length.div_ceil(2);
+                if let Some(max_head) = max_head
+                    && max_head < height + 1
+                {
+                    panic!("max_head = {max_head} < {} = height + 1", height + 1)
+                }
                 band_generator_data_strategies
                     .push(valid::band::data_with_given_height(height, max_head));
             }
             band_generator_data_strategies
-        },
-    )
+        })
 }
 
 pub mod test_cases {
