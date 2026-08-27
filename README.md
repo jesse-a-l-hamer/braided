@@ -41,11 +41,6 @@ assert_eq!(
     word![[1; 1]], // multiplication always produces a word, even if the result is one letter
 );
 
-// Words can be formally inverted, and the multiplication detects this:
-let some_word = word![[1; 2], [2 => 5; -7], [3; 3], [1 => 4; 2]].clone_unwrap();
-assert_eq!(&some_word * some_word.inverse(), word![]); // the product is trivial
-assert_eq!(some_word.inverse() * some_word, word![]); // the product is trivial
-
 // A braid consists of a braid index and a word:
 let my_9_braid = braid![(9); [1; 2], [2 => 5; -7], [3; 3], [1 => 4; 2]];
 
@@ -97,12 +92,12 @@ see implemented before bumping the version to `v1.0.0`:
   - [x] [`braid!`]
 - [x] Multiplication
   - [x] impl [`std::ops::Mul`] for [`Letter`], [`Word`], [`Braid`], and their borrowed variants.
-  - [x] implement auto-cancellation for multiplication
   - [x] impl [`std::ops::Mul`] for [`LetterResult`], [`WordResult`],[`BraidResult`], and their
         borrowed variants.
 - [ ] A `BraidMove` trait that encodes the notion of a geometric/algebraic manipulation
       transforming one braid into another in some controlled way.
 - [ ] Concrete types implementing `BraidMove`:
+  - [ ] Simplification/cancellation
   - [ ] Far commutativity
   - [ ] Braid relations
   - [ ] Band slides

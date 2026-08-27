@@ -1,0 +1,271 @@
+use braided::Braid;
+use braided_utils::arbitrary::valid;
+use braided_utils::telemetry::start_tracing;
+use googletest::assert_that;
+use googletest::matchers::{anything, eq, ok};
+use proptest::prelude::*;
+
+#[test]
+fn valid_inputs_to_try_new_succeed_as_expected() {
+    start_tracing();
+    let mut test_runner = prop::test_runner::TestRunner::default();
+
+    test_runner
+        .run(
+            &valid::braid::test_cases::try_new(Some(10), Some(100)),
+            |test_case| {
+                let data = test_case.data;
+
+                let braid = Braid::try_new(data.braid_index, data.word);
+                assert_that!(*braid, ok(anything()));
+
+                let braid = braid.clone_unwrap();
+
+                assert_that!(braid.braid_index(), eq(test_case.expected_braid_index));
+                assert_that!(braid.word(), eq(&test_case.expected_word));
+                assert_that!(braid.letters(), eq(&test_case.expected_letters));
+                assert_that!(braid.is_trivial(), eq(test_case.expected_is_trivial));
+                assert_that!(braid.letter_length(), eq(test_case.expected_letter_length));
+                assert_that!(braid.artin_length(), eq(test_case.expected_artin_length));
+                assert_that!(braid.writhe(), eq(test_case.expected_writhe));
+                assert_that!(
+                    braid.minimal_required_braid_index(),
+                    eq(test_case.expected_minimal_required_braid_index),
+                );
+                Ok(())
+            },
+        )
+        .unwrap();
+}
+
+#[test]
+fn valid_inputs_to_try_from_data_succeed_as_expected() {
+    start_tracing();
+    let mut test_runner = prop::test_runner::TestRunner::default();
+
+    test_runner
+        .run(
+            &valid::braid::test_cases::try_from_data(Some(10), Some(100)),
+            |test_case| {
+                let data = test_case.data;
+                let expected = test_case.expected;
+
+                assert_that!(
+                    Braid::try_from_data(data.braid_index, data.word_data),
+                    eq(&expected)
+                );
+                Ok(())
+            },
+        )
+        .unwrap();
+}
+
+#[test]
+fn valid_inputs_to_try_from_letters_succeed_as_expected() {
+    start_tracing();
+    let mut test_runner = prop::test_runner::TestRunner::default();
+
+    test_runner
+        .run(
+            &valid::braid::test_cases::try_from_letters(Some(10), Some(100)),
+            |test_case| {
+                let data = test_case.data;
+                let expected = test_case.expected;
+
+                assert_that!(
+                    Braid::try_from_letters(data.braid_index, &data.letters),
+                    eq(&expected)
+                );
+                Ok(())
+            },
+        )
+        .unwrap();
+}
+
+#[test]
+fn valid_inputs_to_try_trivial_succeed_as_expected() {
+    start_tracing();
+    let mut test_runner = prop::test_runner::TestRunner::default();
+
+    test_runner
+        .run(&valid::braid::test_cases::try_trivial(None), |test_case| {
+            let data = test_case.data.0;
+            let expected = test_case.expected;
+
+            assert_that!(Braid::try_trivial(data), eq(&expected));
+            Ok(())
+        })
+        .unwrap();
+}
+
+#[test]
+fn inverse_computes_as_expected() {
+    start_tracing();
+    let mut test_runner = prop::test_runner::TestRunner::default();
+
+    test_runner
+        .run(
+            &valid::braid::test_cases::inverse(Some(10), Some(100)),
+            |test_case| {
+                let data = test_case.data.0;
+                let expected = test_case.expected;
+
+                assert_that!(data.inverse(), eq(&expected));
+                Ok(())
+            },
+        )
+        .unwrap();
+}
+
+// #[test]
+// fn invalid_inputs_to_try_new_fail_as_expected() {
+//     start_tracing();
+//     let mut test_runner = prop::test_runner::TestRunner::default();
+//
+//     test_runner
+//         .run(
+//             &invalid::braid::test_cases::try_new(None, None, Some(100)),
+//             |test_case| {
+//                 let data = test_case.data;
+//                 let error = test_case.error;
+//
+//                 let invalid_braid: BraidResult = match data {
+//                     invalid::braid::test_cases::TryNewData::IndexTooSmall(braid_index, word) => {
+//                         Braid::try_new(braid_index, word)
+//                     }
+//                     invalid::braid::test_cases::TryNewData::InvalidIndex(braid_index, word) => {
+//                         match braid_index {
+//                             invalid::index::test_cases::TryNewData::Zero(braid_index) => {
+//                                 Braid::try_new(braid_index, word)
+//                             }
+//                             invalid::index::test_cases::TryNewData::InvalidU16(braid_index) => {
+//                                 Braid::try_new(braid_index, word)
+//                             }
+//                         }
+//                     }
+//                 };
+//
+//                 assert_that!(*invalid_braid, err(eq(&error)));
+//
+//                 Ok(())
+//             },
+//         )
+//         .unwrap();
+// }
+//
+// #[test]
+// fn invalid_inputs_to_try_from_data_fail_as_expected() {
+//     start_tracing();
+//     let mut test_runner = prop::test_runner::TestRunner::default();
+//
+//     test_runner
+//         .run(
+//             &invalid::braid::test_cases::try_from_data(None, None, Some(100)),
+//             |test_case| {
+//                 let data = test_case.data;
+//                 let error = test_case.error;
+//
+//                 let invalid_braid: BraidResult = match data {
+//                     invalid::braid::test_cases::TryFromDataData::IndexTooSmall(
+//                         braid_index,
+//                         word,
+//                     ) => Braid::try_from_data(braid_index, word),
+//                     invalid::braid::test_cases::TryFromDataData::InvalidIndex(
+//                         braid_index,
+//                         word,
+//                     ) => match braid_index {
+//                         invalid::index::test_cases::TryNewData::Zero(braid_index) => {
+//                             Braid::try_from_data(Some(braid_index), word)
+//                         }
+//                         invalid::index::test_cases::TryNewData::InvalidU16(braid_index) => {
+//                             Braid::try_from_data(Some(braid_index), word)
+//                         }
+//                     },
+//                     invalid::braid::test_cases::TryFromDataData::InvalidWord(
+//                         braid_index,
+//                         word_data,
+//                     ) => match word_data {
+//                         invalid::word::test_cases::TryNewData::TooLong(word_data) => {
+//                             Braid::try_from_data(braid_index, word_data)
+//                         }
+//                         invalid::word::test_cases::TryNewData::InvalidLetter(word_data) => {
+//                             Braid::try_from_data(braid_index, word_data)
+//                         }
+//                     },
+//                 };
+//
+//                 assert_that!(*invalid_braid, err(eq(&error)));
+//
+//                 Ok(())
+//             },
+//         )
+//         .unwrap();
+// }
+//
+// #[test]
+// fn invalid_inputs_to_try_from_letters_fail_as_expected() {
+//     start_tracing();
+//     let mut test_runner = prop::test_runner::TestRunner::default();
+//
+//     test_runner
+//         .run(
+//             &invalid::braid::test_cases::try_from_letters(None, None, Some(100)),
+//             |test_case| {
+//                 let data = test_case.data;
+//                 let error = test_case.error;
+//
+//                 let invalid_braid: BraidResult = match data {
+//                     invalid::braid::test_cases::TryFromLettersData::IndexTooSmall(
+//                         braid_index,
+//                         letters,
+//                     ) => Braid::try_from_letters(braid_index, &letters),
+//                     invalid::braid::test_cases::TryFromLettersData::InvalidIndex(
+//                         braid_index,
+//                         letters,
+//                     ) => match braid_index {
+//                         invalid::index::test_cases::TryNewData::Zero(braid_index) => {
+//                             Braid::try_from_letters(Some(braid_index), &letters)
+//                         }
+//                         invalid::index::test_cases::TryNewData::InvalidU16(braid_index) => {
+//                             Braid::try_from_letters(Some(braid_index), &letters)
+//                         }
+//                     },
+//                     invalid::braid::test_cases::TryFromLettersData::InvalidWord(
+//                         braid_index,
+//                         letters,
+//                     ) => Braid::try_from_letters(braid_index, &letters.0),
+//                 };
+//
+//                 assert_that!(*invalid_braid, err(eq(&error)));
+//
+//                 Ok(())
+//             },
+//         )
+//         .unwrap();
+// }
+//
+// #[test]
+// fn invalid_inputs_to_try_trivial_fail_as_expected() {
+//     start_tracing();
+//     let mut test_runner = prop::test_runner::TestRunner::default();
+//
+//     test_runner
+//         .run(&invalid::braid::test_cases::try_trivial(), |test_case| {
+//             let data = test_case.data.0;
+//             let error = test_case.error;
+//
+//             let invalid_braid: BraidResult = match data {
+//                 invalid::index::test_cases::TryNewData::Zero(braid_index) => {
+//                     Braid::try_trivial(braid_index)
+//                 }
+//                 invalid::index::test_cases::TryNewData::InvalidU16(braid_index) => {
+//                     Braid::try_trivial(braid_index)
+//                 }
+//             };
+//
+//             assert_that!(*invalid_braid, err(eq(&error)));
+//
+//             Ok(())
+//         })
+//         .unwrap();
+// }
